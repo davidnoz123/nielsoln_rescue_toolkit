@@ -497,7 +497,7 @@ def start_background_update(root: Path = None) -> threading.Thread:
 # Workflow:
 #   1. Fetch SHA256SUMS for the chosen release tag from GitHub.
 #   2. Locate the canonical install_only archive for each target platform.
-#   3. Check dist_root/runtimes/<platform>/<filename> against the SHA256.
+#   3. Check <root>/runtimes/<platform>/<filename> against the SHA256.
 #   4. Report status: cached-ok, cached-bad, or download-required.
 
 _RELEASE_TAG = "20260408"
@@ -557,6 +557,66 @@ def _verify_cached_file(path: Path, expected_sha256: str) -> bool:
     return sha256_file(path).lower() == expected_sha256.lower()
 
 
+def iter_runtime_plan(
+    dist_root,
+    release_tag: str = _RELEASE_TAG,
+    python_version: str = _PYTHON_VERSION,
+):
+    """Yield one dict per target platform with resolved filename, checksum, URL, and cache status.
+
+    Fetches SHA256SUMS from GitHub once, then yields for each platform in
+    _RUNTIME_PLATFORM_TAGS.  Each yielded dict has keys:
+
+        platform_tag    str   e.g. "linux-x86_64"
+        filename        str   canonical tar.gz name, or None if unresolved
+        expected_sha256 str   hex digest from SHA256SUMS, or "" if unresolved
+        url             str   full download URL, or "" if unresolved
+        cached_file     Path  expected local path of the archive
+        cache_ok        bool  True if cached_file exists and SHA256 matches
+        cache_exists    bool  True if cached_file exists (regardless of SHA256)
+        warning         str   non-empty string if resolution failed
+    """
+    checksums = _fetch_sha256sums(release_tag)
+    for platform_tag in _RUNTIME_PLATFORM_TAGS:
+        cache_dir = Path(os.path.join(dist_root, "runtimes", platform_tag))
+        matches = [fn for fn in checksums if _match_runtime_filename(fn, platform_tag, python_version)]
+
+        if not matches:
+            yield {
+                "platform_tag": platform_tag, "filename": None,
+                "expected_sha256": "", "url": "",
+                "cached_file": cache_dir, "cache_ok": False, "cache_exists": False,
+                "warning": "no matching file found in SHA256SUMS",
+            }
+            continue
+
+        if len(matches) > 1:
+            yield {
+                "platform_tag": platform_tag, "filename": None,
+                "expected_sha256": "", "url": "",
+                "cached_file": cache_dir, "cache_ok": False, "cache_exists": False,
+                "warning": f"multiple matches: {matches}",
+            }
+            continue
+
+        filename = matches[0]
+        expected_sha256 = checksums[filename]
+        url = f"{_RELEASE_BASE_URL}/{release_tag}/{filename}"
+        cached_file = cache_dir / filename
+        cache_ok = _verify_cached_file(cached_file, expected_sha256)
+
+        yield {
+            "platform_tag": platform_tag,
+            "filename": filename,
+            "expected_sha256": expected_sha256,
+            "url": url,
+            "cached_file": cached_file,
+            "cache_ok": cache_ok,
+            "cache_exists": cached_file.exists(),
+            "warning": "",
+        }
+
+
 def print_runtime_download_plan(
     dist_root: Path = None,
     release_tag: str = _RELEASE_TAG,
@@ -565,43 +625,24 @@ def print_runtime_download_plan(
     if dist_root is None: dist_root = file__fileSysD
     assert os.path.isdir(dist_root), f"dist_root is not an existing directory: {dist_root!r}"
 
-    print(f"Fetching SHA256SUMS for release {release_tag} ...")
-    checksums = _fetch_sha256sums(release_tag)
-    print(f"  {len(checksums)} entries found.")
-
-    print()
     print(f"Portable Python download plan  (Python {python_version}, release {release_tag})")
     print("=" * 70)
 
-    for platform_tag in _RUNTIME_PLATFORM_TAGS:
-        matches = [fn for fn in checksums if _match_runtime_filename(fn, platform_tag, python_version)]
-
-        print(f"\nPlatform : {platform_tag}")
-
-        if not matches:
-            print("  WARNING: no matching file found in SHA256SUMS")
+    for entry in iter_runtime_plan(dist_root, release_tag, python_version):
+        print(f"\nPlatform : {entry['platform_tag']}")
+        if entry["warning"]:
+            print(f"  WARNING: {entry['warning']}")
             continue
-        if len(matches) > 1:
-            print(f"  WARNING: multiple matches found — {matches}")
-            continue
-
-        filename = matches[0]
-        expected_sha256 = checksums[filename]
-        url = f"{_RELEASE_BASE_URL}/{release_tag}/{filename}"
-        cache_dir = Path(os.path.join(dist_root, "runtimes", platform_tag))
-        cached_file = cache_dir / filename
-
-        if _verify_cached_file(cached_file, expected_sha256):
-            status = "CACHED — checksum OK, skip download"
-        elif cached_file.exists():
-            status = "CACHED but checksum MISMATCH — re-download needed"
+        if entry["cache_ok"]:
+            status = "CACHED -- checksum OK, skip download"
+        elif entry["cache_exists"]:
+            status = "CACHED but checksum MISMATCH -- re-download needed"
         else:
-            status = "not cached — download required"
-
-        print(f"Filename : {filename}")
-        print(f"SHA256   : {expected_sha256}")
-        print(f"URL      : {url}")
-        print(f"Cache    : {cached_file}")
+            status = "not cached -- download required"
+        print(f"Filename : {entry['filename']}")
+        print(f"SHA256   : {entry['expected_sha256']}")
+        print(f"URL      : {entry['url']}")
+        print(f"Cache    : {entry['cached_file']}")
         print(f"Status   : {status}")
 
     print()
@@ -609,8 +650,104 @@ def print_runtime_download_plan(
     print("Re-run this plan to verify checksums after downloading.")
 
 
+# ---------------------------------------------------------------------------
+# build_usb_package — Assemble dist/NIELSOLN_RESCUE_USB
+# ---------------------------------------------------------------------------
+#
+# Steps:
+#   1. Remove old NIELSOLN_RESCUE_USB if present.
+#   2. Create fresh NIELSOLN_RESCUE_USB.
+#   3. Copy bootstrap.sh, bootstrap.py, toolkit.py.
+#   4. Create cache/, logs/, reports/, quarantine/ with .gitkeep sentinels.
+#   5. For each runtime: copy verified cached archive if available;
+#      otherwise write a README.txt placeholder and print the download URL.
+#   6. chmod bootstrap.sh executable (Linux/macOS only).
+
+
+def _write_runtime_placeholder(path: Path, platform_tag: str) -> None:
+    (path / "README.txt").write_text(
+        f"Place the portable Python 3 runtime for {platform_tag} here.\n"
+        "Expected layout:\n"
+        "  python/\n"
+        "    bin/\n"
+        "      python3\n",
+        encoding="utf-8",
+    )
+
+
+def build_usb_package(dist_root: Path = None) -> None:
+    """Build dist/NIELSOLN_RESCUE_USB from repo sources.
+
+    import runpy ; temp = runpy._run_module_as_main("toolkit")
+    """
+    if dist_root is None: dist_root = file__fileSysD
+    assert os.path.isdir(dist_root), f"dist_root is not an existing directory: {dist_root!r}"
+
+    root = Path(dist_root)
+    dist = root / "dist" / "NIELSOLN_RESCUE_USB"
+
+    print(f"Building USB package into: {dist}")
+
+    if dist.exists():
+        print("Removing existing dist folder...")
+        shutil.rmtree(dist)
+
+    dist.mkdir(parents=True)
+
+    # Core files
+    for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py"]:
+        shutil.copy2(root / name, dist / name)
+        print(f"  Copied {name}")
+
+    # Working directories
+    for name in ["cache/downloads", "cache/wheels", "cache/repo", "logs", "reports", "quarantine"]:
+        d = dist / name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / ".gitkeep").touch()
+
+    # Runtimes — copy verified cached archives; fall back to README placeholder
+    print("\nChecking runtime caches ...")
+    for entry in iter_runtime_plan(dist_root=root):
+        platform_tag = entry["platform_tag"]
+        dest_dir = dist / "runtimes" / platform_tag
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        if entry["warning"]:
+            print(f"  {platform_tag}: WARNING -- {entry['warning']}")
+            _write_runtime_placeholder(dest_dir, platform_tag)
+            continue
+
+        if entry["cache_ok"]:
+            dest_file = dest_dir / entry["filename"]
+            shutil.copy2(entry["cached_file"], dest_file)
+            print(f"  {platform_tag}: copied {entry['filename']}")
+        else:
+            if entry["cache_exists"]:
+                print(f"  {platform_tag}: checksum mismatch -- placeholder written")
+            else:
+                print(f"  {platform_tag}: not cached -- placeholder written")
+                print(f"    Download: {entry['url']}")
+                print(f"    Save to:  {entry['cached_file']}")
+            _write_runtime_placeholder(dest_dir, platform_tag)
+
+    # Make bootstrap.sh executable on Unix-like systems
+    try:
+        os.chmod(dist / "bootstrap.sh", 0o755)
+    except (AttributeError, NotImplementedError):
+        pass  # Windows -- permissions applied when copying to USB
+
+    print(f"\nDone. USB package: {dist}")
+    print()
+    print("Contents:")
+    for path in sorted(dist.rglob("*")):
+        rel = path.relative_to(dist)
+        indent = "  " * (len(rel.parts) - 1)
+        label = str(rel.name) + ("/" if path.is_dir() else "")
+        print(f"  {indent}{label}")
+
+
 if __name__ == "__main__":
 
     if True:
-        print_runtime_download_plan()
+        build_usb_package()
         raise Exception("OK")
