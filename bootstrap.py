@@ -15,13 +15,9 @@ def find_usb_root() -> Path:
     return Path(__file__).resolve().parent
 
 
-def ensure_dirs(root: Path) -> None:
-    for name in ["logs", "reports", "cache/downloads", "cache/wheels", "cache/repo", "quarantine"]:
-        (root / name).mkdir(parents=True, exist_ok=True)
-
-
 def setup_logging(root: Path, verbose: bool) -> None:
     log_path = root / "logs" / "toolkit.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
@@ -35,7 +31,6 @@ def setup_logging(root: Path, verbose: bool) -> None:
 
 def main() -> int:
     root = find_usb_root()
-    ensure_dirs(root)
 
     parser = argparse.ArgumentParser(
         prog="bootstrap",

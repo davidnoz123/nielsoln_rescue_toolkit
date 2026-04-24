@@ -120,6 +120,7 @@ def run_triage(root: Path = None, target: Path = None) -> int:
         return 2
 
     report_path = root / "reports" / "triage_report.csv"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     _triage_log.info("Starting triage: target=%s", target)
 
     count = 0
@@ -192,6 +193,7 @@ def run_scan(root: Path = None, target: Path = None) -> int:
         return 3
 
     log_path = root / "logs" / "clamav_scan.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
         clamscan,
