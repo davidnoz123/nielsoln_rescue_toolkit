@@ -705,7 +705,7 @@ def build_usb_package(dist_root: Path = None) -> None:
         d.mkdir(parents=True, exist_ok=True)
         (d / ".gitkeep").touch()
 
-    # Runtimes — copy verified cached archives; fall back to README placeholder
+    # Runtimes — download if needed, verify checksum, copy to dist
     print("\nChecking runtime caches ...")
     for entry in iter_runtime_plan(dist_root=root):
         platform_tag = entry["platform_tag"]
@@ -717,18 +717,36 @@ def build_usb_package(dist_root: Path = None) -> None:
             _write_runtime_placeholder(dest_dir, platform_tag)
             continue
 
-        if entry["cache_ok"]:
-            dest_file = dest_dir / entry["filename"]
-            shutil.copy2(entry["cached_file"], dest_file)
-            print(f"  {platform_tag}: copied {entry['filename']}")
-        else:
+        if not entry["cache_ok"]:
+            # Need to (re-)download
+            cached_file: Path = entry["cached_file"]
             if entry["cache_exists"]:
-                print(f"  {platform_tag}: checksum mismatch -- placeholder written")
+                print(f"  {platform_tag}: checksum mismatch -- re-downloading ...")
             else:
-                print(f"  {platform_tag}: not cached -- placeholder written")
-                print(f"    Download: {entry['url']}")
-                print(f"    Save to:  {entry['cached_file']}")
-            _write_runtime_placeholder(dest_dir, platform_tag)
+                print(f"  {platform_tag}: not cached -- downloading ...")
+            print(f"    URL: {entry['url']}")
+            cached_file.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                data = _fetch_url(entry["url"])
+                cached_file.write_bytes(data)
+                if _verify_cached_file(cached_file, entry["expected_sha256"]):
+                    print(f"    Downloaded and verified: {cached_file.name}")
+                    # Refresh entry so the copy block below runs
+                    entry = dict(entry, cache_ok=True)
+                else:
+                    print(f"    ERROR: checksum mismatch after download -- skipping {platform_tag}")
+                    if cached_file.exists():
+                        cached_file.unlink()
+                    _write_runtime_placeholder(dest_dir, platform_tag)
+                    continue
+            except RuntimeError as exc:
+                print(f"    ERROR: download failed -- {exc}")
+                _write_runtime_placeholder(dest_dir, platform_tag)
+                continue
+
+        dest_file = dest_dir / entry["filename"]
+        shutil.copy2(entry["cached_file"], dest_file)
+        print(f"  {platform_tag}: copied {entry['filename']}")
 
     # Make bootstrap.sh executable on Unix-like systems
     try:
