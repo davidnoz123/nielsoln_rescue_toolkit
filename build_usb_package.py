@@ -1,25 +1,24 @@
 """
-scripts/build_usb_package.py — Build dist/NIELSOLN_RESCUE_USB.
+build_usb_package.py — Build dist/NIELSOLN_RESCUE_USB.
 
 Run from repo root:
-    import runpy ; temp = runpy._run_module_as_main("scripts.build_usb_package")
+    import runpy ; temp = runpy._run_module_as_main("build_usb_package")
 
 Steps
 -----
 1. Remove old dist/NIELSOLN_RESCUE_USB if it exists.
 2. Create fresh dist/NIELSOLN_RESCUE_USB.
-3. Copy bootstrap.sh.
-4. Copy toolkit/.
-5. Create cache/, logs/, reports/, quarantine/.
-6. Create runtime placeholder directories.
-7. chmod bootstrap.sh executable (Linux/macOS only).
+3. Copy bootstrap.sh, bootstrap.py, toolkit.py.
+4. Create cache/, logs/, reports/, quarantine/.
+5. Create runtime placeholder directories.
+6. chmod bootstrap.sh executable (Linux/macOS only).
 """
 
 import os
 import shutil
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist" / "NIELSOLN_RESCUE_USB"
 
 
@@ -33,8 +32,8 @@ def main() -> None:
     DIST.mkdir(parents=True)
 
     # Core files
-    shutil.copy2(ROOT / "bootstrap.sh", DIST / "bootstrap.sh")
-    shutil.copytree(ROOT / "toolkit", DIST / "toolkit")
+    for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py"]:
+        shutil.copy2(ROOT / name, DIST / name)
 
     # Working directories
     for name in [

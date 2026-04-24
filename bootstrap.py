@@ -2,7 +2,7 @@
 Nielsoln Rescue Toolkit — CLI entrypoint.
 
 Run from repo root:
-    import runpy ; temp = runpy._run_module_as_main("toolkit.bootstrap")
+    import runpy ; temp = runpy._run_module_as_main("bootstrap")
 """
 
 import argparse
@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 def find_usb_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parent
 
 
 def ensure_dirs(root: Path) -> None:
@@ -64,19 +64,19 @@ def main() -> int:
     log.debug("Command: %s", args.command)
 
     if args.command == "scan":
-        from toolkit.scan import run_scan
+        from toolkit import run_scan
         return run_scan(root, Path(args.target))
 
     if args.command == "triage":
-        from toolkit.triage import run_triage
+        from toolkit import run_triage
         return run_triage(root, Path(args.target))
 
     if args.command == "detect":
-        from toolkit.mount_detect import run_detect
+        from toolkit import run_detect
         return run_detect(root)
 
     if args.command == "update":
-        from toolkit.updater import run_update
+        from toolkit import run_update
         return run_update(root)
 
     parser.print_help()
