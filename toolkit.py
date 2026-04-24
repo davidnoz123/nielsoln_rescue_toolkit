@@ -1,8 +1,10 @@
-"""
+r"""
 toolkit.py — Nielsoln Rescue Toolkit: all core logic.
 
-Run from repo root:
-    import runpy ; temp = runpy._run_module_as_main("toolkit")
+C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe
+
+import runpy ; temp = runpy._run_module_as_main("toolkit")
+   
 """
 
 # ---------------------------------------------------------------------------
@@ -20,6 +22,12 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+file__fullPath = os.path.abspath(__file__)
+file__baseName = os.path.basename(file__fullPath)
+file__parentDr = os.path.dirname(file__fullPath)
+file__fileSysD = (lambda a:lambda v:a(a, v, v))(lambda s, v, x:x if os.path.isdir(x) else (_ for _ in ()).throw(Exception(f"Argument not a directory:'{v}'")) if x==os.path.dirname(x) else s(s, v, os.path.dirname(x)))(file__parentDr)
+
 
 
 # ---------------------------------------------------------------------------
@@ -39,8 +47,10 @@ def get_platform() -> str:
     return f"{system}-{machine}"
 
 
-def get_python_executable(root: Path) -> Path:
+def get_python_executable(root: Path = None) -> Path:
     """Return path to bundled Python for the current platform, if present."""
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     tag = get_platform()
     return root / "runtimes" / tag / "python" / "bin" / "python3"
 
@@ -101,7 +111,9 @@ def interesting(path: Path, relative_to: Path = None) -> bool:
     return any(hint in text for hint in SUSPICIOUS_PATH_HINTS)
 
 
-def run_triage(root: Path, target: Path) -> int:
+def run_triage(root: Path = None, target: Path = None) -> int:
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     if not target.exists():
         _triage_log.error("Target does not exist: %s", target)
         print("Target does not exist:", target)
@@ -160,7 +172,9 @@ def run_triage(root: Path, target: Path) -> int:
 _scan_log = logging.getLogger("scan")
 
 
-def run_scan(root: Path, target: Path) -> int:
+def run_scan(root: Path = None, target: Path = None) -> int:
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     if not target.exists():
         _scan_log.error("Target does not exist: %s", target)
         print("Target does not exist:", target)
@@ -229,7 +243,9 @@ def find_windows_installations() -> list:
     return candidates
 
 
-def run_detect(root: Path) -> int:
+def run_detect(root: Path = None) -> int:
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     _detect_log.info("Scanning for Windows installations under %s", SEARCH_BASES)
     candidates = find_windows_installations()
 
@@ -340,7 +356,9 @@ _REPO_RAW_BASE = (
 _UPDATE_FILES = ["bootstrap.py", "bootstrap.sh", "toolkit.py"]
 
 
-def current_version(root: Path) -> str:
+def current_version(root: Path = None) -> str:
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     vf = root / VERSION_FILE
     if vf.exists():
         return vf.read_text(encoding="utf-8").strip()
@@ -361,8 +379,10 @@ def _fetch_url(url: str, timeout: int = 30) -> bytes:
         raise RuntimeError(f"Network error fetching {url}: {exc}") from exc
 
 
-def run_update(root: Path, offline: bool = False) -> int:
+def run_update(root: Path = None, offline: bool = False) -> int:
     """Foreground update — prints per-file progress. Returns toolkit exit code."""
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     _updater_log.info("Update requested. Current version: %s", current_version(root))
     print(f"Current version: {current_version(root)}")
 
@@ -411,8 +431,10 @@ def run_update(root: Path, offline: bool = False) -> int:
     return 0
 
 
-def _background_update_worker(root: Path) -> None:
+def _background_update_worker(root: Path = None) -> None:
     """Thread target — silently updates files; never raises."""
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     try:
         staging = root / "cache" / "update_staging"
         staging.mkdir(parents=True, exist_ok=True)
@@ -443,12 +465,14 @@ def _background_update_worker(root: Path) -> None:
         _updater_log.debug("Background update failed: %s", exc)
 
 
-def start_background_update(root: Path) -> threading.Thread:
+def start_background_update(root: Path = None) -> threading.Thread:
     """Start a daemon thread that silently updates toolkit files from GitHub.
 
     The thread runs entirely in the background and never blocks or crashes
     the main operation. Results are visible on the next run.
     """
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
     t = threading.Thread(
         target=_background_update_worker,
         args=(root,),
@@ -461,51 +485,132 @@ def start_background_update(root: Path) -> threading.Thread:
 
 
 # ---------------------------------------------------------------------------
-# download_portable_python — Print download plan for bundled Python runtimes
+# download_portable_python — Resolve, verify, and plan bundled Python runtimes
 # ---------------------------------------------------------------------------
 #
-# NOTE: requires internet access. Do not run on the rescue USB itself.
-# In v1 this is a stub; full download logic will be added in a later phase.
+# Source: astral-sh/python-build-standalone releases on GitHub.
+#   https://github.com/astral-sh/python-build-standalone/releases
 #
-# Portable Python source: python-build-standalone (indygreg releases on GitHub)
-#   https://github.com/indygreg/python-build-standalone/releases
+# Linux runtime: musl (statically linked) avoids glibc version mismatches on
+# older rescue targets (e.g. Ubuntu 14 / glibc 2.17).
 #
-# Linux runtime: use musl (statically linked) rather than gnu to avoid glibc
-# version mismatches on older rescue targets (e.g. Ubuntu 14 / glibc 2.17).
-# The gnu variant may fail with "GLIBC_2.34 not found" on older live systems.
+# Workflow:
+#   1. Fetch SHA256SUMS for the chosen release tag from GitHub.
+#   2. Locate the canonical install_only archive for each target platform.
+#   3. Check dist_root/runtimes/<platform>/<filename> against the SHA256.
+#   4. Report status: cached-ok, cached-bad, or download-required.
 
-_RUNTIME_BASE_URL = (
-    "https://github.com/indygreg/python-build-standalone/releases/download"
-    "/20240415"
+_RELEASE_TAG = "20260408"
+_PYTHON_VERSION = "3.12"
+_RELEASE_BASE_URL = (
+    "https://github.com/astral-sh/python-build-standalone/releases/download"
 )
 
-_RUNTIME_TARGETS = [
-    {
-        "platform": "linux-x86_64",
-        "filename": "cpython-3.12.3+20240415-x86_64-unknown-linux-musl-install_only.tar.gz",
-    },
-    {
-        "platform": "macos-x86_64",
-        "filename": "cpython-3.12.3+20240415-x86_64-apple-darwin-install_only.tar.gz",
-    },
-    {
-        "platform": "macos-arm64",
-        "filename": "cpython-3.12.3+20240415-aarch64-apple-darwin-install_only.tar.gz",
-    },
+_RUNTIME_PLATFORM_TAGS = [
+    "linux-x86_64",
+    "macos-x86_64",
+    "macos-arm64",
 ]
 
 
-def print_runtime_download_plan(dist_root: Path) -> None:
-    print("Portable Python download plan")
-    print("=" * 60)
-    for t in _RUNTIME_TARGETS:
-        url = f"{_RUNTIME_BASE_URL}/{t['filename']}"
-        dest = dist_root / "runtimes" / t["platform"]
-        print(f"\nPlatform : {t['platform']}")
-        print(f"URL      : {url}")
-        print(f"Dest     : {dest}")
+def _fetch_sha256sums(release_tag: str) -> dict:
+    """Fetch SHA256SUMS for release_tag and return {filename: hex_digest}."""
+    url = f"{_RELEASE_BASE_URL}/{release_tag}/SHA256SUMS"
+    try:
+        data = _fetch_url(url)
+    except RuntimeError as exc:
+        raise RuntimeError(f"Could not fetch SHA256SUMS from {url}: {exc}") from exc
+    result = {}
+    for line in data.decode("utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split(None, 1)
+        if len(parts) == 2:
+            digest, filename = parts
+            result[filename] = digest
+    return result
+
+
+def _match_runtime_filename(filename: str, platform_tag: str, python_version: str) -> bool:
+    """Return True if filename is the canonical install_only archive for this platform+version.
+
+    Excludes: stripped variants, freethreaded builds, x86_64_v2/v3/v4 micro-arch variants.
+    """
+    if not filename.endswith("install_only.tar.gz"):
+        return False
+    if not filename.startswith(f"cpython-{python_version}."):
+        return False
+    if platform_tag == "linux-x86_64":
+        return "-x86_64-unknown-linux-musl-install_only.tar.gz" in filename
+    if platform_tag == "macos-x86_64":
+        return "-x86_64-apple-darwin-install_only.tar.gz" in filename
+    if platform_tag == "macos-arm64":
+        return "-aarch64-apple-darwin-install_only.tar.gz" in filename
+    return False
+
+
+def _verify_cached_file(path: Path, expected_sha256: str) -> bool:
+    """Return True if path exists and its SHA256 matches expected_sha256."""
+    if not path.exists():
+        return False
+    return sha256_file(path).lower() == expected_sha256.lower()
+
+
+def print_runtime_download_plan(
+    dist_root: Path = None,
+    release_tag: str = _RELEASE_TAG,
+    python_version: str = _PYTHON_VERSION,
+) -> None:
+    if dist_root is None: dist_root = file__fileSysD
+    assert os.path.isdir(dist_root), f"dist_root is not an existing directory: {dist_root!r}"
+
+    print(f"Fetching SHA256SUMS for release {release_tag} ...")
+    checksums = _fetch_sha256sums(release_tag)
+    print(f"  {len(checksums)} entries found.")
 
     print()
-    print("Full download not yet implemented in v1.")
-    print("Download each archive manually, extract, and place under:")
-    print("  dist/NIELSOLN_RESCUE_USB/runtimes/<platform>/python/")
+    print(f"Portable Python download plan  (Python {python_version}, release {release_tag})")
+    print("=" * 70)
+
+    for platform_tag in _RUNTIME_PLATFORM_TAGS:
+        matches = [fn for fn in checksums if _match_runtime_filename(fn, platform_tag, python_version)]
+
+        print(f"\nPlatform : {platform_tag}")
+
+        if not matches:
+            print("  WARNING: no matching file found in SHA256SUMS")
+            continue
+        if len(matches) > 1:
+            print(f"  WARNING: multiple matches found — {matches}")
+            continue
+
+        filename = matches[0]
+        expected_sha256 = checksums[filename]
+        url = f"{_RELEASE_BASE_URL}/{release_tag}/{filename}"
+        cache_dir = Path(os.path.join(dist_root, "runtimes", platform_tag))
+        cached_file = cache_dir / filename
+
+        if _verify_cached_file(cached_file, expected_sha256):
+            status = "CACHED — checksum OK, skip download"
+        elif cached_file.exists():
+            status = "CACHED but checksum MISMATCH — re-download needed"
+        else:
+            status = "not cached — download required"
+
+        print(f"Filename : {filename}")
+        print(f"SHA256   : {expected_sha256}")
+        print(f"URL      : {url}")
+        print(f"Cache    : {cached_file}")
+        print(f"Status   : {status}")
+
+    print()
+    print("To download, fetch each URL and save to the Cache path shown above.")
+    print("Re-run this plan to verify checksums after downloading.")
+
+
+if __name__ == "__main__":
+
+    if True:
+        print_runtime_download_plan()
+        raise Exception("OK")
