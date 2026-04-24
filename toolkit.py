@@ -314,12 +314,30 @@ def csv_to_html(csv_path: Path, html_path: Path, title: str = "Report") -> None:
 
 
 # ---------------------------------------------------------------------------
-# updater — Staged self-update logic
+# updater — Fetch bootstrap.py / bootstrap.sh / toolkit.py from GitHub master
 # ---------------------------------------------------------------------------
+#
+# run_update()           — foreground, prints per-file progress
+# start_background_update() — daemon thread; never blocks or crashes main op
+#
+# Staging protocol:
+#   All three files are downloaded to cache/update_staging/ first.
+#   Live files are only replaced after every download succeeds.
+#   os.replace() is atomic on POSIX; best-effort on Windows.
+#   bootstrap.py safely replaces itself — Python already loaded it into
+#   memory at startup, so the new version takes effect on the next run.
+
+import threading
 
 _updater_log = logging.getLogger("updater")
 
 VERSION_FILE = "cache/version.txt"
+
+_REPO_RAW_BASE = (
+    "https://raw.githubusercontent.com/davidnoz123/nielsoln_rescue_toolkit/master"
+)
+
+_UPDATE_FILES = ["bootstrap.py", "bootstrap.sh", "toolkit.py"]
 
 
 def current_version(root: Path) -> str:
@@ -329,18 +347,117 @@ def current_version(root: Path) -> str:
     return "unknown"
 
 
-def run_update(root: Path) -> int:
+def _fetch_url(url: str, timeout: int = 30) -> bytes:
+    """Download url and return raw bytes. Raises RuntimeError on any failure."""
+    import urllib.request
+    import urllib.error
+
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:  # noqa: S310
+            if resp.status != 200:
+                raise RuntimeError(f"HTTP {resp.status} for {url}")
+            return resp.read()
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Network error fetching {url}: {exc}") from exc
+
+
+def run_update(root: Path, offline: bool = False) -> int:
+    """Foreground update — prints per-file progress. Returns toolkit exit code."""
     _updater_log.info("Update requested. Current version: %s", current_version(root))
     print(f"Current version: {current_version(root)}")
 
-    msg = (
-        "Automatic network update is not yet implemented in v1.\n"
-        "To update the toolkit, copy a new version of the toolkit files\n"
-        "to this USB drive manually, then re-run your command."
-    )
-    _updater_log.info(msg)
-    print(msg)
+    if offline:
+        msg = "Offline mode -- skipping update."
+        _updater_log.info(msg)
+        print(msg)
+        return 0
+
+    staging = root / "cache" / "update_staging"
+    staging.mkdir(parents=True, exist_ok=True)
+
+    # Stage all files before touching anything live.
+    staged: list = []
+    for filename in _UPDATE_FILES:
+        url = f"{_REPO_RAW_BASE}/{filename}"
+        _updater_log.info("Fetching %s", url)
+        print(f"Fetching {filename} ...", end=" ", flush=True)
+        try:
+            data = _fetch_url(url)
+        except RuntimeError as exc:
+            print("FAILED")
+            _updater_log.error("%s", exc)
+            print(f"\nUpdate aborted: {exc}")
+            print("No files were changed.")
+            return 1
+
+        if not data:
+            print("FAILED (empty response)")
+            _updater_log.error("Empty response for %s", url)
+            print("\nUpdate aborted: empty response. No files were changed.")
+            return 1
+
+        dest = staging / filename
+        dest.write_bytes(data)
+        staged.append((dest, root / filename))
+        print("ok")
+
+    # All downloads succeeded -- promote staged files atomically.
+    for src, dst in staged:
+        _updater_log.info("Replacing %s", dst)
+        os.replace(str(src), str(dst))
+
+    print("\nUpdate complete. Changes take effect on the next run.")
+    _updater_log.info("Update complete.")
     return 0
+
+
+def _background_update_worker(root: Path) -> None:
+    """Thread target — silently updates files; never raises."""
+    try:
+        staging = root / "cache" / "update_staging"
+        staging.mkdir(parents=True, exist_ok=True)
+
+        staged: list = []
+        for filename in _UPDATE_FILES:
+            url = f"{_REPO_RAW_BASE}/{filename}"
+            try:
+                data = _fetch_url(url)
+            except RuntimeError as exc:
+                _updater_log.debug("Background update: fetch failed for %s: %s", filename, exc)
+                return  # abort silently; live files untouched
+
+            if not data:
+                _updater_log.debug("Background update: empty response for %s", filename)
+                return
+
+            dest = staging / filename
+            dest.write_bytes(data)
+            staged.append((dest, root / filename))
+
+        for src, dst in staged:
+            os.replace(str(src), str(dst))
+
+        _updater_log.info("Background update complete. Changes take effect on the next run.")
+
+    except Exception as exc:  # noqa: BLE001 — must never crash the main operation
+        _updater_log.debug("Background update failed: %s", exc)
+
+
+def start_background_update(root: Path) -> threading.Thread:
+    """Start a daemon thread that silently updates toolkit files from GitHub.
+
+    The thread runs entirely in the background and never blocks or crashes
+    the main operation. Results are visible on the next run.
+    """
+    t = threading.Thread(
+        target=_background_update_worker,
+        args=(root,),
+        daemon=True,
+        name="toolkit-updater",
+    )
+    t.start()
+    _updater_log.debug("Background update thread started.")
+    return t
 
 
 # ---------------------------------------------------------------------------

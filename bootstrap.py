@@ -63,6 +63,12 @@ def main() -> int:
     log.debug("USB root: %s", root)
     log.debug("Command: %s", args.command)
 
+    # Fire background auto-update unless suppressed or running the explicit
+    # update command (which provides its own foreground progress output).
+    if not args.no_update and not args.offline and args.command != "update":
+        from toolkit import start_background_update
+        start_background_update(root)
+
     if args.command == "scan":
         from toolkit import run_scan
         return run_scan(root, Path(args.target))
@@ -77,7 +83,7 @@ def main() -> int:
 
     if args.command == "update":
         from toolkit import run_update
-        return run_update(root)
+        return run_update(root, offline=args.offline)
 
     parser.print_help()
     return 0
