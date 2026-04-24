@@ -675,6 +675,31 @@ def _write_runtime_placeholder(path: Path, platform_tag: str) -> None:
     )
 
 
+def _extract_runtime(archive: Path, dest_dir: Path, platform_tag: str) -> None:
+    """Extract a python-build-standalone install_only archive into dest_dir.
+
+    The archive contains a single top-level directory named 'python/'.
+    After extraction dest_dir/python/bin/python3 must exist.
+    """
+    import tarfile
+
+    print(f"  {platform_tag}: extracting {archive.name} ...")
+    with tarfile.open(archive, "r:gz") as tf:
+        # Security: reject absolute paths and path-traversal members
+        for member in tf.getmembers():
+            if os.path.isabs(member.name) or ".." in member.name.split("/"):
+                raise RuntimeError(
+                    f"Unsafe path in archive member: {member.name!r}"
+                )
+        tf.extractall(path=str(dest_dir))
+
+    python_bin = dest_dir / "python" / "bin" / "python3"
+    if python_bin.exists():
+        print(f"  {platform_tag}: extracted OK -- {python_bin}")
+    else:
+        print(f"  {platform_tag}: WARNING -- extraction done but {python_bin} not found")
+
+
 def build_usb_package(dist_root: Path = None) -> None:
     """Build dist/NIELSOLN_RESCUE_USB from repo sources.
 
@@ -744,9 +769,7 @@ def build_usb_package(dist_root: Path = None) -> None:
                 _write_runtime_placeholder(dest_dir, platform_tag)
                 continue
 
-        dest_file = dest_dir / entry["filename"]
-        shutil.copy2(entry["cached_file"], dest_file)
-        print(f"  {platform_tag}: copied {entry['filename']}")
+        _extract_runtime(entry["cached_file"], dest_dir, platform_tag)
 
     # Make bootstrap.sh executable on Unix-like systems
     try:
