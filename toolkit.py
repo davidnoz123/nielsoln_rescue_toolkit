@@ -660,10 +660,8 @@ def print_runtime_download_plan(
 #   1. Remove old NIELSOLN_RESCUE_USB if present.
 #   2. Create fresh NIELSOLN_RESCUE_USB.
 #   3. Copy bootstrap.sh, bootstrap.py, toolkit.py.
-#   4. Create cache/, logs/, reports/, quarantine/ with .gitkeep sentinels.
-#   5. For each runtime: copy verified cached archive if available;
-#      otherwise write a README.txt placeholder and print the download URL.
-#   6. chmod bootstrap.sh executable (Linux/macOS only).
+#   4. For each runtime: download if needed, verify checksum, extract to dist.
+#   5. chmod bootstrap.sh executable (Linux/macOS only).
 
 
 def _write_runtime_placeholder(path: Path, platform_tag: str) -> None:
@@ -726,13 +724,7 @@ def build_usb_package(dist_root: Path = None) -> None:
         shutil.copy2(root / name, dist / name)
         print(f"  Copied {name}")
 
-    # Working directories
-    for name in ["cache/downloads", "cache/wheels", "cache/repo", "logs", "reports", "quarantine"]:
-        d = dist / name
-        d.mkdir(parents=True, exist_ok=True)
-        (d / ".gitkeep").touch()
-
-    # Runtimes — download if needed, verify checksum, copy to dist
+    # Runtimes — download if needed, verify checksum, extract to dist
     print("\nChecking runtime caches ...")
     for entry in iter_runtime_plan(dist_root=root):
         platform_tag = entry["platform_tag"]
