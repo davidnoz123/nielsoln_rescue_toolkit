@@ -581,7 +581,7 @@ def iter_runtime_plan(
     """
     checksums = _fetch_sha256sums(release_tag)
     for platform_tag in _RUNTIME_PLATFORM_TAGS:
-        cache_dir = Path(os.path.join(dist_root, "runtimes", platform_tag))
+        cache_dir = runtime_cache_path(dist_root, platform_tag)
         matches = [fn for fn in checksums if _match_runtime_filename(fn, platform_tag, python_version)]
 
         if not matches:
@@ -864,6 +864,30 @@ def runtime_dest_path(dist, platform_tag: str) -> Path:
     return Path(dist) / "runtimes" / platform_tag
 
 
+def runtime_cache_path(root, platform_tag: str) -> Path:
+    """Return the canonical local download-cache directory (root/runtimes/<platform_tag>).
+
+    This is where archives downloaded from GitHub are stored before being
+    extracted into the USB dist.  Validates that *root* is an existing directory
+    and that *platform_tag* is a known value.
+
+    Raises ValueError for bad inputs.
+    """
+    if not platform_tag or not isinstance(platform_tag, str):
+        raise ValueError(f"platform_tag must be a non-empty string; got {platform_tag!r}")
+    if platform_tag not in _RUNTIME_PLATFORM_TAGS:
+        raise ValueError(
+            f"Unknown platform_tag {platform_tag!r}. "
+            f"Valid values: {_RUNTIME_PLATFORM_TAGS}"
+        )
+    if root is None:
+        raise ValueError("root must not be None; pass a repo root directory")
+    p = Path(root)
+    if not p.is_dir():
+        raise ValueError(f"root is not an existing directory: {p!r}")
+    return p / "runtimes" / platform_tag
+
+
 def build_usb_package(dist_root: Path = None) -> None:
     """Build dist/NIELSOLN_RESCUE_USB from repo sources.
 
@@ -952,7 +976,9 @@ if __name__ == "__main__":
         
     if True:
         mode = "check"
+        platform_tag = "linux-x86_64"
+        dest_dir = runtime_dest_path(dist, platform_tag)
         
-        _extract_runtime(archive, dest_dir, "linux-x86_64", mode=mode)
+        _extract_runtime(archive, dest_dir, platform_tag, mode=mode)
 
         raise Exception("OK")        
