@@ -704,18 +704,22 @@ def _collect_expected_paths(tf: tarfile.TarFile, dest: Path) -> set:
     return expected
 
 
-def _member_needs_extract(member: tarfile.TarInfo, target: Path) -> bool:
-    """Return True if the archive member should overwrite (or create) target."""
+def _member_needs_extract(member: tarfile.TarInfo, target: Path) -> tuple:
+    """Return (needs_extract, reason) for the archive member vs the file on disk."""
     if member.isdir():
-        return not target.exists()
+        if not target.exists():
+            return True, "dir missing"
+        return False, "already exists"
     if member.isfile():
         if not target.exists():
-            return True
-        if target.stat().st_size != member.size:
-            return True
-        if int(target.stat().st_mtime) < int(member.mtime):
-            return True
-    return False
+            return True, "file missing"
+        st = target.stat()
+        if st.st_size != member.size:
+            return True, f"size differs (disk={st.st_size}, archive={member.size})"
+        if int(st.st_mtime) < int(member.mtime):
+            return True, f"mtime older (disk={int(st.st_mtime)}, archive={int(member.mtime)})"
+        return False, "up-to-date"
+    return False, "not a regular file"
 
 
 def _extract_members(
@@ -724,33 +728,57 @@ def _extract_members(
     platform_tag: str,
     incremental: bool,
     dry_run: bool,
+    verbosity: int = 2,
 ) -> set:
-    """Iterate archive members, extract/skip as needed; return expected path set."""
+    """Iterate archive members, extract/skip as needed; return expected path set.
+
+    verbosity 0 = silent
+    verbosity 1 = actions only (mkdir, write, would-write)
+    verbosity 2 = actions + decisions (skip-dir, skip-link, fresh + reason)
+    """
     expected = _collect_expected_paths(tf, dest)
     members = tf.getmembers()
     total = len(members)
     for i, member in enumerate(members, 1):
         target = _safe_member_path(dest, member.name)
         tag = f"  {platform_tag}: [{i:>{len(str(total))}}/{total}]"
+
+        # --- directories ---
         if member.isdir():
             if not target.exists():
-                print(f"{tag} mkdir       {member.name}/")
+                if verbosity >= 1:
+                    print(f"{tag} mkdir       {member.name}/")
                 if not dry_run:
                     target.mkdir(parents=True, exist_ok=True)
-            else:
-                print(f"{tag} skip-dir    {member.name}/")
+            elif verbosity >= 2:
+                print(f"{tag} skip-dir    {member.name}/  (already exists)")
             continue
+
+        # --- symlinks / hard links ---
         if member.issym() or member.islnk():
-            print(f"{tag} skip-link   {member.name}")
+            if verbosity >= 2:
+                print(f"{tag} skip-link   {member.name}")
             continue
+
+        # --- non-regular specials ---
         if not member.isfile():
-            print(f"{tag} skip-spcl   {member.name}")
+            if verbosity >= 2:
+                print(f"{tag} skip-spcl   {member.name}")
             continue
-        if incremental and not _member_needs_extract(member, target):
-            print(f"{tag} fresh       {member.name}")
-            continue
+
+        # --- regular files ---
+        reason = ""
+        if incremental:
+            needs, reason = _member_needs_extract(member, target)
+            if not needs:
+                if verbosity >= 2:
+                    print(f"{tag} fresh       {member.name}  ({reason})")
+                continue
+
         verb = "would-write" if dry_run else "write      "
-        print(f"{tag} {verb} {member.name}")
+        suffix = f"  ({reason})" if verbosity >= 2 and reason else ""
+        if verbosity >= 1:
+            print(f"{tag} {verb} {member.name}{suffix}")
         if not dry_run:
             target.parent.mkdir(parents=True, exist_ok=True)
             tf.extract(member, path=str(dest))
@@ -758,7 +786,11 @@ def _extract_members(
 
 
 def _prune_spurious(
-    dest: Path, expected: set, platform_tag: str, dry_run: bool = False
+    dest: Path,
+    expected: set,
+    platform_tag: str,
+    dry_run: bool = False,
+    verbosity: int = 2,
 ) -> None:
     """Delete files/dirs under dest that are not in expected."""
     for dirpath, dirnames, filenames in os.walk(dest, topdown=False):
@@ -767,14 +799,16 @@ def _prune_spurious(
             path = (root_path / name).resolve()
             if path not in expected:
                 verb = "would-delete" if dry_run else "delete"
-                print(f"  {platform_tag}: {verb} file  {path}")
+                if verbosity >= 1:
+                    print(f"  {platform_tag}: {verb} file  {path}")
                 if not dry_run:
                     path.unlink()
         for name in dirnames:
             path = (root_path / name).resolve()
             if path not in expected:
                 verb = "would-delete" if dry_run else "delete"
-                print(f"  {platform_tag}: {verb} dir   {path}")
+                if verbosity >= 1:
+                    print(f"  {platform_tag}: {verb} dir   {path}")
                 if not dry_run:
                     shutil.rmtree(path)
 
@@ -784,6 +818,7 @@ def _extract_runtime(
     dest_dir: Path,
     platform_tag: str,
     mode: str = "full",
+    verbosity: int = 2,
 ) -> None:
     """Extract or update a python-build-standalone install_only archive into dest_dir.
 
@@ -793,33 +828,42 @@ def _extract_runtime(
     update  Incremental: skip files that are already present and up to date (size/mtime).
     check   Dry run: print what *update* + *prune* would do; make no changes.
     prune   Incremental update then delete files not present in the archive.
+
+    Verbosity
+    ---------
+    0  silent
+    1  actions only  (mkdir, write, delete)
+    2  actions + decisions  (skip, fresh + reason)  [default]
     """
     dry_run     = (mode == "check")
     incremental = (mode in ("update", "prune", "check"))
 
     if mode == "full" and dest_dir.exists() and not dry_run:
-        print(f"  {platform_tag}: clearing existing dir ...")
+        if verbosity >= 1:
+            print(f"  {platform_tag}: clearing existing dir ...")
         shutil.rmtree(dest_dir)
 
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_resolved = dest_dir.resolve()
 
-    print(f"  {platform_tag}: mode={mode}  archive={archive.name}")
+    if verbosity >= 2:
+        print(f"  {platform_tag}: mode={mode}  archive={archive.name}")
     with tarfile.open(archive, "r:*") as tf:
         expected = _extract_members(
             tf, dest_resolved, platform_tag,
-            incremental=incremental, dry_run=dry_run,
+            incremental=incremental, dry_run=dry_run, verbosity=verbosity,
         )
 
     if mode in ("prune", "check"):
-        _prune_spurious(dest_resolved, expected, platform_tag, dry_run=dry_run)
+        _prune_spurious(dest_resolved, expected, platform_tag, dry_run=dry_run, verbosity=verbosity)
 
     if dry_run:
         return
 
     python_bin = dest_dir / "python" / "bin" / "python3"
     if python_bin.exists():
-        print(f"  {platform_tag}: OK -- {python_bin}")
+        if verbosity >= 1:
+            print(f"  {platform_tag}: OK -- {python_bin}")
     else:
         print(f"  {platform_tag}: WARNING -- {python_bin} not found after extraction")
 
@@ -888,7 +932,7 @@ def runtime_cache_path(root, platform_tag: str) -> Path:
     return p / "runtimes" / platform_tag
 
 
-def build_usb_package(dist_root: Path = None) -> None:
+def build_usb_package(dist_root: Path = None, verbosity: int = 2) -> None:
     """Build dist/NIELSOLN_RESCUE_USB from repo sources.
 
     import runpy ; temp = runpy._run_module_as_main("toolkit")
@@ -950,7 +994,7 @@ def build_usb_package(dist_root: Path = None) -> None:
                 _write_runtime_placeholder(dest_dir, platform_tag)
                 continue
 
-        _extract_runtime(entry["cached_file"], dest_dir, platform_tag)
+        _extract_runtime(entry["cached_file"], dest_dir, platform_tag, verbosity=verbosity)
 
     # Make bootstrap.sh executable on Unix-like systems
     try:
@@ -975,10 +1019,23 @@ if __name__ == "__main__":
         raise Exception("OK")
         
     if True:
-        mode = "check"
-        platform_tag = "linux-x86_64"
-        dest_dir = runtime_dest_path(dist, platform_tag)
+        mode = "update"
+        release_tag, python_version, platform_tag = _RELEASE_TAG, _PYTHON_VERSION, "linux-x86_64"
         
-        _extract_runtime(archive, dest_dir, platform_tag, mode=mode)
+        dist_root = file__fileSysD
+        root = Path(dist_root)
+        dist = usb_dist_path(root)        
+        checksums = _fetch_sha256sums(release_tag)
+        dest_dir = runtime_dest_path(dist, platform_tag)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        cache_dir = runtime_cache_path(dist_root, platform_tag)
+        matches = []
+        for fn in checksums:
+            if _match_runtime_filename(fn, platform_tag, python_version):
+                archive = cache_dir / fn
+                #print(archive)
+                #_extract_runtime(archive, dest_dir, platform_tag, mode=mode)
+                pass
 
         raise Exception("OK")        
