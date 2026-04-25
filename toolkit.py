@@ -824,16 +824,55 @@ def _extract_runtime(
         print(f"  {platform_tag}: WARNING -- {python_bin} not found after extraction")
 
 
+_USB_DIST_NAME = "NIELSOLN_RESCUE_USB"
+_VALID_MODES = ("full", "update", "check", "prune")
+
+
+def usb_dist_path(root) -> Path:
+    """Return the canonical USB dist path (root/dist/NIELSOLN_RESCUE_USB).
+
+    Validates that *root* is an existing directory.  Does NOT require the dist
+    folder itself to exist yet — callers create it as needed.
+
+    Raises ValueError for bad inputs.
+    """
+    if root is None:
+        raise ValueError("root must not be None; pass a repo root directory")
+    p = Path(root)
+    if not p.is_dir():
+        raise ValueError(f"root is not an existing directory: {p!r}")
+    return p / "dist" / _USB_DIST_NAME
+
+
+def runtime_dest_path(dist, platform_tag: str) -> Path:
+    """Return the canonical runtime destination (dist/runtimes/<platform_tag>).
+
+    Validates that *platform_tag* is a known entry in _RUNTIME_PLATFORM_TAGS and
+    that *dist* resolves to a path (existence is not required yet).
+
+    Raises ValueError for bad inputs.
+    """
+    if not platform_tag or not isinstance(platform_tag, str):
+        raise ValueError(f"platform_tag must be a non-empty string; got {platform_tag!r}")
+    if platform_tag not in _RUNTIME_PLATFORM_TAGS:
+        raise ValueError(
+            f"Unknown platform_tag {platform_tag!r}. "
+            f"Valid values: {_RUNTIME_PLATFORM_TAGS}"
+        )
+    if dist is None:
+        raise ValueError("dist must not be None; pass the USB dist directory")
+    return Path(dist) / "runtimes" / platform_tag
+
+
 def build_usb_package(dist_root: Path = None) -> None:
     """Build dist/NIELSOLN_RESCUE_USB from repo sources.
 
     import runpy ; temp = runpy._run_module_as_main("toolkit")
     """
     if dist_root is None: dist_root = file__fileSysD
-    assert os.path.isdir(dist_root), f"dist_root is not an existing directory: {dist_root!r}"
 
     root = Path(dist_root)
-    dist = root / "dist" / "NIELSOLN_RESCUE_USB"
+    dist = usb_dist_path(root)
 
     print(f"Building USB package into: {dist}")
 
@@ -852,7 +891,7 @@ def build_usb_package(dist_root: Path = None) -> None:
     print("\nChecking runtime caches ...")
     for entry in iter_runtime_plan(dist_root=root):
         platform_tag = entry["platform_tag"]
-        dest_dir = dist / "runtimes" / platform_tag
+        dest_dir = runtime_dest_path(dist, platform_tag)
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         if entry["warning"]:
@@ -907,6 +946,13 @@ def build_usb_package(dist_root: Path = None) -> None:
 
 if __name__ == "__main__":
 
-    if True:
+    if False:
         build_usb_package()
         raise Exception("OK")
+        
+    if True:
+        mode = "check"
+        
+        _extract_runtime(archive, dest_dir, "linux-x86_64", mode=mode)
+
+        raise Exception("OK")        
