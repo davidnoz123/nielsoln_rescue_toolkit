@@ -20,6 +20,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tarfile
 import time
 from pathlib import Path
 
@@ -675,29 +676,152 @@ def _write_runtime_placeholder(path: Path, platform_tag: str) -> None:
     )
 
 
-def _extract_runtime(archive: Path, dest_dir: Path, platform_tag: str) -> None:
-    """Extract a python-build-standalone install_only archive into dest_dir.
+# ---------------------------------------------------------------------------
+# Runtime archive helpers
+# ---------------------------------------------------------------------------
 
-    The archive contains a single top-level directory named 'python/'.
-    After extraction dest_dir/python/bin/python3 must exist.
+def _safe_member_path(dest: Path, member_name: str) -> Path:
+    """Resolve member_name relative to dest; raise ValueError on path traversal."""
+    dest = dest.resolve()
+    target = (dest / member_name).resolve()
+    if target != dest and dest not in target.parents:
+        raise ValueError(f"Unsafe tar path: {member_name!r}")
+    return target
+
+
+def _collect_expected_paths(tf: tarfile.TarFile, dest: Path) -> set:
+    """Return the set of resolved Paths the archive should produce under dest."""
+    expected: set = set()
+    for member in tf.getmembers():
+        target = _safe_member_path(dest, member.name)
+        expected.add(target)
+        parent = target.parent
+        while (parent != dest.parent and dest in parent.parents) or parent == dest:
+            expected.add(parent)
+            if parent == dest:
+                break
+            parent = parent.parent
+    return expected
+
+
+def _member_needs_extract(member: tarfile.TarInfo, target: Path) -> bool:
+    """Return True if the archive member should overwrite (or create) target."""
+    if member.isdir():
+        return not target.exists()
+    if member.isfile():
+        if not target.exists():
+            return True
+        if target.stat().st_size != member.size:
+            return True
+        if int(target.stat().st_mtime) < int(member.mtime):
+            return True
+    return False
+
+
+def _extract_members(
+    tf: tarfile.TarFile,
+    dest: Path,
+    platform_tag: str,
+    incremental: bool,
+    dry_run: bool,
+) -> set:
+    """Iterate archive members, extract/skip as needed; return expected path set."""
+    expected = _collect_expected_paths(tf, dest)
+    members = tf.getmembers()
+    total = len(members)
+    for i, member in enumerate(members, 1):
+        target = _safe_member_path(dest, member.name)
+        tag = f"  {platform_tag}: [{i:>{len(str(total))}}/{total}]"
+        if member.isdir():
+            if not target.exists():
+                print(f"{tag} mkdir       {member.name}/")
+                if not dry_run:
+                    target.mkdir(parents=True, exist_ok=True)
+            else:
+                print(f"{tag} skip-dir    {member.name}/")
+            continue
+        if member.issym() or member.islnk():
+            print(f"{tag} skip-link   {member.name}")
+            continue
+        if not member.isfile():
+            print(f"{tag} skip-spcl   {member.name}")
+            continue
+        if incremental and not _member_needs_extract(member, target):
+            print(f"{tag} fresh       {member.name}")
+            continue
+        verb = "would-write" if dry_run else "write      "
+        print(f"{tag} {verb} {member.name}")
+        if not dry_run:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tf.extract(member, path=str(dest))
+    return expected
+
+
+def _prune_spurious(
+    dest: Path, expected: set, platform_tag: str, dry_run: bool = False
+) -> None:
+    """Delete files/dirs under dest that are not in expected."""
+    for dirpath, dirnames, filenames in os.walk(dest, topdown=False):
+        root_path = Path(dirpath).resolve()
+        for name in filenames:
+            path = (root_path / name).resolve()
+            if path not in expected:
+                verb = "would-delete" if dry_run else "delete"
+                print(f"  {platform_tag}: {verb} file  {path}")
+                if not dry_run:
+                    path.unlink()
+        for name in dirnames:
+            path = (root_path / name).resolve()
+            if path not in expected:
+                verb = "would-delete" if dry_run else "delete"
+                print(f"  {platform_tag}: {verb} dir   {path}")
+                if not dry_run:
+                    shutil.rmtree(path)
+
+
+def _extract_runtime(
+    archive: Path,
+    dest_dir: Path,
+    platform_tag: str,
+    mode: str = "full",
+) -> None:
+    """Extract or update a python-build-standalone install_only archive into dest_dir.
+
+    Modes
+    -----
+    full    Clear dest_dir then extract every member.  (default; used by build_usb_package)
+    update  Incremental: skip files that are already present and up to date (size/mtime).
+    check   Dry run: print what *update* + *prune* would do; make no changes.
+    prune   Incremental update then delete files not present in the archive.
     """
-    import tarfile
+    dry_run     = (mode == "check")
+    incremental = (mode in ("update", "prune", "check"))
 
-    print(f"  {platform_tag}: extracting {archive.name} ...")
-    with tarfile.open(archive, "r:gz") as tf:
-        # Security: reject absolute paths and path-traversal members
-        for member in tf.getmembers():
-            if os.path.isabs(member.name) or ".." in member.name.split("/"):
-                raise RuntimeError(
-                    f"Unsafe path in archive member: {member.name!r}"
-                )
-        tf.extractall(path=str(dest_dir))
+    if mode == "full" and dest_dir.exists() and not dry_run:
+        print(f"  {platform_tag}: clearing existing dir ...")
+        shutil.rmtree(dest_dir)
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_resolved = dest_dir.resolve()
+
+    print(f"  {platform_tag}: mode={mode}  archive={archive.name}")
+    with tarfile.open(archive, "r:*") as tf:
+        expected = _extract_members(
+            tf, dest_resolved, platform_tag,
+            incremental=incremental, dry_run=dry_run,
+        )
+
+    if mode in ("prune", "check"):
+        _prune_spurious(dest_resolved, expected, platform_tag, dry_run=dry_run)
+
+    if dry_run:
+        return
 
     python_bin = dest_dir / "python" / "bin" / "python3"
     if python_bin.exists():
-        print(f"  {platform_tag}: extracted OK -- {python_bin}")
+        print(f"  {platform_tag}: OK -- {python_bin}")
     else:
-        print(f"  {platform_tag}: WARNING -- extraction done but {python_bin} not found")
+        print(f"  {platform_tag}: WARNING -- {python_bin} not found after extraction")
 
 
 def build_usb_package(dist_root: Path = None) -> None:
