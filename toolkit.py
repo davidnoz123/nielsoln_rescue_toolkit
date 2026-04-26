@@ -706,14 +706,14 @@ def print_runtime_download_plan(
 #   clamav/linux-x86_64/db/ before scanning offline.
 
 _CLAMAV_VERSION        = "1.5.2"
-_CLAMAV_DOWNLOAD_BASE  = "https://www.clamav.net/downloads/production"
-_CLAMAV_GITHUB_BASE    = "https://github.com/Cisco-Talos/clamav/releases/download"
 _CLAMAV_LINUX_FILENAME = f"clamav-{_CLAMAV_VERSION}.linux.x86_64.deb"
-_CLAMAV_LINUX_URL      = f"{_CLAMAV_DOWNLOAD_BASE}/{_CLAMAV_LINUX_FILENAME}"
-# SHA256 sidecar is only published on GitHub (clamav.net provides PGP .sig only)
-_CLAMAV_LINUX_SHA256_URL = (
-    f"{_CLAMAV_GITHUB_BASE}/clamav-{_CLAMAV_VERSION}"
-    f"/{_CLAMAV_LINUX_FILENAME}.sha256"
+# Download from the official GitHub release assets.
+# SHA256 is listed on the GitHub releases page (no .sha256 sidecar exists).
+# Update both constants together when bumping the version.
+_CLAMAV_LINUX_SHA256   = "e92b0f1e5529bbaa4d9534a429c4d1133dbfe477b760365a113e63b54c5dcd75"
+_CLAMAV_LINUX_URL      = (
+    f"https://github.com/Cisco-Talos/clamav/releases/download"
+    f"/clamav-{_CLAMAV_VERSION}/{_CLAMAV_LINUX_FILENAME}"
 )
 
 
@@ -740,36 +740,15 @@ def get_clamav_executable(root) -> Path:
     return _clamav_install_path(root) / "usr" / "bin" / "clamscan"
 
 
-def _fetch_clamav_sha256(verbosity: int = 0) -> str:
-    """Fetch the SHA256 for the ClamAV Linux .deb from the upstream .sha256 file.
-
-    The file contains either "<hex>" or "<hex>  <filename>".
-    """
-    if verbosity >= 2:
-        print(f"  clamav: fetching SHA256 from {_CLAMAV_LINUX_SHA256_URL} ...")
-    try:
-        data = _fetch_url(_CLAMAV_LINUX_SHA256_URL)
-    except RuntimeError as exc:
-        raise RuntimeError(f"Could not fetch ClamAV SHA256: {exc}") from exc
-    text = data.decode("utf-8").strip()
-    return text.split()[0]
-
-
 def download_clamav(root, verbosity: int = 2) -> Path:
     """Download the ClamAV Linux .deb to the local cache.
 
-    Returns the cached .deb path.  Verifies SHA256 against the upstream .sha256
-    file.  Skips download if already cached and verified.
+    Returns the cached .deb path.  Verifies SHA256 against _CLAMAV_LINUX_SHA256.
+    Skips download if already cached and verified.
     """
     cache_dir  = _clamav_cache_path(root)
     cached_deb = cache_dir / _CLAMAV_LINUX_FILENAME
-
-    if verbosity >= 2:
-        print(f"  clamav: fetching SHA256 ...")
-    try:
-        expected_sha256 = _fetch_clamav_sha256(verbosity=0)
-    except RuntimeError as exc:
-        raise RuntimeError(f"ClamAV SHA256 fetch failed: {exc}") from exc
+    expected_sha256 = _CLAMAV_LINUX_SHA256
 
     if _verify_cached_file(cached_deb, expected_sha256):
         if verbosity >= 1:
