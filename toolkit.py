@@ -201,7 +201,6 @@ def run_scan(root: Path = None, target: Path = None) -> int:
             root / "clamav" / "linux-x86_64" / "extracted" / "usr" / "local" / "bin" / "clamscan"
         )
         if bundled.exists():
-            clamscan = str(bundled)
             lib_dir = (
                 root / "clamav" / "linux-x86_64" / "extracted"
                 / "usr" / "local" / "lib"
@@ -212,6 +211,12 @@ def run_scan(root: Path = None, target: Path = None) -> int:
                 scan_env["LD_LIBRARY_PATH"] = (
                     f"{lib_dir}:{prev}" if prev else str(lib_dir)
                 )
+            try:
+                clamscan, _clamscan_tmp = _ensure_executable(str(bundled))
+                scan_env["_NRT_CLAMSCAN_TMP"] = _clamscan_tmp or ""
+            except RuntimeError as exc:
+                _scan_log.warning("%s", exc)
+                print(f"WARNING: {exc}")
 
     if clamscan is None:
         msg = (
@@ -246,7 +251,15 @@ def run_scan(root: Path = None, target: Path = None) -> int:
     _scan_log.info("Running ClamAV: %s", " ".join(cmd))
     print("Running:", " ".join(cmd))
 
-    result = subprocess.run(cmd, env=scan_env)  # noqa: S603
+    clamscan_tmp = (scan_env or {}).pop("_NRT_CLAMSCAN_TMP", "") or None
+    try:
+        result = subprocess.run(cmd, env=scan_env)  # noqa: S603
+    finally:
+        if clamscan_tmp:
+            try:
+                os.unlink(clamscan_tmp)
+            except OSError:
+                pass
 
     _scan_log.info("ClamAV finished with exit code %d. Log: %s", result.returncode, log_path)
     print("ClamAV log:", log_path)
@@ -778,6 +791,30 @@ def get_clamav_executable(root) -> Path:
     return _clamav_install_path(root) / "usr" / "local" / "bin" / "clamscan"
 
 
+def _ensure_executable(binary_path: str) -> tuple:
+    """Return (path_to_use, tmp_path_or_None).
+
+    FAT32/exFAT filesystems do not store Unix execute bits, so a binary
+    extracted to the USB cannot be made executable via chmod.  When the
+    binary is not executable, copy it to /tmp (tmpfs, supports execute
+    permissions), chmod it there, and return that path instead.
+
+    The caller is responsible for deleting tmp_path when done.
+    """
+    if os.access(binary_path, os.X_OK):
+        return binary_path, None
+    try:
+        tmp_fd, tmp_path = tempfile.mkstemp(prefix="nrt_bin_")
+        os.close(tmp_fd)
+        shutil.copy2(binary_path, tmp_path)
+        os.chmod(tmp_path, 0o755)
+        return tmp_path, tmp_path
+    except OSError as exc:
+        raise RuntimeError(
+            f"Could not copy {binary_path} to /tmp to make it executable: {exc}"
+        ) from exc
+
+
 def _resolve_latest_clamav() -> tuple:
     """Query the GitHub API for the latest stable ClamAV release.
 
@@ -1097,10 +1134,25 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
         prev = env.get("LD_LIBRARY_PATH", "")
         env["LD_LIBRARY_PATH"] = f"{lib_dir}:{prev}" if prev else str(lib_dir)
 
+    # FAT32/exFAT cannot store execute bits — copy to /tmp if not executable.
+    freshclam_tmp = None
+    try:
+        freshclam_path, freshclam_tmp = _ensure_executable(freshclam_path)
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
+        return 1
+
     cmd = [freshclam_path, f"--datadir={db_dir}"]
     if verbosity >= 1:
         print("Running:", " ".join(cmd))
-    result = subprocess.run(cmd, env=env)
+    try:
+        result = subprocess.run(cmd, env=env)
+    finally:
+        if freshclam_tmp:
+            try:
+                os.unlink(freshclam_tmp)
+            except OSError:
+                pass
     if result.returncode == 0 and verbosity >= 1:
         print(f"Database updated in {db_dir}")
     return result.returncode
