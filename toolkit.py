@@ -682,7 +682,7 @@ def run_push(
 
     # SCP all three files in one call.
     scp_cmd = (
-        ["scp", "-P", str(port)]
+        ["scp", "-O", "-P", str(port)]   # -O = legacy SCP protocol (no sftp-server needed)
         + (["-i", key] if key else [])
         + ["-o", "StrictHostKeyChecking=no"]
         + [str(f) for f in files_to_push]
