@@ -2464,7 +2464,9 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
     else:
         print(f"  would download {_CLAMAV_LINUX_URL}")
 
-    # --- _tools/ dropbear (download if absent) ---
+    # --- _tools/ (dropbear binary + companion .so libraries) ---
+    # download_dropbear fetches both the binary and the .so files into _tools/.
+    # We then mirror everything in _tools/ to the dist package.
     if verbosity >= 1:
         print("\n_tools:")
     tools_dst = dist / "_tools"
@@ -2474,14 +2476,16 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
         except RuntimeError as exc:
             print(f"  dropbear: WARNING — download failed: {exc}")
             print("  SSH will not work offline without the binary.")
+        tools_src = Path(root) / "_tools"
         tools_dst.mkdir(parents=True, exist_ok=True)
-        dropbear_src = root / "_tools" / "dropbear"
-        if dropbear_src.exists():
-            _sync_core_file(dropbear_src, tools_dst / "dropbear", mode=mode, verbosity=verbosity)
+        if tools_src.is_dir():
+            for src_file in sorted(tools_src.iterdir()):
+                if src_file.is_file():
+                    _sync_core_file(src_file, tools_dst / src_file.name, mode=mode, verbosity=verbosity)
     else:
-        print("  would download dropbear if absent")
+        print("  would download dropbear + companion .so libs if absent")
 
-    # --- chmod bootstrap.sh and _tools/* ---
+    # --- chmod bootstrap.sh executable; _tools/dropbear executable; .so files 644 ---
     if not dry_run:
         try:
             os.chmod(dist / "bootstrap.sh", 0o755)
@@ -2490,7 +2494,9 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
         if tools_dst.is_dir():
             for f in tools_dst.iterdir():
                 try:
-                    os.chmod(f, 0o755)
+                    # dropbear binary gets execute bit; .so files do not
+                    mode_bits = 0o755 if f.name == "dropbear" else 0o644
+                    os.chmod(f, mode_bits)
                 except (AttributeError, NotImplementedError):
                     pass
 
