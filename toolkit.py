@@ -247,7 +247,7 @@ def run_scan(root: Path = None, target: Path = None) -> int:
     db_dir = root / "clamav" / "linux-x86_64" / "db"
     extra_args = []
     if db_dir.is_dir() and any(db_dir.glob("*.c?d")):
-        extra_args.append(f"--datadir={db_dir}")
+        extra_args.append(f"--database={db_dir}")
 
     cmd = [
         clamscan,
