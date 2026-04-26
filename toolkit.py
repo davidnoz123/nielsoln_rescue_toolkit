@@ -585,10 +585,12 @@ def run_scan(
             elif rc == 0:
                 print(f"  [clean]  {scan_dir}", flush=True)
 
-            # Checkpoint this dir as complete.
-            with checkpoint_path.open("a", encoding="utf-8") as f:
-                f.write(dir_key + "\n")
-            completed_dirs.add(dir_key)
+            # Only checkpoint dirs that completed successfully (rc 0=clean, 1=infected).
+            # rc 2 = clamscan error — do not checkpoint so the dir is retried next run.
+            if rc in (0, 1):
+                with checkpoint_path.open("a", encoding="utf-8") as f:
+                    f.write(dir_key + "\n")
+                completed_dirs.add(dir_key)
 
     finally:
         # Clean up the staged clamscan binary and libs (created once for all segments).
