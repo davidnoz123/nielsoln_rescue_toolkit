@@ -966,15 +966,34 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
     if dpkg_deb:
         if verbosity >= 2:
             print(f"  using dpkg-deb: {dpkg_deb}")
-        install_dir.mkdir(parents=True, exist_ok=True)
-        result = subprocess.run(
-            [dpkg_deb, "--extract", str(deb_path), str(install_dir)],
-        )
-        # Exit code is ignored — dpkg-deb exits non-zero on FAT32/exFAT when it
-        # cannot create symlinks or change permissions, even though the binaries
-        # extract correctly.  Success is determined by the clamscan check below.
-        if result.returncode != 0 and verbosity >= 1:
-            print(f"  dpkg-deb exited {result.returncode} — checking if binaries extracted ...")
+        # Two-phase extraction to avoid FAT32/exFAT errors:
+        #   Phase 1 — extract to a temp dir on the native Linux filesystem
+        #             (/tmp is tmpfs; dpkg-deb can set ownership/permissions freely)
+        #   Phase 2 — copy regular files only to the USB install dir
+        #             (symlinks are skipped because FAT32/exFAT cannot hold them)
+        with tempfile.TemporaryDirectory(prefix="clamav_extract_") as _tmp:
+            tmp_dir = Path(_tmp)
+            result = subprocess.run(
+                [dpkg_deb, "--extract", str(deb_path), str(tmp_dir)],
+            )
+            if result.returncode != 0:
+                print(f"  WARNING: dpkg-deb exited {result.returncode} — continuing anyway")
+            if verbosity >= 1:
+                print("  copying extracted files to USB ...")
+            install_dir.mkdir(parents=True, exist_ok=True)
+            skipped_links = 0
+            for src_item in tmp_dir.rglob("*"):
+                rel = src_item.relative_to(tmp_dir)
+                dst_item = install_dir / rel
+                if src_item.is_symlink():
+                    skipped_links += 1
+                elif src_item.is_dir():
+                    dst_item.mkdir(parents=True, exist_ok=True)
+                elif src_item.is_file():
+                    dst_item.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_item, dst_item)
+            if skipped_links and verbosity >= 1:
+                print(f"  skipped {skipped_links} symlink(s) (FAT32 does not support them)")
     else:
         if verbosity >= 1:
             print("  dpkg-deb not found — using pure-Python extractor")
