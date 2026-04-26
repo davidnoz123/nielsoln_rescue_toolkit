@@ -1574,7 +1574,11 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
 # Invocation:
 #   sudo bash bootstrap.sh ssh [--port 22] [--password <pw>] [--pubkey "<key>"]
 
-_SSH_BUNDLED_PUBKEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOX9wXrgJFMzhn+QSWi0Ee2DgPfTdBa/qckRO7lrD6Lk david@LAPTOP-HB3IGVLU"
+# Add one entry per trusted developer machine.  All keys are installed into
+# /root/.ssh/authorized_keys every time 'bootstrap.sh ssh' is run.
+_SSH_BUNDLED_PUBKEYS = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOX9wXrgJFMzhn+QSWi0Ee2DgPfTdBa/qckRO7lrD6Lk david@LAPTOP-HB3IGVLU",
+]
 
 _ssh_log = logging.getLogger("ssh")
 
@@ -1640,13 +1644,14 @@ def run_ssh(
         return 1
 
     # --- install keys ---
-    _install_authorized_key(_SSH_BUNDLED_PUBKEY)
+    for _key in _SSH_BUNDLED_PUBKEYS:
+        _install_authorized_key(_key)
+    if verbosity >= 1:
+        print(f"  Installed {len(_SSH_BUNDLED_PUBKEYS)} bundled key(s) into /root/.ssh/authorized_keys.")
     if extra_pubkey.strip():
         _install_authorized_key(extra_pubkey.strip())
         if verbosity >= 1:
             print("  Installed extra public key.")
-    if verbosity >= 1:
-        print("  Installed bundled developer key into /root/.ssh/authorized_keys.")
 
     # --- optionally set a temporary root password ---
     if password:

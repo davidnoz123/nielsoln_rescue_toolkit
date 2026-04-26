@@ -50,26 +50,30 @@ if [ "$1" = "ssh" ]; then
         [ -f "$SO" ] && cp "$SO" "$LIB_DIR/"
     done
 
-    # Install bundled developer key from toolkit.py into authorized_keys.
+    # Install all bundled developer keys from toolkit.py into authorized_keys.
+    # _SSH_BUNDLED_PUBKEYS is a Python list — extract every ssh-* line from it.
     TOOLKIT_PY="$ROOT/toolkit.py"
+    mkdir -p /root/.ssh
+    chmod 700 /root/.ssh
+    KEYS_INSTALLED=0
     if [ -f "$TOOLKIT_PY" ]; then
-        BUNDLED_KEY=$(
-            grep '_SSH_BUNDLED_PUBKEY = ' "$TOOLKIT_PY" \
-            | sed 's/.*"\(ssh-[^"]*\)".*/\1/'
-        )
+        # Pull every quoted ssh-... value out of the _SSH_BUNDLED_PUBKEYS block.
+        while IFS= read -r BUNDLED_KEY; do
+            [ -z "$BUNDLED_KEY" ] && continue
+            KEY_MATERIAL=$(echo "$BUNDLED_KEY" | awk '{print $2}')
+            if ! grep -qF "$KEY_MATERIAL" /root/.ssh/authorized_keys 2>/dev/null; then
+                echo "$BUNDLED_KEY" >> /root/.ssh/authorized_keys
+                KEYS_INSTALLED=$((KEYS_INSTALLED + 1))
+            fi
+        done < <(grep -oP '(?<=")(ssh-\S+\s+\S+(?:\s+\S+)?)(?=")' "$TOOLKIT_PY" \
+                 | grep '^ssh-')
     fi
-    if [ -n "$BUNDLED_KEY" ]; then
-        mkdir -p /root/.ssh
-        chmod 700 /root/.ssh
-        KEY_MATERIAL=$(echo "$BUNDLED_KEY" | awk '{print $2}')
-        if ! grep -qF "$KEY_MATERIAL" /root/.ssh/authorized_keys 2>/dev/null; then
-            echo "$BUNDLED_KEY" >> /root/.ssh/authorized_keys
-            echo "[bootstrap.sh] Developer key installed."
-        fi
-        chmod 600 /root/.ssh/authorized_keys
+    if [ "$KEYS_INSTALLED" -gt 0 ]; then
+        echo "[bootstrap.sh] $KEYS_INSTALLED bundled key(s) installed."
     else
-        echo "[bootstrap.sh] WARNING: could not extract bundled key from toolkit.py"
+        echo "[bootstrap.sh] Bundled keys already present (or toolkit.py not found)."
     fi
+    chmod 600 /root/.ssh/authorized_keys 2>/dev/null || true
 
     # Start dropbear.
     # -R  auto-generate host keys (stored in /etc/dropbear)
