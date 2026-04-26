@@ -1529,19 +1529,17 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
 
 
 # ---------------------------------------------------------------------------
-# ssh — Start a dropbear/openssh SSH server for remote VS Code access
+# ssh — Start an openssh SSH server for remote VS Code access
 # ---------------------------------------------------------------------------
 #
-# Intended use: boot RescueZilla on the target laptop, run
-#   sudo bash bootstrap.sh ssh [--password <pw>] [--pubkey "<key>"] [--port 22]
-# then connect from VS Code using Remote-SSH with the printed hostname.
+# Division of responsibility:
+#   bootstrap.sh  — installs openssh-server via apt if absent, starts sshd.
+#                   Runs in pure bash so SSH is available even if Python breaks.
+#   run_ssh()     — installs the authorised key, sets optional password,
+#                   prints the VS Code Remote-SSH connection snippet.
 #
-# Authentication priority:
-#   1. The developer's bundled ed25519 public key is always installed.
-#   2. An extra key can be added at runtime with --pubkey.
-#   3. A temporary root password can be set with --password (less secure).
-#
-# Daemon preference: openssh sshd > dropbear.  Both are tried.
+# Invocation:
+#   sudo bash bootstrap.sh ssh [--port 22] [--password <pw>] [--pubkey "<key>"]
 
 _SSH_BUNDLED_PUBKEY = (
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP4nGPugJWZyWJSFiqjCZPlvD0an9+aWjT5/KbsWLh24"
@@ -1636,80 +1634,24 @@ def run_ssh(
         except OSError as exc:
             print(f"  WARNING: could not set password: {exc}")
 
-    # --- detect available SSH daemon ---
-    sshd = shutil.which("sshd")          # openssh-server
-    dropbear = shutil.which("dropbear")  # dropbear
+    # --- verify sshd is running ---
+    # bootstrap.sh handles installation and startup before Python runs.
+    # This check is a safety net when run_ssh() is called directly (not via bootstrap.sh).
+    _sshd_candidates = [
+        shutil.which("sshd"),
+        "/usr/sbin/sshd",
+        "/sbin/sshd",
+    ]
+    sshd = next((p for p in _sshd_candidates if p and os.path.isfile(p) and os.access(p, os.X_OK)), None)
 
-    if sshd is None and dropbear is None:
+    if sshd is None:
+        # bootstrap.sh should have installed openssh-server already.
+        # If we're here without it, something went wrong — tell the user.
         print(
-            "ERROR: neither 'sshd' (openssh-server) nor 'dropbear' found.\n"
-            "On RescueZilla, try:  sudo apt-get install -y openssh-server\n"
-            "                  or:  sudo apt-get install -y dropbear"
+            "ERROR: sshd not found.\n"
+            "Run via bootstrap.sh which installs openssh-server automatically:\n"
+            "  sudo bash bootstrap.sh ssh"
         )
-        return 1
-
-    # --- start daemon ---
-    started = False
-
-    if sshd:
-        # openssh needs /run/sshd to exist and host keys to be generated.
-        try:
-            os.makedirs("/run/sshd", exist_ok=True)
-        except OSError:
-            pass
-        # Generate host keys if absent.
-        keygen = shutil.which("ssh-keygen")
-        if keygen:
-            subprocess.run([keygen, "-A"], capture_output=True)  # noqa: S603
-
-        # Check /etc/ssh/sshd_config exists; create a minimal one if not.
-        sshd_conf = Path("/etc/ssh/sshd_config")
-        if not sshd_conf.exists():
-            sshd_conf.parent.mkdir(parents=True, exist_ok=True)
-            sshd_conf.write_text(
-                "PermitRootLogin yes\n"
-                "PasswordAuthentication yes\n"
-                "PubkeyAuthentication yes\n"
-                "AuthorizedKeysFile /root/.ssh/authorized_keys\n"
-                f"Port {port}\n",
-                encoding="utf-8",
-            )
-        else:
-            # Ensure PermitRootLogin is yes (needed for root login).
-            conf_text = sshd_conf.read_text(encoding="utf-8")
-            if "PermitRootLogin" not in conf_text:
-                with sshd_conf.open("a", encoding="utf-8") as f:
-                    f.write("\nPermitRootLogin yes\n")
-
-        result = subprocess.run(  # noqa: S603
-            [sshd, "-p", str(port)],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0:
-            started = True
-            if verbosity >= 1:
-                print(f"  openssh sshd started on port {port}.")
-        else:
-            _ssh_log.warning("sshd failed (exit %d): %s", result.returncode, result.stderr.strip())
-            if verbosity >= 1:
-                print(f"  sshd failed (exit {result.returncode}): {result.stderr.strip()}")
-
-    if not started and dropbear:
-        # -R creates host keys automatically; -p sets port; -F stays foreground not needed here.
-        result = subprocess.run(  # noqa: S603
-            [dropbear, "-R", "-p", str(port)],
-            capture_output=True, text=True,
-        )
-        if result.returncode in (0, 1):  # dropbear exits 1 when already running
-            started = True
-            if verbosity >= 1:
-                print(f"  dropbear started on port {port}.")
-        else:
-            _ssh_log.warning("dropbear failed (exit %d): %s", result.returncode, result.stderr.strip())
-            print(f"  dropbear failed (exit {result.returncode}): {result.stderr.strip()}")
-
-    if not started:
-        print("ERROR: could not start any SSH daemon.")
         return 1
 
     # --- print connection info ---

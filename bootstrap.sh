@@ -3,6 +3,91 @@ set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# ---------------------------------------------------------------------------
+# Special case: 'ssh' subcommand
+#
+# SSH connectivity is the recovery path if Python automation breaks.
+# Install openssh-server and start sshd here in pure bash — before Python —
+# so the daemon is up regardless of Python's state.
+# Python is still called afterward to install the authorised key and print
+# the VS Code connection snippet.
+# ---------------------------------------------------------------------------
+if [ "$1" = "ssh" ]; then
+    PORT=22
+    # Parse --port from args
+    for arg in "$@"; do
+        case "$arg" in
+            --port=*) PORT="${arg#--port=}" ;;
+        esac
+    done
+
+    # Locate sshd — Ubuntu puts it in /usr/sbin which may not be in PATH
+    SSHD=""
+    for candidate in \
+            "$(command -v sshd 2>/dev/null)" \
+            /usr/sbin/sshd \
+            /sbin/sshd; do
+        if [ -x "$candidate" ]; then
+            SSHD="$candidate"
+            break
+        fi
+    done
+
+    # Install if missing
+    if [ -z "$SSHD" ]; then
+        echo "[bootstrap.sh] sshd not found — installing openssh-server ..."
+        apt-get install -y openssh-server
+        # Re-probe after install
+        for candidate in \
+                "$(command -v sshd 2>/dev/null)" \
+                /usr/sbin/sshd \
+                /sbin/sshd; do
+            if [ -x "$candidate" ]; then
+                SSHD="$candidate"
+                break
+            fi
+        done
+    fi
+
+    if [ -z "$SSHD" ]; then
+        echo "ERROR: openssh-server install failed or sshd still not found."
+        exit 1
+    fi
+
+    # Ensure PermitRootLogin is set
+    SSHD_CONF=/etc/ssh/sshd_config
+    if [ -f "$SSHD_CONF" ]; then
+        if ! grep -q "PermitRootLogin" "$SSHD_CONF"; then
+            echo "PermitRootLogin yes" >> "$SSHD_CONF"
+        fi
+    else
+        mkdir -p /etc/ssh
+        cat > "$SSHD_CONF" <<EOF
+PermitRootLogin yes
+PubkeyAuthentication yes
+AuthorizedKeysFile /root/.ssh/authorized_keys
+PasswordAuthentication yes
+Port ${PORT}
+EOF
+    fi
+
+    # Generate host keys if absent
+    if command -v ssh-keygen >/dev/null 2>&1; then
+        ssh-keygen -A >/dev/null 2>&1 || true
+    fi
+
+    # Ensure /run/sshd exists (required by openssh)
+    mkdir -p /run/sshd
+
+    # Start sshd
+    echo "[bootstrap.sh] Starting sshd on port ${PORT} ..."
+    "$SSHD" -p "$PORT"
+    echo "[bootstrap.sh] sshd started."
+fi
+# ---------------------------------------------------------------------------
+# End SSH special case — fall through to Python for key install + info print
+# ---------------------------------------------------------------------------
+
 if command -v python3 >/dev/null 2>&1; then
     exec python3 "$ROOT/bootstrap.py" "$@"
 fi
