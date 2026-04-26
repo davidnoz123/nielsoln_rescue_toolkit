@@ -456,6 +456,134 @@ def _fetch_url(url: str, timeout: int = 30) -> bytes:
         raise RuntimeError(f"Network error fetching {url}: {exc}") from exc
 
 
+# ---------------------------------------------------------------------------
+# time_sync — Check and optionally correct the system clock via HTTP Date header
+# ---------------------------------------------------------------------------
+
+_time_sync_log = logging.getLogger("time_sync")
+
+# Probed in order; first reachable URL wins.
+_TIME_PROBE_URLS = [
+    "https://www.google.com",
+    "https://www.cloudflare.com",
+]
+
+
+def _get_internet_time(timeout: int = 10) -> float:
+    """Return current UTC time as a Unix epoch float, sourced from the internet.
+
+    Primary method: parse the RFC 2822 `Date` response header from a GET
+    request to a reliable HTTPS server.  Falls back to the worldtimeapi.org
+    JSON body if none of the primary URLs return a usable Date header.
+
+    Raises RuntimeError if all sources fail.
+    """
+    import urllib.request
+    import urllib.error
+    import email.utils
+
+    for url in _TIME_PROBE_URLS:
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"Cache-Control": "no-cache"},
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+                date_str = resp.headers.get("Date", "")
+                if date_str:
+                    dt = email.utils.parsedate_to_datetime(date_str)
+                    return dt.timestamp()
+        except Exception:  # noqa: BLE001
+            continue
+
+    # Fallback: worldtimeapi.org returns a JSON body with a `unixtime` field.
+    try:
+        fallback_url = "http://worldtimeapi.org/api/ip"
+        req = urllib.request.Request(fallback_url, headers={"Cache-Control": "no-cache"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            import json as _json
+            data = _json.loads(resp.read().decode("utf-8"))
+            return float(data["unixtime"])
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            f"Could not determine internet time from any source: {exc}"
+        ) from exc
+
+
+def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False) -> int:
+    """Compare the system clock to internet time and correct it if the skew is large.
+
+    Steps:
+      1. Fetch internet time via HTTP Date header (see _get_internet_time).
+      2. Compute skew = internet_time - time.time().
+      3. If abs(skew) <= threshold_seconds: print "Clock OK" and return 0.
+      4. On non-Linux or non-root: print a warning about the skew; return 1.
+      5. Run `date -s @<epoch>` to set the system clock.  Return 0 on success.
+
+    Non-fatal by design — callers should warn and continue if this returns non-zero.
+
+    Why this matters: RescueZilla boots from a live USB; old laptops frequently
+    have a dead CMOS battery.  A hardware clock years in the past causes TLS
+    certificate validation failures that look like network errors.
+    """
+    _time_sync_log.info("Checking system clock against internet time ...")
+    print("Checking system clock ...", end=" ", flush=True)
+    try:
+        internet_ts = _get_internet_time()
+    except RuntimeError as exc:
+        print(f"SKIP (cannot reach time server: {exc})")
+        _time_sync_log.warning("Clock check skipped: %s", exc)
+        return 0  # non-fatal; proceed without correction
+
+    skew = internet_ts - time.time()
+    _time_sync_log.info("Clock skew: %.1fs (internet=%.0f, local=%.0f)",
+                         skew, internet_ts, time.time())
+
+    if abs(skew) <= threshold_seconds:
+        print(f"OK (skew {skew:+.1f}s)")
+        _time_sync_log.info("Clock OK (skew %.1fs)", skew)
+        return 0
+
+    # Skew exceeds threshold.
+    skew_str = f"{skew:+.0f}s"
+    print(f"SKEWED ({skew_str})")
+    _time_sync_log.warning("Clock skew %s exceeds threshold (%ds)", skew_str, threshold_seconds)
+
+    if not is_linux():
+        print(f"WARNING: system clock is off by {skew_str} — cannot correct on non-Linux.")
+        return 1
+
+    if os.geteuid() != 0:
+        print(f"WARNING: system clock is off by {skew_str} — cannot correct (not root).")
+        _time_sync_log.warning("Not root; cannot set clock.")
+        return 1
+
+    if dry_run:
+        correct_str = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(internet_ts))
+        print(f"  dry-run: would set clock to {correct_str}")
+        return 0
+
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["date", "-s", f"@{int(internet_ts)}"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            correct_str = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(internet_ts))
+            print(f"  System clock set to {correct_str} (was off by {skew_str})")
+            _time_sync_log.info("Clock corrected to %s (skew was %s)", correct_str, skew_str)
+            return 0
+        else:
+            print(f"  WARNING: `date -s` failed (exit {result.returncode}): {result.stderr.strip()}")
+            _time_sync_log.warning("`date -s` failed: %s", result.stderr.strip())
+            return 1
+    except OSError as exc:
+        print(f"  WARNING: could not run `date -s`: {exc}")
+        _time_sync_log.warning("Could not run `date -s`: %s", exc)
+        return 1
+
+
 def run_update(root: Path = None, offline: bool = False) -> int:
     """Foreground update — prints per-file progress. Returns toolkit exit code."""
     if root is None: root = Path(file__fileSysD)
@@ -1217,6 +1345,15 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
 
     db_dir = _clamav_cache_path(root) / "db"
     db_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check and correct the system clock before any TLS-sensitive network
+    # activity.  A dead CMOS battery (common on old rescue targets) causes
+    # the hardware clock to be years off, which makes TLS cert validation
+    # fail with cryptic errors.  Non-fatal: we warn and continue if the
+    # correction cannot be applied (e.g. not root on this live session).
+    _sync_rc = run_sync_time(root)
+    if _sync_rc != 0:
+        print("  (continuing despite clock warning — freshclam may fail if TLS rejects certs)")
 
     # Add bundled lib path for dynamically linked freshclam.
     # FAT32/exFAT strips symlinks on extraction, so versioned stubs like
