@@ -786,7 +786,7 @@ _REPO_RAW_BASE = (
     "https://raw.githubusercontent.com/davidnoz123/nielsoln_rescue_toolkit/master"
 )
 
-_UPDATE_FILES = ["bootstrap.py", "bootstrap.sh", "toolkit.py"]
+_UPDATE_FILES = ["bootstrap.py", "bootstrap.sh", "toolkit.py", "persistence_scan.py"]
 
 
 def current_version(root: Path = None) -> str:
@@ -2863,7 +2863,7 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
     # --- Core files ---
     if verbosity >= 1:
         print("\nCore files:")
-    for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py"]:
+    for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py", "persistence_scan.py"]:
         _sync_core_file(root / name, dist / name, mode=mode, verbosity=verbosity)
 
     # --- Runtimes ---

@@ -60,6 +60,23 @@ def main() -> int:
     p_triage = sub.add_parser("triage", help="Python-only suspicious file triage")
     p_triage.add_argument("--target", required=True, help="Path to mounted Windows installation")
 
+    p_persist = sub.add_parser(
+        "persist",
+        help="Scan for persistence mechanisms (startup, tasks, services, registry autoruns)",
+    )
+    p_persist.add_argument(
+        "--target", required=True,
+        help="Path to mounted Windows installation (e.g. /mnt/windows)",
+    )
+    p_persist.add_argument(
+        "--summary", action="store_true",
+        help="Print a sorted human-readable summary after scanning",
+    )
+    p_persist.add_argument("--no-startup",  action="store_true", help="Skip startup folder scan")
+    p_persist.add_argument("--no-tasks",    action="store_true", help="Skip scheduled task scan")
+    p_persist.add_argument("--no-services", action="store_true", help="Skip service scan")
+    p_persist.add_argument("--no-registry", action="store_true", help="Skip registry autorun scan")
+
     sub.add_parser("detect", help="Detect likely Windows installations under /mnt or /media")
     sub.add_parser("update", help="Pull latest toolkit from repository")
 
@@ -183,6 +200,18 @@ def main() -> int:
     if args.command == "triage":
         from toolkit import run_triage
         return run_triage(root, Path(args.target))
+
+    if args.command == "persist":
+        from persistence_scan import run_persistence_scan
+        return run_persistence_scan(
+            root,
+            Path(args.target),
+            summary=args.summary,
+            no_startup=args.no_startup,
+            no_tasks=args.no_tasks,
+            no_services=args.no_services,
+            no_registry=args.no_registry,
+        )
 
     if args.command == "detect":
         from toolkit import run_detect
