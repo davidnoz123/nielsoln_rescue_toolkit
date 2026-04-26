@@ -1394,18 +1394,49 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
     lib_dir = _clamav_install_path(root) / "usr" / "local" / "lib"
     env = dict(os.environ)
 
-    # The bundled freshclam binary may have been compiled with a non-standard
-    # OpenSSL certs path.  Override with the standard OpenSSL env vars so it
-    # finds the system CA bundle on RescueZilla (Ubuntu-based).
+    # The bundled freshclam binary was compiled with /usr/local/etc/certs/ as
+    # its hard-coded cert path.  That directory does not exist on RescueZilla.
+    # SSL_CERT_FILE / SSL_CERT_DIR env vars only reach OpenSSL directly; they
+    # do not fix freshclam's own internal cert lookup via the compiled-in path.
+    # Solution: if the directory is absent and we are root, create it and
+    # populate it with the system CA bundle so freshclam finds its certs.
+    _CLAMAV_CERT_DIR = "/usr/local/etc/certs"
     _CERT_FILE_CANDIDATES = [
         "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
         "/etc/pki/tls/certs/ca-bundle.crt",    # RHEL/CentOS
         "/etc/ssl/ca-bundle.pem",
     ]
+    _system_ca_bundle: str = ""
     for _cf in _CERT_FILE_CANDIDATES:
         if os.path.isfile(_cf):
-            env.setdefault("SSL_CERT_FILE", _cf)
+            _system_ca_bundle = _cf
             break
+
+    if not os.path.isdir(_CLAMAV_CERT_DIR):
+        if is_linux() and os.geteuid() == 0 and _system_ca_bundle:
+            try:
+                os.makedirs(_CLAMAV_CERT_DIR, exist_ok=True)
+                # Copy the bundle as both the canonical name and ca-certificates.crt
+                # so freshclam finds it regardless of which filename it expects.
+                _bundle_dest = os.path.join(_CLAMAV_CERT_DIR, "ca-certificates.crt")
+                if not os.path.exists(_bundle_dest):
+                    shutil.copy2(_system_ca_bundle, _bundle_dest)
+                if verbosity >= 2:
+                    print(f"  created {_CLAMAV_CERT_DIR} from {_system_ca_bundle}")
+            except OSError as _exc:
+                if verbosity >= 1:
+                    print(f"  WARNING: could not create {_CLAMAV_CERT_DIR}: {_exc}")
+        elif verbosity >= 1:
+            print(
+                f"  WARNING: {_CLAMAV_CERT_DIR} does not exist and cannot be created"
+                f" (root={is_linux() and os.geteuid()==0}, ca_bundle={_system_ca_bundle!r})"
+                " — freshclam may fail with a certs error"
+            )
+
+    # Also set the standard OpenSSL env vars so any direct OpenSSL calls
+    # (e.g. in linked libssl) also find the system CA bundle.
+    if _system_ca_bundle:
+        env.setdefault("SSL_CERT_FILE", _system_ca_bundle)
     if os.path.isdir("/etc/ssl/certs"):
         env.setdefault("SSL_CERT_DIR", "/etc/ssl/certs")
 
