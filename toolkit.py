@@ -1529,6 +1529,219 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
 
 
 # ---------------------------------------------------------------------------
+# ssh — Start a dropbear/openssh SSH server for remote VS Code access
+# ---------------------------------------------------------------------------
+#
+# Intended use: boot RescueZilla on the target laptop, run
+#   sudo bash bootstrap.sh ssh [--password <pw>] [--pubkey "<key>"] [--port 22]
+# then connect from VS Code using Remote-SSH with the printed hostname.
+#
+# Authentication priority:
+#   1. The developer's bundled ed25519 public key is always installed.
+#   2. An extra key can be added at runtime with --pubkey.
+#   3. A temporary root password can be set with --password (less secure).
+#
+# Daemon preference: openssh sshd > dropbear.  Both are tried.
+
+_SSH_BUNDLED_PUBKEY = (
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP4nGPugJWZyWJSFiqjCZPlvD0an9+aWjT5/KbsWLh24"
+    " david@DESKTOP-EQ1D9DI"
+)
+
+_ssh_log = logging.getLogger("ssh")
+
+
+def _get_local_ips() -> list:
+    """Return non-loopback IPv4 addresses for this host."""
+    import socket
+    ips = []
+    try:
+        # Connect to an external address to discover the outbound interface IP.
+        # No data is sent — the socket is never actually connected.
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ips.append(s.getsockname()[0])
+    except OSError:
+        pass
+    # Supplement with hostname-based lookup in case the above misses addresses.
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            ip = info[4][0]
+            if ip not in ips and not ip.startswith("127."):
+                ips.append(ip)
+    except OSError:
+        pass
+    return ips
+
+
+def _install_authorized_key(pubkey: str) -> None:
+    """Append pubkey to /root/.ssh/authorized_keys if not already present."""
+    ssh_dir = Path("/root/.ssh")
+    ssh_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    auth_keys = ssh_dir / "authorized_keys"
+    existing = auth_keys.read_text(encoding="utf-8") if auth_keys.exists() else ""
+    # Match on the key material (second field) to avoid duplicates across comment changes.
+    key_material = pubkey.split()[1] if len(pubkey.split()) >= 2 else pubkey
+    if key_material not in existing:
+        with auth_keys.open("a", encoding="utf-8") as f:
+            f.write(pubkey.strip() + "\n")
+    auth_keys.chmod(0o600)
+
+
+def run_ssh(
+    root=None,
+    extra_pubkey: str = "",
+    password: str = "",
+    port: int = 22,
+    verbosity: int = 2,
+) -> int:
+    """Start an SSH daemon (openssh or dropbear) and print connection details.
+
+    Always installs the bundled developer key into /root/.ssh/authorized_keys.
+    Optionally adds extra_pubkey and/or sets a temporary root password.
+
+    Returns 0 on success, 1 on failure.
+    """
+    if not is_linux():
+        print("ERROR: SSH server setup is only supported on Linux.")
+        return 1
+
+    if os.geteuid() != 0:
+        print("ERROR: must run as root (sudo).")
+        return 1
+
+    # --- install keys ---
+    _install_authorized_key(_SSH_BUNDLED_PUBKEY)
+    if extra_pubkey.strip():
+        _install_authorized_key(extra_pubkey.strip())
+        if verbosity >= 1:
+            print("  Installed extra public key.")
+    if verbosity >= 1:
+        print("  Installed bundled developer key into /root/.ssh/authorized_keys.")
+
+    # --- optionally set a temporary root password ---
+    if password:
+        try:
+            result = subprocess.run(  # noqa: S603
+                ["chpasswd"],
+                input=f"root:{password}\n".encode(),
+                capture_output=True,
+            )
+            if result.returncode == 0:
+                if verbosity >= 1:
+                    print("  Temporary root password set.")
+            else:
+                print(f"  WARNING: chpasswd failed: {result.stderr.decode().strip()}")
+        except OSError as exc:
+            print(f"  WARNING: could not set password: {exc}")
+
+    # --- detect available SSH daemon ---
+    sshd = shutil.which("sshd")          # openssh-server
+    dropbear = shutil.which("dropbear")  # dropbear
+
+    if sshd is None and dropbear is None:
+        print(
+            "ERROR: neither 'sshd' (openssh-server) nor 'dropbear' found.\n"
+            "On RescueZilla, try:  sudo apt-get install -y openssh-server\n"
+            "                  or:  sudo apt-get install -y dropbear"
+        )
+        return 1
+
+    # --- start daemon ---
+    started = False
+
+    if sshd:
+        # openssh needs /run/sshd to exist and host keys to be generated.
+        try:
+            os.makedirs("/run/sshd", exist_ok=True)
+        except OSError:
+            pass
+        # Generate host keys if absent.
+        keygen = shutil.which("ssh-keygen")
+        if keygen:
+            subprocess.run([keygen, "-A"], capture_output=True)  # noqa: S603
+
+        # Check /etc/ssh/sshd_config exists; create a minimal one if not.
+        sshd_conf = Path("/etc/ssh/sshd_config")
+        if not sshd_conf.exists():
+            sshd_conf.parent.mkdir(parents=True, exist_ok=True)
+            sshd_conf.write_text(
+                "PermitRootLogin yes\n"
+                "PasswordAuthentication yes\n"
+                "PubkeyAuthentication yes\n"
+                "AuthorizedKeysFile /root/.ssh/authorized_keys\n"
+                f"Port {port}\n",
+                encoding="utf-8",
+            )
+        else:
+            # Ensure PermitRootLogin is yes (needed for root login).
+            conf_text = sshd_conf.read_text(encoding="utf-8")
+            if "PermitRootLogin" not in conf_text:
+                with sshd_conf.open("a", encoding="utf-8") as f:
+                    f.write("\nPermitRootLogin yes\n")
+
+        result = subprocess.run(  # noqa: S603
+            [sshd, "-p", str(port)],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            started = True
+            if verbosity >= 1:
+                print(f"  openssh sshd started on port {port}.")
+        else:
+            _ssh_log.warning("sshd failed (exit %d): %s", result.returncode, result.stderr.strip())
+            if verbosity >= 1:
+                print(f"  sshd failed (exit {result.returncode}): {result.stderr.strip()}")
+
+    if not started and dropbear:
+        # -R creates host keys automatically; -p sets port; -F stays foreground not needed here.
+        result = subprocess.run(  # noqa: S603
+            [dropbear, "-R", "-p", str(port)],
+            capture_output=True, text=True,
+        )
+        if result.returncode in (0, 1):  # dropbear exits 1 when already running
+            started = True
+            if verbosity >= 1:
+                print(f"  dropbear started on port {port}.")
+        else:
+            _ssh_log.warning("dropbear failed (exit %d): %s", result.returncode, result.stderr.strip())
+            print(f"  dropbear failed (exit {result.returncode}): {result.stderr.strip()}")
+
+    if not started:
+        print("ERROR: could not start any SSH daemon.")
+        return 1
+
+    # --- print connection info ---
+    ips = _get_local_ips()
+    port_suffix = f" -p {port}" if port != 22 else ""
+    config_port = f"\n    Port {port}" if port != 22 else ""
+
+    print()
+    print("=" * 60)
+    print("  SSH server is running")
+    print("=" * 60)
+    if ips:
+        for ip in ips:
+            print(f"  ssh root@{ip}{port_suffix}")
+    else:
+        print("  (could not detect IP — check with: ip addr)")
+    print()
+    print("  VS Code Remote-SSH config (add to ~/.ssh/config):")
+    print()
+    for ip in (ips or ["<IP_ADDRESS>"]):
+        print(f"    Host rescuezilla-{ip.replace('.', '-')}")
+        print(f"        HostName {ip}")
+        print( "        User root")
+        print(f"        IdentityFile ~/.ssh/id_ed25519{config_port}")
+        print()
+    print("  Then in VS Code: Ctrl+Shift+P -> Remote-SSH: Connect to Host")
+    print("=" * 60)
+    _ssh_log.info("SSH server started on port %d. IPs: %s", port, ips)
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # build_usb_package — Assemble dist/NIELSOLN_RESCUE_USB
 # ---------------------------------------------------------------------------
 #

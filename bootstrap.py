@@ -97,6 +97,25 @@ def main() -> int:
         help="0=silent  1=actions only  2=actions+decisions (default: 2).",
     )
 
+    p_ssh = sub.add_parser(
+        "ssh",
+        help="Start an SSH server (openssh/dropbear) for remote VS Code access.",
+    )
+    p_ssh.add_argument(
+        "--port", type=int, default=22,
+        help="Port to listen on (default: 22).",
+    )
+    p_ssh.add_argument(
+        "--pubkey", default="",
+        metavar="KEY",
+        help="Additional SSH public key string to install (in addition to the bundled key).",
+    )
+    p_ssh.add_argument(
+        "--password", default="",
+        metavar="PW",
+        help="Set a temporary root password (less secure than key auth).",
+    )
+
     args = parser.parse_args()
 
     setup_logging(root, getattr(args, "verbose", False))
@@ -154,6 +173,15 @@ def main() -> int:
         if args.update_db:
             rc = run_clamav_update_db(root, verbosity=args.verbosity) or rc
         return rc
+
+    if args.command == "ssh":
+        from toolkit import run_ssh
+        return run_ssh(
+            root,
+            extra_pubkey=args.pubkey,
+            password=args.password,
+            port=args.port,
+        )
 
     parser.print_help()
     return 0
