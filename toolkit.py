@@ -207,10 +207,20 @@ def run_scan(root: Path = None, target: Path = None) -> int:
             )
             scan_env = dict(os.environ)
             if lib_dir.exists():
-                prev = scan_env.get("LD_LIBRARY_PATH", "")
-                scan_env["LD_LIBRARY_PATH"] = (
-                    f"{lib_dir}:{prev}" if prev else str(lib_dir)
-                )
+                try:
+                    _lib_tmp_str, _lib_tmp_path = _stage_clamav_libs(lib_dir)
+                    scan_env["_NRT_LIB_TMP"] = _lib_tmp_str
+                    prev = scan_env.get("LD_LIBRARY_PATH", "")
+                    scan_env["LD_LIBRARY_PATH"] = (
+                        f"{_lib_tmp_str}:{prev}" if prev else _lib_tmp_str
+                    )
+                except Exception as exc:
+                    _scan_log.warning("Could not stage ClamAV libs to /tmp: %s", exc)
+                    prev = scan_env.get("LD_LIBRARY_PATH", "")
+                    scan_env["LD_LIBRARY_PATH"] = (
+                        f"{lib_dir}:{prev}" if prev else str(lib_dir)
+                    )
+                    scan_env["_NRT_LIB_TMP"] = ""
             try:
                 clamscan, _clamscan_tmp = _ensure_executable(str(bundled))
                 scan_env["_NRT_CLAMSCAN_TMP"] = _clamscan_tmp or ""
@@ -252,6 +262,7 @@ def run_scan(root: Path = None, target: Path = None) -> int:
     print("Running:", " ".join(cmd))
 
     clamscan_tmp = (scan_env or {}).pop("_NRT_CLAMSCAN_TMP", "") or None
+    lib_tmp = (scan_env or {}).pop("_NRT_LIB_TMP", "") or None
     try:
         result = subprocess.run(cmd, env=scan_env)  # noqa: S603
     finally:
@@ -260,6 +271,8 @@ def run_scan(root: Path = None, target: Path = None) -> int:
                 os.unlink(clamscan_tmp)
             except OSError:
                 pass
+        if lib_tmp:
+            shutil.rmtree(lib_tmp, ignore_errors=True)
 
     _scan_log.info("ClamAV finished with exit code %d. Log: %s", result.returncode, log_path)
     print("ClamAV log:", log_path)
@@ -823,6 +836,46 @@ def _ensure_executable(binary_path: str) -> tuple:
         ) from exc
 
 
+def _stage_clamav_libs(lib_dir: Path) -> tuple:
+    """Copy ClamAV shared libraries to a tmpfs directory and recreate symlinks.
+
+    FAT32/exFAT cannot store symlinks, so versioned stubs like
+    libfreshclam.so.4 are absent after extraction to the USB.  The dynamic
+    linker looks for exactly that name (from the ELF NEEDED entry), so the
+    binary fails to start with 'cannot open shared object file'.
+
+    This function:
+      1. Creates a temp directory under /tmp (tmpfs supports symlinks).
+      2. Copies all regular .so* files from lib_dir into it.
+      3. Re-creates libfoo.so.X -> libfoo.so.X.Y.Z symlinks for each file
+         whose name matches the *.so.X.Y[.Z] pattern.
+
+    Returns (tmp_dir_path_str, tmp_dir_path).  Caller must delete tmp_dir_path
+    (use shutil.rmtree) when done.
+    """
+    import re
+    so_re = re.compile(r'^(?P<stem>.+\.so)\.(?P<major>\d+)\.\d.*$')
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="nrt_clamlib_"))
+    try:
+        for src in lib_dir.iterdir():
+            if src.is_file() and not src.is_symlink():
+                shutil.copy2(src, tmp_dir / src.name)
+
+        # Recreate libfoo.so.X -> libfoo.so.X.Y.Z symlinks
+        for f in list(tmp_dir.iterdir()):
+            m = so_re.match(f.name)
+            if m:
+                link_name = f"{m.group('stem')}.{m.group('major')}"
+                link_path = tmp_dir / link_name
+                if not link_path.exists():
+                    link_path.symlink_to(f.name)
+    except Exception:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise
+    return str(tmp_dir), tmp_dir
+
+
 def _resolve_latest_clamav() -> tuple:
     """Query the GitHub API for the latest stable ClamAV release.
 
@@ -1135,18 +1188,33 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
     db_dir = _clamav_cache_path(root) / "db"
     db_dir.mkdir(parents=True, exist_ok=True)
 
-    # Add bundled lib path for dynamically linked freshclam
+    # Add bundled lib path for dynamically linked freshclam.
+    # FAT32/exFAT strips symlinks on extraction, so versioned stubs like
+    # libfreshclam.so.4 are missing.  Stage the libs to /tmp (tmpfs) first
+    # so the dynamic linker can find them via recreated symlinks.
     lib_dir = _clamav_install_path(root) / "usr" / "local" / "lib"
     env = dict(os.environ)
+    freshclam_lib_tmp = None
     if lib_dir.exists():
-        prev = env.get("LD_LIBRARY_PATH", "")
-        env["LD_LIBRARY_PATH"] = f"{lib_dir}:{prev}" if prev else str(lib_dir)
+        try:
+            lib_tmp_str, freshclam_lib_tmp = _stage_clamav_libs(lib_dir)
+            prev = env.get("LD_LIBRARY_PATH", "")
+            env["LD_LIBRARY_PATH"] = f"{lib_tmp_str}:{prev}" if prev else lib_tmp_str
+            if verbosity >= 2:
+                print(f"  staged ClamAV libs to {lib_tmp_str}")
+        except Exception as exc:
+            if verbosity >= 1:
+                print(f"  WARNING: could not stage ClamAV libs to /tmp: {exc}")
+            prev = env.get("LD_LIBRARY_PATH", "")
+            env["LD_LIBRARY_PATH"] = f"{lib_dir}:{prev}" if prev else str(lib_dir)
 
     # FAT32/exFAT cannot store execute bits — copy to /tmp if not executable.
     freshclam_tmp = None
     try:
         freshclam_path, freshclam_tmp = _ensure_executable(freshclam_path)
     except RuntimeError as exc:
+        if freshclam_lib_tmp:
+            shutil.rmtree(freshclam_lib_tmp, ignore_errors=True)
         print(f"ERROR: {exc}")
         return 1
 
@@ -1161,6 +1229,8 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
                 os.unlink(freshclam_tmp)
             except OSError:
                 pass
+        if freshclam_lib_tmp:
+            shutil.rmtree(freshclam_lib_tmp, ignore_errors=True)
     if result.returncode == 0 and verbosity >= 1:
         print(f"Database updated in {db_dir}")
     return result.returncode
