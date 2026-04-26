@@ -468,6 +468,23 @@ def run_update(root: Path = None, offline: bool = False) -> int:
         _updater_log.info("Replacing %s", dst)
         os.replace(str(src), str(dst))
 
+    # Purge stale .pyc files from __pycache__.
+    # FAT32 timestamps have 2-second granularity, so the mtime of the newly
+    # written .py file can round to the same value as the old one.  Python's
+    # .pyc invalidation check would then consider the cached bytecode valid
+    # and load the old code.  Deleting the .pyc forces a fresh compile.
+    pycache = root / "__pycache__"
+    if pycache.is_dir():
+        for filename in _UPDATE_FILES:
+            stem = Path(filename).stem          # e.g. "toolkit"
+            for pyc in pycache.glob(f"{stem}.cpython-*.pyc"):
+                try:
+                    pyc.unlink()
+                    _updater_log.info("Removed stale bytecode: %s", pyc.name)
+                    print(f"Removed stale bytecode: {pyc.name}")
+                except OSError as exc:
+                    _updater_log.debug("Could not remove %s: %s", pyc, exc)
+
     print("\nUpdate complete. Changes take effect on the next run.")
     _updater_log.info("Update complete.")
     return 0
@@ -500,6 +517,17 @@ def _background_update_worker(root: Path = None) -> None:
 
         for src, dst in staged:
             os.replace(str(src), str(dst))
+
+        # Purge stale .pyc files (FAT32 mtime granularity — see run_update).
+        pycache = root / "__pycache__"
+        if pycache.is_dir():
+            for filename in _UPDATE_FILES:
+                stem = Path(filename).stem
+                for pyc in pycache.glob(f"{stem}.cpython-*.pyc"):
+                    try:
+                        pyc.unlink()
+                    except OSError:
+                        pass
 
         _updater_log.info("Background update complete. Changes take effect on the next run.")
 
