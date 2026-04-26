@@ -1215,6 +1215,22 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
     # so the dynamic linker can find them via recreated symlinks.
     lib_dir = _clamav_install_path(root) / "usr" / "local" / "lib"
     env = dict(os.environ)
+
+    # The bundled freshclam binary may have been compiled with a non-standard
+    # OpenSSL certs path.  Override with the standard OpenSSL env vars so it
+    # finds the system CA bundle on RescueZilla (Ubuntu-based).
+    _CERT_FILE_CANDIDATES = [
+        "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu
+        "/etc/pki/tls/certs/ca-bundle.crt",    # RHEL/CentOS
+        "/etc/ssl/ca-bundle.pem",
+    ]
+    for _cf in _CERT_FILE_CANDIDATES:
+        if os.path.isfile(_cf):
+            env.setdefault("SSL_CERT_FILE", _cf)
+            break
+    if os.path.isdir("/etc/ssl/certs"):
+        env.setdefault("SSL_CERT_DIR", "/etc/ssl/certs")
+
     freshclam_lib_tmp = None
     if lib_dir.exists():
         try:
