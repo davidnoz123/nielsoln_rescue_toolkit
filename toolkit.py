@@ -1725,6 +1725,12 @@ def run_ssh(
 # Source: Ubuntu 22.04 LTS (jammy) — binary runs on any modern Linux kernel.
 # The .deb is fetched, parsed with a stdlib ar/tar reader, and the ELF binary
 # is written to <usb-root>/_tools/dropbear.
+#
+# The binary also requires four shared libraries that may not be present on
+# the live system.  They are bundled alongside the binary so that bootstrap.sh
+# can start dropbear with LD_LIBRARY_PATH pointing at _tools/ — no apt-get
+# needed at all.  All packages are from Ubuntu 22.04 (jammy), matching the
+# dropbear binary.
 
 _DROPBEAR_URLS = [
     "http://security.ubuntu.com/ubuntu/pool/universe/d/dropbear/"
@@ -1732,6 +1738,31 @@ _DROPBEAR_URLS = [
     # archive.ubuntu.com fallback
     "http://archive.ubuntu.com/ubuntu/pool/universe/d/dropbear/"
     "dropbear-bin_2020.81-5ubuntu0.1_amd64.deb",
+]
+
+# Each entry: (so_filename, deb_url)
+# Versions confirmed via Ubuntu 22.04 (jammy) archive directory listings.
+_DROPBEAR_LIB_PACKAGES = [
+    (
+        "libatomic.so.1",
+        "http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/"
+        "libatomic1_12.3.0-1ubuntu1~22.04.3_amd64.deb",
+    ),
+    (
+        "libtomcrypt.so.1",
+        "http://archive.ubuntu.com/ubuntu/pool/universe/libt/libtomcrypt/"
+        "libtomcrypt1_1.18.2+dfsg-7build2_amd64.deb",
+    ),
+    (
+        "libtommath.so.1",
+        "http://archive.ubuntu.com/ubuntu/pool/main/libt/libtommath/"
+        "libtommath1_1.2.0-6ubuntu0.22.04.1_amd64.deb",
+    ),
+    (
+        "libgmp.so.10",
+        "http://archive.ubuntu.com/ubuntu/pool/main/g/gmp/"
+        "libgmp10_6.2.1+dfsg-3ubuntu1_amd64.deb",
+    ),
 ]
 
 
@@ -1809,45 +1840,119 @@ def _extract_dropbear_from_deb(deb_bytes: bytes) -> bytes:
     raise RuntimeError("dropbear binary not found inside data tarball")
 
 
-def download_dropbear(root, verbosity: int = 1) -> Path:
-    """Download the dropbear binary from Ubuntu and write it to <root>/_tools/dropbear.
+def _extract_so_from_deb(deb_bytes: bytes, so_name: str) -> bytes:
+    """Parse a .deb file and return the versioned .so binary for so_name.
 
-    If the binary already exists, returns its path immediately without downloading.
-    Returns the Path to the binary on success; raises RuntimeError on failure.
+    so_name is the unversioned symlink name, e.g. 'libatomic.so.1'.
+    We extract the first actual (non-symlink) file whose name contains the
+    library base, preferring the longest (most-versioned) name.
     """
-    dest = Path(root) / "_tools" / "dropbear"
+    import io as _io
+    data_entry = None
+    for name, content in _iter_ar(deb_bytes):
+        if name.startswith("data.tar"):
+            data_entry = (name, content)
+            break
+    if data_entry is None:
+        raise RuntimeError("No data.tar.* found in .deb")
+
+    ar_name, tar_bytes = data_entry
+    if ar_name.rstrip().endswith(".zst"):
+        tar_bytes = _decompress_zst(tar_bytes)
+    elif ar_name.rstrip().endswith(".xz"):
+        import lzma as _lzma
+        tar_bytes = _lzma.decompress(tar_bytes)
+
+    so_base = so_name.split(".so")[0]  # e.g. "libatomic"
+    import tarfile as _tarfile
+    with _tarfile.open(fileobj=_io.BytesIO(tar_bytes)) as tf:
+        candidates = [
+            (m.name, m) for m in tf.getmembers()
+            if so_base in m.name and ".so" in m.name
+        ]
+        # Prefer actual files over symlinks; prefer longer (versioned) names
+        candidates.sort(key=lambda x: (x[1].issym(), -len(x[0])))
+        for cname, member in candidates:
+            if member.isfile():
+                fobj = tf.extractfile(member)
+                if fobj:
+                    return fobj.read()
+    raise RuntimeError(f"{so_name} not found as a real file in deb")
+
+
+def download_dropbear(root, verbosity: int = 1) -> Path:
+    """Download the dropbear binary and its companion .so libraries to <root>/_tools/.
+
+    Files written:
+      _tools/dropbear          — the SSH server binary
+      _tools/libatomic.so.1    \\
+      _tools/libtomcrypt.so.1  | companion shared libraries (Ubuntu 22.04 jammy)
+      _tools/libtommath.so.1   |
+      _tools/libgmp.so.10      /
+
+    bootstrap.sh starts dropbear with LD_LIBRARY_PATH=<usb>/_tools so no
+    apt-get install is needed on the live system.
+
+    Skips any file already present.  Returns the Path to the dropbear binary.
+    Raises RuntimeError only if the binary itself cannot be obtained.
+    """
+    tools = Path(root) / "_tools"
+    tools.mkdir(parents=True, exist_ok=True)
+
+    # --- dropbear binary ---
+    dest = tools / "dropbear"
     if dest.exists():
         if verbosity >= 1:
             print(f"  dropbear: already present ({dest.stat().st_size:,} bytes)")
-        return dest
+    else:
+        deb_bytes = None
+        for url in _DROPBEAR_URLS:
+            if verbosity >= 1:
+                print(f"  dropbear: downloading {url} ...")
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "rescue-toolkit/1.0"})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    deb_bytes = resp.read()
+                if verbosity >= 1:
+                    print(f"  dropbear: {len(deb_bytes):,} bytes received")
+                break
+            except Exception as exc:
+                if verbosity >= 1:
+                    print(f"  dropbear: {url} — {exc}")
 
-    dest.parent.mkdir(parents=True, exist_ok=True)
+        if deb_bytes is None:
+            raise RuntimeError(
+                "All dropbear download URLs failed.  "
+                "Check network, or manually place the binary at: " + str(dest)
+            )
 
-    deb_bytes = None
-    for url in _DROPBEAR_URLS:
+        binary = _extract_dropbear_from_deb(deb_bytes)
+        dest.write_bytes(binary)
         if verbosity >= 1:
-            print(f"  dropbear: downloading {url} ...")
+            print(f"  dropbear: saved {dest}  ({dest.stat().st_size:,} bytes)")
+
+    # --- companion shared libraries ---
+    for so_name, url in _DROPBEAR_LIB_PACKAGES:
+        lib_dest = tools / so_name
+        if lib_dest.exists():
+            if verbosity >= 2:
+                print(f"  {so_name}: already present ({lib_dest.stat().st_size:,} bytes)")
+            continue
+        if verbosity >= 1:
+            print(f"  {so_name}: downloading {url.split('/')[-1]} ...")
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "rescue-toolkit/1.0"})
             with urllib.request.urlopen(req, timeout=30) as resp:
                 deb_bytes = resp.read()
+            so_data = _extract_so_from_deb(deb_bytes, so_name)
+            lib_dest.write_bytes(so_data)
             if verbosity >= 1:
-                print(f"  dropbear: {len(deb_bytes):,} bytes received")
-            break
+                print(f"  {so_name}: saved ({lib_dest.stat().st_size:,} bytes)")
         except Exception as exc:
             if verbosity >= 1:
-                print(f"  dropbear: {url} — {exc}")
+                print(f"  {so_name}: WARNING — {exc}")
+            # Non-fatal: dropbear may still work if the system already has the lib.
 
-    if deb_bytes is None:
-        raise RuntimeError(
-            "All dropbear download URLs failed.  "
-            "Check network, or manually place the binary at: " + str(dest)
-        )
-
-    binary = _extract_dropbear_from_deb(deb_bytes)
-    dest.write_bytes(binary)
-    if verbosity >= 1:
-        print(f"  dropbear: saved {dest}  ({dest.stat().st_size:,} bytes)")
     return dest
 
 

@@ -30,6 +30,17 @@ if [ "$1" = "ssh" ]; then
     cp "$DROPBEAR_SRC" "$DROPBEAR"
     chmod +x "$DROPBEAR"
 
+    # Copy bundled shared libraries (.so files) to /tmp as well.
+    # dropbear links against libatomic, libtomcrypt, libtommath, libgmp — all
+    # bundled in _tools/ alongside the binary.  We set LD_LIBRARY_PATH so the
+    # dynamic linker finds them without any apt-get install.
+    # (FAT32 has no execute bit, so we copy to /tmp which is tmpfs.)
+    LIB_DIR=/tmp/dropbear_libs
+    mkdir -p "$LIB_DIR"
+    for SO in "$ROOT/_tools/"*.so.*; do
+        [ -f "$SO" ] && cp "$SO" "$LIB_DIR/"
+    done
+
     # Install bundled developer key from toolkit.py into authorized_keys.
     TOOLKIT_PY="$ROOT/toolkit.py"
     if [ -f "$TOOLKIT_PY" ]; then
@@ -55,20 +66,9 @@ if [ "$1" = "ssh" ]; then
     # -R  auto-generate host keys (stored in /etc/dropbear)
     # -s  disable password auth (key-only)
     # -p  listen port
-    #
-    # The Ubuntu 22.04 dropbear binary links against libatomic.so.1,
-    # libtomcrypt.so.1, and libtommath.so.1 — install all that are missing.
-    # (Verified via: ldd _tools/dropbear)
-    MISSING_LIBS=""
-    ldconfig -p 2>/dev/null | grep -q libatomic.so.1   || MISSING_LIBS="$MISSING_LIBS libatomic1"
-    ldconfig -p 2>/dev/null | grep -q libtomcrypt.so.1 || MISSING_LIBS="$MISSING_LIBS libtomcrypt1"
-    ldconfig -p 2>/dev/null | grep -q libtommath.so.1  || MISSING_LIBS="$MISSING_LIBS libtommath1"
-    if [ -n "$MISSING_LIBS" ]; then
-        echo "[bootstrap.sh] Missing libs:$MISSING_LIBS — installing ..."
-        apt-get install -y -qq $MISSING_LIBS 2>&1 || true
-    fi
+    # LD_LIBRARY_PATH points at the bundled .so files — no apt-get needed.
     echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
-    "$DROPBEAR" -R -s -p "$PORT"
+    LD_LIBRARY_PATH="$LIB_DIR" "$DROPBEAR" -R -s -p "$PORT"
     echo "[bootstrap.sh] dropbear started. Connect as: ssh root@<ip> -p ${PORT}"
 fi
 # ---------------------------------------------------------------------------
