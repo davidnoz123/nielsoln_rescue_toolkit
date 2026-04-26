@@ -1736,6 +1736,41 @@ def _iter_ar(data: bytes):
         yield name, content
 
 
+def _decompress_zst(data: bytes) -> bytes:
+    """Decompress zstd-compressed bytes using subprocess (unzstd) or the zstandard library.
+
+    Tries, in order:
+      1. unzstd --stdout  (available on most Linux systems, including RescueZilla)
+      2. zstd -d --stdout (alternative name on some systems)
+      3. zstandard Python library (pip install zstandard — useful on Windows dev machine)
+
+    Raises RuntimeError if none of the above work.
+    """
+    for cmd in (["unzstd", "--stdout"], ["zstd", "-d", "--stdout"]):
+        try:
+            result = subprocess.run(  # noqa: S603
+                cmd,
+                input=data,
+                capture_output=True,
+            )
+            if result.returncode == 0 and result.stdout:
+                return result.stdout
+        except FileNotFoundError:
+            continue  # tool not installed — try next
+
+    try:
+        import zstandard  # type: ignore
+        dctx = zstandard.ZstdDecompressor()
+        return dctx.decompress(data, max_output_size=20 * 1024 * 1024)
+    except ImportError:
+        pass
+
+    raise RuntimeError(
+        "Cannot decompress .zst — install unzstd (sudo apt install zstd) "
+        "or the Python zstandard library (pip install zstandard)."
+    )
+
+
 def _extract_dropbear_from_deb(deb_bytes: bytes) -> bytes:
     """Parse a .deb file and return the raw dropbear ELF binary."""
     import io as _io
@@ -1749,15 +1784,7 @@ def _extract_dropbear_from_deb(deb_bytes: bytes) -> bytes:
 
     ar_name, tar_bytes = data_entry
     if ar_name.endswith(".zst"):
-        try:
-            import zstandard  # type: ignore
-        except ImportError:
-            raise RuntimeError(
-                "zstandard package required to extract this .deb — "
-                "run: pip install zstandard"
-            )
-        dctx = zstandard.ZstdDecompressor()
-        tar_bytes = dctx.decompress(tar_bytes, max_output_size=20 * 1024 * 1024)
+        tar_bytes = _decompress_zst(tar_bytes)
 
     import tarfile as _tarfile
     with _tarfile.open(fileobj=_io.BytesIO(tar_bytes)) as tf:
