@@ -320,6 +320,30 @@ def _check_oom_killed(pid: int | None = None) -> bool:
         return False
 
 
+def _stage_clamav_certs(extracted_root: Path) -> None:
+    """Ensure /usr/local/etc/certs exists so the bundled clamscan can verify CVDs.
+
+    The bundled clamscan binary has '/usr/local/etc/certs' compiled in as the
+    certificate directory.  In the live environment that path doesn't exist,
+    which causes 'Broken or not a CVD file' errors.  We copy (or create) the
+    directory once per session.
+    """
+    dst = Path("/usr/local/etc/certs")
+    if dst.exists():
+        return
+    src = extracted_root / "usr" / "local" / "etc" / "certs"
+    try:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.exists():
+            shutil.copytree(str(src), str(dst))
+            _scan_log.info("Staged ClamAV certs: %s -> %s", src, dst)
+        else:
+            dst.mkdir(parents=True, exist_ok=True)
+            _scan_log.info("Created empty certs dir %s (no bundled certs found)", dst)
+    except Exception as exc:
+        _scan_log.warning("Could not stage certs dir: %s", exc)
+
+
 def _resolve_clamscan(root: Path) -> tuple[str | None, dict | None]:
     """Return (clamscan_path, env) or (None, None) if not found."""
     clamscan = shutil.which("clamscan")
@@ -331,11 +355,11 @@ def _resolve_clamscan(root: Path) -> tuple[str | None, dict | None]:
             / "usr" / "local" / "bin" / "clamscan"
         )
         if bundled.exists():
-            lib_dir = (
-                root / "clamav" / "linux-x86_64" / "extracted"
-                / "usr" / "local" / "lib"
-            )
+            extracted_root = root / "clamav" / "linux-x86_64" / "extracted"
+            lib_dir = extracted_root / "usr" / "local" / "lib"
             scan_env = dict(os.environ)
+            # Stage certs so clamscan can verify CVD databases.
+            _stage_clamav_certs(extracted_root)
             if lib_dir.exists():
                 try:
                     _lib_tmp_str, _ = _stage_clamav_libs(lib_dir)
@@ -370,7 +394,12 @@ def _run_clamscan_on_dir(
     log_path: Path,
     verbose: bool = False,
 ) -> int:
-    """Run clamscan against a single directory. Returns the raw exit code."""
+    """Run clamscan against a single directory. Returns the raw exit code.
+
+    NOTE: This function does NOT clean up temp files.  Lifecycle of the staged
+    binary and lib directory is managed by the caller (run_scan) so that the
+    same temp binary can be reused across multiple segment scans.
+    """
     cmd = [clamscan] + _CLAMSCAN_COMMON + profile_flags + db_args
     if include_exts:
         for ext in include_exts:
@@ -380,19 +409,13 @@ def _run_clamscan_on_dir(
     if verbose:
         print(f"    cmd: {' '.join(cmd)}", flush=True)
 
-    clamscan_tmp = (scan_env or {}).pop("_NRT_CLAMSCAN_TMP", "") or None
-    lib_tmp = (scan_env or {}).pop("_NRT_LIB_TMP", "") or None
-    try:
-        result = subprocess.run(cmd, env=scan_env)  # noqa: S603
-    finally:
-        if clamscan_tmp:
-            try:
-                os.unlink(clamscan_tmp)
-            except OSError:
-                pass
-        if lib_tmp:
-            shutil.rmtree(lib_tmp, ignore_errors=True)
+    # Strip the internal lifecycle keys before passing env to subprocess.
+    clean_env = None
+    if scan_env is not None:
+        clean_env = {k: v for k, v in scan_env.items()
+                     if k not in ("_NRT_CLAMSCAN_TMP", "_NRT_LIB_TMP")}
 
+    result = subprocess.run(cmd, env=clean_env)  # noqa: S603
     return result.returncode
 
 
@@ -430,8 +453,10 @@ def run_scan(
         print(f"ERROR: Target does not exist: {target}")
         return 2
 
-    # ---- resolve clamscan binary ----
+    # ---- resolve clamscan binary (staged once; cleaned up in finally below) ----
     clamscan, scan_env = _resolve_clamscan(root)
+    clamscan_tmp = (scan_env or {}).get("_NRT_CLAMSCAN_TMP") or None
+    lib_tmp = (scan_env or {}).get("_NRT_LIB_TMP") or None
     if clamscan is None:
         msg = (
             "clamscan not found. ClamAV is not installed, not on PATH, and not bundled.\n"
@@ -521,7 +546,7 @@ def run_scan(
     errored = False
     scanned_count = 0
 
-    try:
+    try:  # outer try: guarantees temp binary/libs are cleaned up on exit
         for scan_dir in scan_dirs:
             dir_key = str(scan_dir)
             if dir_key in completed_dirs:
@@ -537,7 +562,7 @@ def run_scan(
 
             rc = _run_clamscan_on_dir(
                 clamscan,
-                dict(scan_env) if scan_env else None,  # fresh copy each time
+                scan_env,  # read-only; _run_clamscan_on_dir no longer mutates it
                 scan_dir,
                 profile_flags,
                 include_exts,
@@ -572,6 +597,14 @@ def run_scan(
             completed_dirs.add(dir_key)
 
     finally:
+        # Clean up the staged clamscan binary and libs (created once, used for all segments).
+        if clamscan_tmp:
+            try:
+                os.unlink(clamscan_tmp)
+            except OSError:
+                pass
+        if lib_tmp:
+            shutil.rmtree(lib_tmp, ignore_errors=True)
         if swap_path:
             _teardown_swap(swap_path)
 
