@@ -74,7 +74,12 @@ def main() -> int:
 
     p_clamav = sub.add_parser(
         "clamav",
-        help="Install or update the bundled ClamAV antivirus scanner.",
+        help="Download, install, or update the bundled ClamAV antivirus scanner.",
+    )
+    p_clamav.add_argument(
+        "--download",
+        action="store_true",
+        help="Download the ClamAV .deb to the local cache (clamav/linux-x86_64/).",
     )
     p_clamav.add_argument(
         "--install",
@@ -131,13 +136,21 @@ def main() -> int:
         )
 
     if args.command == "clamav":
-        from toolkit import run_install_clamav, run_clamav_update_db
-        if not args.install and not args.update_db:
+        from toolkit import download_clamav, run_install_clamav, run_clamav_update_db
+        if not args.download and not args.install and not args.update_db:
             p_clamav.print_help()
             return 0
         rc = 0
-        if args.install:
+        if args.download:
+            try:
+                download_clamav(root, verbosity=args.verbosity)
+            except RuntimeError as exc:
+                print(f"ERROR: {exc}")
+                rc = 1
+        if args.install and rc == 0:
             rc = run_install_clamav(root, verbosity=args.verbosity)
+        elif args.install:
+            print("Skipping --install because --download failed.")
         if args.update_db:
             rc = run_clamav_update_db(root, verbosity=args.verbosity) or rc
         return rc
