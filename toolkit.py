@@ -438,8 +438,17 @@ def _fetch_url(url: str, timeout: int = 30) -> bytes:
     import urllib.request
     import urllib.error
 
+    # Send Cache-Control: no-cache so CDN nodes (e.g. Fastly on
+    # raw.githubusercontent.com) revalidate with the origin instead of
+    # serving a stale cached copy.  Query-string timestamps alone are not
+    # sufficient because Fastly strips query params from its cache key by
+    # default for GitHub raw content.
+    req = urllib.request.Request(
+        url,
+        headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+    )
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:  # noqa: S310
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
             if resp.status != 200:
                 raise RuntimeError(f"HTTP {resp.status} for {url}")
             return resp.read()
