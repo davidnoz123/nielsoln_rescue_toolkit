@@ -1817,26 +1817,18 @@ if __name__ == "__main__":
         raise Exception("OK")
 
     if False:
-        # Delete ALL contents of a USB drive.
-        # Every file and folder at usb_dest is permanently removed.
+        # Delete ALL contents of a USB drive by mirroring an empty directory onto it.
+        # robocopy /MIR (Windows) or rsync --delete (Linux) removes everything at usb_dest
+        # that is not present in the empty source — i.e. everything.
         # Toggle to True only when you are certain — this cannot be undone.
+        import tempfile
         usb_dest = Path("E:\\")               # <-- set your USB drive path here
-        print(f"Deleting all contents of {usb_dest} ...")
-        deleted_files = 0
-        deleted_dirs  = 0
-        errors        = 0
-        for item in sorted(usb_dest.iterdir()):
-            try:
-                if item.is_dir() and not item.is_symlink():
-                    shutil.rmtree(item)
-                    deleted_dirs += 1
-                    print(f"  rmtree  {item.name}/")
-                else:
-                    item.unlink()
-                    deleted_files += 1
-                    print(f"  unlink  {item.name}")
-            except OSError as exc:
-                errors += 1
-                print(f"  ERROR   {item.name}: {exc}")
-        print(f"Done ({deleted_files} file(s), {deleted_dirs} dir(s) deleted, {errors} error(s))")
+        print(f"Wiping all contents of {usb_dest} ...")
+        with tempfile.TemporaryDirectory() as empty_dir:
+            rc = RoboCopy(threads=8, fat_timestamps=True)
+            result = rc.mirror(Path(empty_dir), usb_dest)
+        status = "changed" if result.changed else "no changes"
+        print(f"Done ({status}, exit {result.returncode})")
+        if result.stdout.strip():
+            print(result.stdout)
         raise Exception("OK")
