@@ -616,6 +616,108 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
         return 1
 
 
+def run_push(
+    root: Path = None,
+    host: str = "",
+    port: int = 22,
+    key: str = "",
+    remote_root: str = "",
+    verbosity: int = 2,
+) -> int:
+    """Push the three source files to a running RescueZilla over SSH/SCP.
+
+    Bypasses GitHub — pushes local working-tree files directly.
+    After transfer, purges __pycache__ on the remote so new code takes effect
+    immediately on the next run.
+
+    Returns 0 on success, non-zero on failure.
+    """
+    if root is None:
+        root = Path(__file__).resolve().parent
+
+    if not host:
+        print("ERROR: --host is required.")
+        return 1
+
+    # Build base ssh/scp options.
+    ssh_opts = ["-o", "StrictHostKeyChecking=no", "-p", str(port)]
+    if key:
+        ssh_opts += ["-i", key]
+
+    target = f"root@{host}"
+
+    # Auto-detect remote root if not supplied: find bootstrap.sh under /media or /mnt.
+    if not remote_root:
+        if verbosity >= 1:
+            print(f"  Auto-detecting remote root on {host} ...")
+        try:
+            result = subprocess.run(  # noqa: S603
+                ["ssh"] + ssh_opts + [target,
+                    "find /media /mnt /tmp -maxdepth 4 -name bootstrap.sh 2>/dev/null "
+                    "| head -1 | xargs -r dirname"],
+                capture_output=True, text=True, timeout=15,
+            )
+            remote_root = result.stdout.strip()
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            print(f"ERROR: SSH auto-detect failed: {exc}")
+            return 1
+        if not remote_root:
+            print("ERROR: Could not auto-detect remote root. Use --remote-root.")
+            return 1
+        if verbosity >= 1:
+            print(f"  Remote root: {remote_root}")
+
+    # Compute local LF-normalised SHA256 for each file.
+    def _sha(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+    files_to_push = [root / f for f in _UPDATE_FILES]
+    missing = [f for f in files_to_push if not f.exists()]
+    if missing:
+        print(f"ERROR: local files not found: {[str(f) for f in missing]}")
+        return 1
+
+    if verbosity >= 1:
+        print(f"\nPushing {len(files_to_push)} files to {target}:{remote_root}/")
+
+    # SCP all three files in one call.
+    scp_cmd = (
+        ["scp", "-P", str(port)]
+        + (["-i", key] if key else [])
+        + ["-o", "StrictHostKeyChecking=no"]
+        + [str(f) for f in files_to_push]
+        + [f"{target}:{remote_root}/"]
+    )
+    if verbosity >= 2:
+        print(f"  scp: {' '.join(scp_cmd)}")
+    try:
+        rc = subprocess.run(scp_cmd).returncode  # noqa: S603
+    except OSError as exc:
+        print(f"ERROR: scp failed: {exc}")
+        return 1
+    if rc != 0:
+        print(f"ERROR: scp exited with code {rc}")
+        return rc
+
+    # Purge stale .pyc files on the remote.
+    purge_cmd = (
+        f"find {remote_root}/__pycache__ -name '*.pyc' -delete 2>/dev/null; "
+        f"chmod +x {remote_root}/bootstrap.sh 2>/dev/null; true"
+    )
+    try:
+        subprocess.run(["ssh"] + ssh_opts + [target, purge_cmd], timeout=15)  # noqa: S603
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"  WARNING: post-push cleanup failed: {exc}")
+
+    # Print local hashes so user can compare against `bootstrap update` output.
+    print("\nPushed files (local LF-normalised SHA256):")
+    for f in files_to_push:
+        print(f"  {_sha(f)}  {f.name}")
+
+    print(f"\nFiles are live on {host}. Changes take effect on the next bootstrap run.")
+    return 0
+
+
 def run_update(root: Path = None, offline: bool = False) -> int:
     """Foreground update — prints per-file progress. Returns toolkit exit code."""
     if root is None: root = Path(file__fileSysD)

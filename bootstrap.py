@@ -102,6 +102,29 @@ def main() -> int:
         help="Download the dropbear SSH server binary to _tools/dropbear on this USB.",
     )
 
+    p_push = sub.add_parser(
+        "push",
+        help="Push local source files to a running RescueZilla over SSH (bypasses GitHub).",
+    )
+    p_push.add_argument(
+        "--host", required=True,
+        help="IP or hostname of the RescueZilla machine.",
+    )
+    p_push.add_argument(
+        "--port", type=int, default=22,
+        help="SSH port (default: 22).",
+    )
+    p_push.add_argument(
+        "--key", default="",
+        metavar="PATH",
+        help="Path to SSH private key (default: system default).",
+    )
+    p_push.add_argument(
+        "--remote-root", default="",
+        metavar="PATH",
+        help="Path to toolkit root on remote (auto-detected if omitted).",
+    )
+
     p_ssh = sub.add_parser(
         "ssh",
         help="Start an SSH server (openssh/dropbear) for remote VS Code access.",
@@ -187,6 +210,17 @@ def main() -> int:
             print(f"ERROR: {exc}")
             return 1
         return 0
+
+    if args.command == "push":
+        from toolkit import run_push
+        return run_push(
+            root,
+            host=args.host,
+            port=args.port,
+            key=args.key,
+            remote_root=args.remote_root,
+            verbosity=2,
+        )
 
     if args.command == "ssh":
         from toolkit import run_ssh
