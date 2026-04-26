@@ -640,14 +640,18 @@ def run_update(root: Path = None, offline: bool = False) -> int:
     staging = root / "cache" / "update_staging"
     staging.mkdir(parents=True, exist_ok=True)
 
-    # Snapshot toolkit.py SHA256 before any files are replaced so we can
-    # report clearly whether the file actually changed after the update.
-    toolkit_live = root / "toolkit.py"
-    _pre_digest: str = ""
-    if toolkit_live.exists():
-        _pre_bytes = toolkit_live.read_bytes().replace(b"\r\n", b"\n")
-        _pre_digest = hashlib.sha256(_pre_bytes).hexdigest()
-        _updater_log.info("toolkit.py SHA256 before update: %s", _pre_digest)
+    # Snapshot SHA256 of every file before any replacements so we can
+    # report clearly what changed.
+    def _lf_sha256(path: Path) -> str:
+        data = path.read_bytes().replace(b"\r\n", b"\n")
+        return hashlib.sha256(data).hexdigest()
+
+    pre_digests: dict = {}
+    for filename in _UPDATE_FILES:
+        p = root / filename
+        if p.exists():
+            pre_digests[filename] = _lf_sha256(p)
+            _updater_log.info("%s SHA256 before update: %s", filename, pre_digests[filename])
 
     # Stage all files before touching anything live.
     # Append a timestamp to the URL to bypass GitHub's CDN cache.
@@ -702,18 +706,27 @@ def run_update(root: Path = None, offline: bool = False) -> int:
     toolkit_dst = root / "toolkit.py"
     if toolkit_dst.exists():
         # Compute LF-normalized digest (matches GitHub raw / AGENTS.md table)
-        data = toolkit_dst.read_bytes().replace(b"\r\n", b"\n")
-        lf_digest = hashlib.sha256(data).hexdigest()
-        print(f"toolkit.py SHA256 before : {_pre_digest or '(not found)'}")
-        print(f"toolkit.py SHA256 after  : {lf_digest}")
-        _updater_log.info("toolkit.py SHA256 before: %s", _pre_digest or "(not found)")
-        _updater_log.info("toolkit.py SHA256 after : %s", lf_digest)
-        if lf_digest != _pre_digest:
-            print("*** toolkit.py CHANGED -- new version is active on next run ***")
-            _updater_log.info("toolkit.py was updated to a new version.")
+        print()
+        any_changed = False
+        for filename in _UPDATE_FILES:
+            p = root / filename
+            if not p.exists():
+                continue
+            after = _lf_sha256(p)
+            before = pre_digests.get(filename, "(not found)")
+            changed = after != before
+            if changed:
+                any_changed = True
+            marker = "CHANGED" if changed else "unchanged"
+            print(f"  {filename:<16} {marker}")
+            print(f"    before: {before}")
+            print(f"    after : {after}")
+            _updater_log.info("%s SHA256 before: %s", filename, before)
+            _updater_log.info("%s SHA256 after : %s", filename, after)
+        if any_changed:
+            print("\n*** Files changed — new versions active on next run ***")
         else:
-            print("--- toolkit.py unchanged (already up to date) ---")
-            _updater_log.info("toolkit.py was already up to date; no change.")
+            print("\n--- All files unchanged (already up to date) ---")
 
     print("\nUpdate complete. Changes take effect on the next run.")
     _updater_log.info("Update complete.")
