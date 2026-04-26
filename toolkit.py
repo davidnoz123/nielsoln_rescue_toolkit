@@ -1040,12 +1040,18 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
             print(f"  ERROR: {exc}")
             return 1
 
+    # Make all binaries in usr/local/bin/ executable (clamscan, freshclam, etc.)
+    bin_dir = _clamav_install_path(root) / "usr" / "local" / "bin"
+    if bin_dir.is_dir():
+        for binary in bin_dir.iterdir():
+            if binary.is_file():
+                try:
+                    binary.chmod(binary.stat().st_mode | 0o111)
+                except OSError:
+                    pass
+
     clamscan = get_clamav_executable(root)
     if clamscan.exists():
-        try:
-            clamscan.chmod(clamscan.stat().st_mode | 0o111)
-        except OSError:
-            pass
         if verbosity >= 1:
             print(f"  OK -- {clamscan}")
     else:
