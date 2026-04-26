@@ -473,9 +473,11 @@ def run_update(root: Path = None, offline: bool = False) -> int:
         _updater_log.info("toolkit.py SHA256 before update: %s", _pre_digest)
 
     # Stage all files before touching anything live.
+    # Append a timestamp to the URL to bypass GitHub's CDN cache.
+    _cache_bust = int(time.time())
     staged: list = []
     for filename in _UPDATE_FILES:
-        url = f"{_REPO_RAW_BASE}/{filename}"
+        url = f"{_REPO_RAW_BASE}/{filename}?_={_cache_bust}"
         _updater_log.info("Fetching %s", url)
         print(f"Fetching {filename} ...", end=" ", flush=True)
         try:
@@ -549,9 +551,11 @@ def _background_update_worker(root: Path = None) -> None:
         staging = root / "cache" / "update_staging"
         staging.mkdir(parents=True, exist_ok=True)
 
+        # Append a timestamp to bypass GitHub's CDN cache.
+        _cache_bust = int(time.time())
         staged: list = []
         for filename in _UPDATE_FILES:
-            url = f"{_REPO_RAW_BASE}/{filename}"
+            url = f"{_REPO_RAW_BASE}/{filename}?_={_cache_bust}"
             try:
                 data = _fetch_url(url)
             except RuntimeError as exc:
