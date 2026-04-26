@@ -72,6 +72,26 @@ def main() -> int:
         help="0=silent  1=actions only  2=actions+decisions (default)",
     )
 
+    p_clamav = sub.add_parser(
+        "clamav",
+        help="Install or update the bundled ClamAV antivirus scanner.",
+    )
+    p_clamav.add_argument(
+        "--install",
+        action="store_true",
+        help="Extract the bundled ClamAV .deb into clamav/linux-x86_64/extracted/.",
+    )
+    p_clamav.add_argument(
+        "--update-db",
+        action="store_true",
+        help="Run freshclam to download/update the virus database (requires internet).",
+    )
+    p_clamav.add_argument(
+        "--verbosity", type=int, default=2, choices=[0, 1, 2],
+        metavar="N",
+        help="0=silent  1=actions only  2=actions+decisions (default: 2).",
+    )
+
     args = parser.parse_args()
 
     setup_logging(root, getattr(args, "verbose", False))
@@ -80,8 +100,8 @@ def main() -> int:
     log.debug("Command: %s", args.command)
 
     # Fire background auto-update unless suppressed or running the explicit
-    # update/runtime commands (which provide their own foreground output).
-    if not args.no_update and not args.offline and args.command not in ("update", "runtime"):
+    # update/runtime/clamav commands (which provide their own foreground output).
+    if not args.no_update and not args.offline and args.command not in ("update", "runtime", "clamav"):
         from toolkit import start_background_update
         start_background_update(root)
 
@@ -109,6 +129,18 @@ def main() -> int:
             mode=args.mode,
             verbosity=args.verbosity,
         )
+
+    if args.command == "clamav":
+        from toolkit import run_install_clamav, run_clamav_update_db
+        if not args.install and not args.update_db:
+            p_clamav.print_help()
+            return 0
+        rc = 0
+        if args.install:
+            rc = run_install_clamav(root, verbosity=args.verbosity)
+        if args.update_db:
+            rc = run_clamav_update_db(root, verbosity=args.verbosity) or rc
+        return rc
 
     parser.print_help()
     return 0

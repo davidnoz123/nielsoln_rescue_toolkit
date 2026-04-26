@@ -183,10 +183,32 @@ def run_scan(root: Path = None, target: Path = None) -> int:
         return 2
 
     clamscan = shutil.which("clamscan")
+    scan_env = None
+
+    if clamscan is None:
+        # Try bundled ClamAV extracted by `bootstrap clamav --install`
+        bundled = (
+            root / "clamav" / "linux-x86_64" / "extracted" / "usr" / "bin" / "clamscan"
+        )
+        if bundled.exists():
+            clamscan = str(bundled)
+            lib_dir = (
+                root / "clamav" / "linux-x86_64" / "extracted"
+                / "usr" / "lib" / "x86_64-linux-gnu"
+            )
+            scan_env = dict(os.environ)
+            if lib_dir.exists():
+                prev = scan_env.get("LD_LIBRARY_PATH", "")
+                scan_env["LD_LIBRARY_PATH"] = (
+                    f"{lib_dir}:{prev}" if prev else str(lib_dir)
+                )
+
     if clamscan is None:
         msg = (
             "clamscan not found. "
-            "ClamAV is not installed or not on PATH. "
+            "ClamAV is not installed, not on PATH, and not yet extracted from the bundle. "
+            "Run `bootstrap clamav --install` to extract the bundled ClamAV, "
+            "then `bootstrap clamav --update-db` to download a virus database. "
             "Run 'triage' for a Python-only scan instead."
         )
         _scan_log.warning(msg)
@@ -196,18 +218,25 @@ def run_scan(root: Path = None, target: Path = None) -> int:
     log_path = root / "logs" / "clamav_scan.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Point clamscan at the locally cached virus database if present.
+    db_dir = root / "clamav" / "linux-x86_64" / "db"
+    extra_args = []
+    if db_dir.is_dir() and any(db_dir.glob("*.c?d")):
+        extra_args.append(f"--datadir={db_dir}")
+
     cmd = [
         clamscan,
         "--recursive",
         "--infected",
         f"--log={log_path}",
+        *extra_args,
         str(target),
     ]
 
     _scan_log.info("Running ClamAV: %s", " ".join(cmd))
     print("Running:", " ".join(cmd))
 
-    result = subprocess.run(cmd)  # noqa: S603 — clamscan path verified by shutil.which
+    result = subprocess.run(cmd, env=scan_env)  # noqa: S603
 
     _scan_log.info("ClamAV finished with exit code %d. Log: %s", result.returncode, log_path)
     print("ClamAV log:", log_path)
@@ -651,6 +680,305 @@ def print_runtime_download_plan(
     print()
     print("To download, fetch each URL and save to the Cache path shown above.")
     print("Re-run this plan to verify checksums after downloading.")
+
+
+# ---------------------------------------------------------------------------
+# clamav — Download, bundle, and install ClamAV for offline scanning
+# ---------------------------------------------------------------------------
+#
+# ClamAV is fetched as an official .deb from the ClamAV GitHub releases page.
+# The .deb is bundled on the USB so it can be installed offline on the rescue
+# target (RescueZilla / Ubuntu / Debian).
+#
+# Workflow
+# --------
+#   Build time : download_clamav(root)      → caches .deb under root/clamav/linux-x86_64/
+#   USB build  : build_usb_package          → copies .deb into dist/clamav/linux-x86_64/
+#   USB runtime: run_install_clamav(root)   → dpkg-deb --extract to clamav/.../extracted/
+#   Scanning   : run_scan                   → uses bundled clamscan if not on PATH
+#
+# Virus database
+# --------------
+#   ClamAV cannot scan without a database (daily.cvd / main.cvd).
+#   The database is NOT bundled — it is too large (~300 MB+).
+#   Use `bootstrap clamav --update-db` (requires internet) on the target,
+#   OR copy existing .cvd / .cld files from the rescue environment into
+#   clamav/linux-x86_64/db/ before scanning offline.
+
+_CLAMAV_VERSION        = "1.5.2"
+_CLAMAV_RELEASE_BASE   = "https://github.com/Cisco-Talos/clamav/releases/download"
+_CLAMAV_LINUX_FILENAME = f"clamav-{_CLAMAV_VERSION}.linux.x86_64.deb"
+_CLAMAV_LINUX_URL      = (
+    f"{_CLAMAV_RELEASE_BASE}/clamav-{_CLAMAV_VERSION}/{_CLAMAV_LINUX_FILENAME}"
+)
+_CLAMAV_LINUX_SHA256_URL = f"{_CLAMAV_LINUX_URL}.sha256"
+
+
+def _clamav_cache_path(root) -> Path:
+    """Return the local cache directory: root/clamav/linux-x86_64/.
+
+    Validates that *root* is an existing directory.
+    """
+    if root is None:
+        raise ValueError("root must not be None")
+    p = Path(root)
+    if not p.is_dir():
+        raise ValueError(f"root is not an existing directory: {p!r}")
+    return p / "clamav" / "linux-x86_64"
+
+
+def _clamav_install_path(root) -> Path:
+    """Return the directory where ClamAV binaries are extracted."""
+    return _clamav_cache_path(root) / "extracted"
+
+
+def get_clamav_executable(root) -> Path:
+    """Return the expected path of the bundled clamscan binary."""
+    return _clamav_install_path(root) / "usr" / "bin" / "clamscan"
+
+
+def _fetch_clamav_sha256(verbosity: int = 0) -> str:
+    """Fetch the SHA256 for the ClamAV Linux .deb from the upstream .sha256 file.
+
+    The file contains either "<hex>" or "<hex>  <filename>".
+    """
+    if verbosity >= 2:
+        print(f"  clamav: fetching SHA256 from {_CLAMAV_LINUX_SHA256_URL} ...")
+    try:
+        data = _fetch_url(_CLAMAV_LINUX_SHA256_URL)
+    except RuntimeError as exc:
+        raise RuntimeError(f"Could not fetch ClamAV SHA256: {exc}") from exc
+    text = data.decode("utf-8").strip()
+    return text.split()[0]
+
+
+def download_clamav(root, verbosity: int = 2) -> Path:
+    """Download the ClamAV Linux .deb to the local cache.
+
+    Returns the cached .deb path.  Verifies SHA256 against the upstream .sha256
+    file.  Skips download if already cached and verified.
+    """
+    cache_dir  = _clamav_cache_path(root)
+    cached_deb = cache_dir / _CLAMAV_LINUX_FILENAME
+
+    if verbosity >= 2:
+        print(f"  clamav: fetching SHA256 ...")
+    try:
+        expected_sha256 = _fetch_clamav_sha256(verbosity=0)
+    except RuntimeError as exc:
+        raise RuntimeError(f"ClamAV SHA256 fetch failed: {exc}") from exc
+
+    if _verify_cached_file(cached_deb, expected_sha256):
+        if verbosity >= 1:
+            print(f"  clamav: already cached and verified: {cached_deb.name}")
+        return cached_deb
+
+    if verbosity >= 1:
+        print(f"  clamav: downloading {_CLAMAV_LINUX_URL} ...")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        data = _fetch_url(_CLAMAV_LINUX_URL)
+    except RuntimeError as exc:
+        raise RuntimeError(f"ClamAV download failed: {exc}") from exc
+
+    cached_deb.write_bytes(data)
+
+    if not _verify_cached_file(cached_deb, expected_sha256):
+        cached_deb.unlink()
+        raise RuntimeError(
+            "ClamAV .deb SHA256 mismatch after download — deleted corrupted file."
+        )
+
+    if verbosity >= 1:
+        print(f"  clamav: downloaded and verified: {cached_deb.name}")
+    return cached_deb
+
+
+def _extract_deb_python(deb_path: Path, dest_dir: Path, verbosity: int = 2) -> None:
+    """Pure-Python .deb extractor (ar + tar).  Supports gz, xz, bz2 compression.
+
+    Used as a fallback on platforms without dpkg-deb (e.g. Windows dev machine).
+    Note: zstd-compressed data.tar.zst is NOT supported by Python stdlib.
+    """
+    import io
+    import gzip
+    import lzma
+    import bz2 as _bz2
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- parse ar archive ---
+    with open(deb_path, "rb") as f:
+        magic = f.read(8)
+        if magic != b"!<arch>\n":
+            raise ValueError(f"Not an ar archive (bad magic): {deb_path.name}")
+        entries = []
+        while True:
+            header = f.read(60)
+            if not header:
+                break
+            if len(header) < 60:
+                raise ValueError(f"Truncated ar header ({len(header)} bytes)")
+            name = header[0:16].rstrip().decode("ascii", errors="replace")
+            size = int(header[48:58].strip())
+            if header[58:60] != b"`\n":
+                raise ValueError(f"Bad ar entry magic: {header[58:60]!r}")
+            data = f.read(size)
+            if size % 2 == 1:
+                f.read(1)  # padding
+            entries.append((name, data))
+
+    # --- find data.tar.* ---
+    data_entry = next(
+        ((n, d) for n, d in entries if n.startswith("data.tar")), None
+    )
+    if data_entry is None:
+        raise RuntimeError(f"No data.tar.* found in {deb_path.name}")
+
+    name, data = data_entry
+    nl = name.lower()
+    if nl.endswith(".xz") or nl.endswith(".xz/"):
+        raw = lzma.decompress(data)
+    elif nl.endswith(".gz") or nl.endswith(".gz/"):
+        raw = gzip.decompress(data)
+    elif nl.endswith(".bz2") or nl.endswith(".bz2/"):
+        raw = _bz2.decompress(data)
+    elif nl.endswith(".tar") or nl.endswith(".tar/"):
+        raw = data
+    elif nl.endswith(".zst") or nl.endswith(".zst/"):
+        raise RuntimeError(
+            "data.tar.zst compression requires dpkg-deb (not in Python stdlib).\n"
+            "Install dpkg and retry, or run on the target Linux system."
+        )
+    else:
+        raise RuntimeError(
+            f"Unsupported data.tar compression in entry {name!r}.\n"
+            "Install dpkg and retry."
+        )
+
+    with tarfile.open(fileobj=io.BytesIO(raw)) as tf:
+        members = tf.getmembers()
+        total = len(members)
+        for i, member in enumerate(members, 1):
+            if verbosity >= 2 and i % 200 == 0:
+                print(f"  clamav: extracting ... [{i}/{total}]")
+            tf.extract(member, path=str(dest_dir))
+    if verbosity >= 1:
+        print(f"  clamav: extracted {len(members)} entries to {dest_dir}")
+
+
+def run_install_clamav(root=None, verbosity: int = 2) -> int:
+    """Extract the bundled ClamAV .deb into clamav/linux-x86_64/extracted/.
+
+    Uses dpkg-deb if available (handles all compression including zstd), otherwise
+    falls back to pure-Python extraction (gz/xz/bz2 only).
+
+    After installation, get_clamav_executable(root) points at a working clamscan.
+    A virus database is NOT included — run `bootstrap clamav --update-db` (online),
+    or copy *.cvd / *.cld files into clamav/linux-x86_64/db/ for offline scanning.
+    """
+    if root is None:
+        root = Path(file__fileSysD)
+    root = Path(root)
+    assert root.is_dir(), f"root is not an existing directory: {root!r}"
+
+    cache_dir = _clamav_cache_path(root)
+    debs = sorted(cache_dir.glob("*.deb"))
+    if not debs:
+        print(f"No ClamAV .deb found in {cache_dir}")
+        print("Run build_usb_package (or download_clamav) first.")
+        return 1
+
+    if len(debs) > 1:
+        print(f"Multiple .deb files in {cache_dir}: {[d.name for d in debs]}")
+        print("Remove all but one and retry.")
+        return 1
+
+    deb_path    = debs[0]
+    install_dir = _clamav_install_path(root)
+
+    if verbosity >= 1:
+        print(f"Extracting ClamAV from {deb_path.name} ...")
+        print(f"  dest: {install_dir}")
+
+    dpkg_deb = shutil.which("dpkg-deb")
+    if dpkg_deb:
+        if verbosity >= 2:
+            print(f"  using dpkg-deb: {dpkg_deb}")
+        install_dir.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(
+            [dpkg_deb, "--extract", str(deb_path), str(install_dir)]
+        )
+        if result.returncode != 0:
+            print(f"  ERROR: dpkg-deb --extract exited {result.returncode}")
+            return result.returncode
+    else:
+        if verbosity >= 1:
+            print("  dpkg-deb not found — using pure-Python extractor")
+        try:
+            _extract_deb_python(deb_path, install_dir, verbosity=verbosity)
+        except RuntimeError as exc:
+            print(f"  ERROR: {exc}")
+            return 1
+
+    clamscan = get_clamav_executable(root)
+    if clamscan.exists():
+        try:
+            clamscan.chmod(clamscan.stat().st_mode | 0o111)
+        except OSError:
+            pass
+        if verbosity >= 1:
+            print(f"  OK -- {clamscan}")
+    else:
+        print(f"  WARNING -- {clamscan} not found after extraction")
+        return 1
+
+    db_dir = cache_dir / "db"
+    print()
+    print("NOTE: ClamAV requires a virus database to scan files.")
+    print(f"  Option 1 (online):  bootstrap clamav --update-db")
+    print(f"  Option 2 (offline): copy *.cvd / *.cld files to {db_dir}")
+    return 0
+
+
+def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
+    """Run freshclam to download / update the ClamAV virus database.
+
+    Requires internet access.  Saves the database to clamav/linux-x86_64/db/
+    so it persists across reboots of the rescue environment.
+    """
+    if root is None:
+        root = Path(file__fileSysD)
+    root = Path(root)
+    assert root.is_dir(), f"root is not an existing directory: {root!r}"
+
+    # Prefer bundled freshclam; fall back to PATH
+    bundled_freshclam = _clamav_install_path(root) / "usr" / "bin" / "freshclam"
+    freshclam_path = (
+        str(bundled_freshclam) if bundled_freshclam.exists()
+        else shutil.which("freshclam")
+    )
+    if freshclam_path is None:
+        print("freshclam not found.  Run `bootstrap clamav --install` first.")
+        return 1
+
+    db_dir = _clamav_cache_path(root) / "db"
+    db_dir.mkdir(parents=True, exist_ok=True)
+
+    # Add bundled lib path for dynamically linked freshclam
+    lib_dir = _clamav_install_path(root) / "usr" / "lib" / "x86_64-linux-gnu"
+    env = dict(os.environ)
+    if lib_dir.exists():
+        prev = env.get("LD_LIBRARY_PATH", "")
+        env["LD_LIBRARY_PATH"] = f"{lib_dir}:{prev}" if prev else str(lib_dir)
+
+    cmd = [freshclam_path, f"--datadir={db_dir}"]
+    if verbosity >= 1:
+        print("Running:", " ".join(cmd))
+    result = subprocess.run(cmd, env=env)
+    if result.returncode == 0 and verbosity >= 1:
+        print(f"Database updated in {db_dir}")
+    return result.returncode
 
 
 # ---------------------------------------------------------------------------
@@ -1142,6 +1470,21 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
             mode=mode,
             verbosity=verbosity,
         )
+
+    # --- ClamAV ---
+    if verbosity >= 1:
+        print("\nClamAV:")
+    if not dry_run:
+        try:
+            deb = download_clamav(root, verbosity=verbosity)
+            clamav_dist_dir = dist / "clamav" / "linux-x86_64"
+            clamav_dist_dir.mkdir(parents=True, exist_ok=True)
+            _sync_core_file(deb, clamav_dist_dir / deb.name, mode=mode, verbosity=verbosity)
+        except RuntimeError as exc:
+            print(f"  ERROR downloading ClamAV: {exc}")
+            print("  Skipping ClamAV bundle.  run_scan will fall back to system ClamAV.")
+    else:
+        print(f"  would download {_CLAMAV_LINUX_URL}")
 
     # --- chmod bootstrap.sh ---
     if not dry_run:
