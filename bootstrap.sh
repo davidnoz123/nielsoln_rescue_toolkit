@@ -27,6 +27,13 @@ if [ "$1" = "ssh" ]; then
         exit 1
     fi
     DROPBEAR=/tmp/dropbear_rescue
+    # Kill any previous instance before overwriting the binary (avoids "Text
+    # file busy" error when the executable is still mapped into memory).
+    if [ -f "$DROPBEAR" ]; then
+        pkill -x dropbear_rescue 2>/dev/null || true
+        sleep 0.3
+        rm -f "$DROPBEAR"
+    fi
     cp "$DROPBEAR_SRC" "$DROPBEAR"
     chmod +x "$DROPBEAR"
 
@@ -36,6 +43,8 @@ if [ "$1" = "ssh" ]; then
     # dynamic linker finds them without any apt-get install.
     # (FAT32 has no execute bit, so we copy to /tmp which is tmpfs.)
     LIB_DIR=/tmp/dropbear_libs
+    # Wipe and recreate so stale .so files never cause "Text file busy".
+    rm -rf "$LIB_DIR"
     mkdir -p "$LIB_DIR"
     for SO in "$ROOT/_tools/"*.so.*; do
         [ -f "$SO" ] && cp "$SO" "$LIB_DIR/"
