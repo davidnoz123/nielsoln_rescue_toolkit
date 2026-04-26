@@ -1154,19 +1154,21 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
         return
 
     print(f"\nDone. USB package: {dist}")
-    print()
-    print("Contents:")
-    for path in sorted(dist.rglob("*")):
-        rel = path.relative_to(dist)
-        indent = "  " * (len(rel.parts) - 1)
-        label = str(rel.name) + ("/" if path.is_dir() else "")
-        print(f"  {indent}{label}")
+    if False:
+        print()
+        print("Contents:")
+        for path in sorted(dist.rglob("*")):
+            rel = path.relative_to(dist)
+            indent = "  " * (len(rel.parts) - 1)
+            label = str(rel.name) + ("/" if path.is_dir() else "")
+            print(f"  {indent}{label}")
 
 
 if __name__ == "__main__":
 
     if True:
-        build_usb_package(mode="full")
+        build_usb_package(mode="update", verbosity=0)
+        build_usb_package(mode="prune", verbosity=0)
         raise Exception("OK")
 
     if False:
