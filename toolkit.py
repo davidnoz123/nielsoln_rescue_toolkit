@@ -1015,43 +1015,90 @@ def run_install_runtime(
     return 0
 
 
-def build_usb_package(dist_root: Path = None, verbosity: int = 2) -> None:
-    """Build dist/NIELSOLN_RESCUE_USB from repo sources.
+def _sync_core_file(src: Path, dst: Path, mode: str, verbosity: int) -> None:
+    """Copy src to dst according to mode.
+
+    full   — always overwrite.
+    update — copy only if dst is missing or src is newer (mtime).
+    prune  — same as update (core files are never pruned).
+    check  — print what would happen; make no changes.
+    """
+    dry_run = (mode == "check")
+
+    needs_copy = (
+        mode == "full"
+        or not dst.exists()
+        or int(src.stat().st_mtime) > int(dst.stat().st_mtime)
+    )
+
+    if not needs_copy:
+        if verbosity >= 2:
+            print(f"  fresh       {dst.name}  (up-to-date)")
+        return
+
+    verb = "would-copy" if dry_run else "copy      "
+    if verbosity >= 1:
+        print(f"  {verb} {dst.name}")
+    if not dry_run:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+
+
+def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int = 2) -> None:
+    """Build or update dist/NIELSOLN_RESCUE_USB from repo sources.
 
     import runpy ; temp = runpy._run_module_as_main("toolkit")
+
+    Modes
+    -----
+    full    Wipe any existing dist and do a clean rebuild.  (default)
+    update  Update in-place: copy core files if newer, incrementally update runtimes.
+    check   Dry run: print what *update* + *prune* would do; make no changes.
+    prune   update + delete files not present in the archive or core file list.
     """
     if dist_root is None: dist_root = file__fileSysD
+    if mode not in _VALID_MODES:
+        raise ValueError(f"Unknown mode {mode!r}. Valid values: {_VALID_MODES}")
 
+    dry_run = (mode == "check")
     root = Path(dist_root)
     dist = usb_dist_path(root)
 
-    print(f"Building USB package into: {dist}")
+    if verbosity >= 1:
+        print(f"build_usb_package  mode={mode}  dist={dist}")
 
-    if dist.exists():
-        print("Removing existing dist folder...")
-        shutil.rmtree(dist)
+    # --- dist directory setup ---
+    if mode == "full" and not dry_run:
+        if dist.exists():
+            if verbosity >= 1:
+                print("Removing existing dist folder...")
+            shutil.rmtree(dist)
+        dist.mkdir(parents=True)
+    elif not dry_run:
+        dist.mkdir(parents=True, exist_ok=True)
 
-    dist.mkdir(parents=True)
-
-    # Core files
+    # --- Core files ---
+    if verbosity >= 1:
+        print("\nCore files:")
     for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py"]:
-        shutil.copy2(root / name, dist / name)
-        print(f"  Copied {name}")
+        _sync_core_file(root / name, dist / name, mode=mode, verbosity=verbosity)
 
-    # Runtimes — download if needed, verify checksum, extract to dist
-    print("\nChecking runtime caches ...")
+    # --- Runtimes ---
+    if verbosity >= 1:
+        print("\nRuntimes:")
     for entry in iter_runtime_plan(dist_root=root):
         platform_tag = entry["platform_tag"]
         dest_dir = runtime_dest_path(dist, platform_tag)
-        dest_dir.mkdir(parents=True, exist_ok=True)
 
         if entry["warning"]:
             print(f"  {platform_tag}: WARNING -- {entry['warning']}")
-            _write_runtime_placeholder(dest_dir, platform_tag)
+            if not dry_run:
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                _write_runtime_placeholder(dest_dir, platform_tag)
             continue
 
+        # Ensure archive is cached locally
         if not entry["cache_ok"]:
-            # Need to (re-)download
             cached_file: Path = entry["cached_file"]
             if entry["cache_exists"]:
                 print(f"  {platform_tag}: checksum mismatch -- re-downloading ...")
@@ -1064,34 +1111,47 @@ def build_usb_package(dist_root: Path = None, verbosity: int = 2) -> None:
                 cached_file.write_bytes(data)
                 if _verify_cached_file(cached_file, entry["expected_sha256"]):
                     print(f"    Downloaded and verified: {cached_file.name}")
-                    # Refresh entry so the copy block below runs
                     entry = dict(entry, cache_ok=True)
                 else:
                     print(f"    ERROR: checksum mismatch after download -- skipping {platform_tag}")
                     if cached_file.exists():
                         cached_file.unlink()
-                    _write_runtime_placeholder(dest_dir, platform_tag)
+                    if not dry_run:
+                        dest_dir.mkdir(parents=True, exist_ok=True)
+                        _write_runtime_placeholder(dest_dir, platform_tag)
                     continue
             except RuntimeError as exc:
                 print(f"    ERROR: download failed -- {exc}")
-                _write_runtime_placeholder(dest_dir, platform_tag)
+                if not dry_run:
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    _write_runtime_placeholder(dest_dir, platform_tag)
                 continue
 
-        _extract_runtime(entry["cached_file"], dest_dir, platform_tag, verbosity=verbosity)
+        # Copy archive into dist so the USB is self-contained
+        archive_src = entry["cached_file"]
+        archive_dst = dest_dir / archive_src.name
+        if not dry_run:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+        _sync_core_file(archive_src, archive_dst, mode=mode, verbosity=verbosity)
 
-        # Copy the archive into the dist so the USB is self-contained.
-        # This lets `bootstrap runtime` re-extract without needing the dev cache.
-        archive_dest = dest_dir / entry["cached_file"].name
-        if not archive_dest.exists():
-            shutil.copy2(entry["cached_file"], archive_dest)
-            if verbosity >= 1:
-                print(f"  {platform_tag}: copied archive  {entry['cached_file'].name}")
+        # Extract / update the runtime using run_install_runtime
+        # Pass dist as the root so it finds the archive at dist/runtimes/<platform>/
+        run_install_runtime(
+            root=dist,
+            platform_tag=platform_tag,
+            mode=mode,
+            verbosity=verbosity,
+        )
 
-    # Make bootstrap.sh executable on Unix-like systems
-    try:
-        os.chmod(dist / "bootstrap.sh", 0o755)
-    except (AttributeError, NotImplementedError):
-        pass  # Windows -- permissions applied when copying to USB
+    # --- chmod bootstrap.sh ---
+    if not dry_run:
+        try:
+            os.chmod(dist / "bootstrap.sh", 0o755)
+        except (AttributeError, NotImplementedError):
+            pass  # Windows — permissions applied when copying to USB
+
+    if dry_run:
+        return
 
     print(f"\nDone. USB package: {dist}")
     print()
@@ -1105,26 +1165,10 @@ def build_usb_package(dist_root: Path = None, verbosity: int = 2) -> None:
 
 if __name__ == "__main__":
 
-    if False:
-        build_usb_package()
-        raise Exception("OK")
-        
     if True:
-        mode = "update"
-        release_tag, python_version, platform_tag = _RELEASE_TAG, _PYTHON_VERSION, "linux-x86_64"
-        
-        dist_root = file__fileSysD
-        root = Path(dist_root)
-        dist = usb_dist_path(root)        
-        checksums = _fetch_sha256sums(release_tag)
-        dest_dir = runtime_dest_path(dist, platform_tag)
-        dest_dir.mkdir(parents=True, exist_ok=True)
+        build_usb_package(mode="full")
+        raise Exception("OK")
 
-        cache_dir = runtime_cache_path(dist_root, platform_tag)
-        matches = []
-        for fn in checksums:
-            if _match_runtime_filename(fn, platform_tag, python_version):
-                archive = cache_dir / fn
-                _extract_runtime(archive, dest_dir, platform_tag, mode=mode, verbosity=1)
-
-        raise Exception("OK")        
+    if False:
+        run_install_runtime(platform_tag="linux-x86_64", mode="update", verbosity=1)
+        raise Exception("OK")
