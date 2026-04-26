@@ -36,9 +36,9 @@ if [ "$1" = "ssh" ]; then
     # Install if missing
     if [ -z "$SSHD" ]; then
         echo "[bootstrap.sh] sshd not found — running apt-get update ..."
-        apt-get update -qq
+        apt-get update -qq -o Acquire::AllowReleaseInfoChange=true 2>&1 || true
         echo "[bootstrap.sh] Installing openssh-server ..."
-        apt-get install -y openssh-server
+        apt-get install -y -o Acquire::AllowInsecureRepositories=true openssh-server
         # Re-probe after install
         for candidate in \
                 "$(command -v sshd 2>/dev/null)" \
