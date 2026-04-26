@@ -904,6 +904,7 @@ def _extract_deb_python(deb_path: Path, dest_dir: Path, verbosity: int = 2) -> N
             "Install dpkg and retry."
         )
 
+    skipped_links = 0
     with tarfile.open(fileobj=io.BytesIO(raw)) as tf:
         members = tf.getmembers()
         total = len(members)
@@ -912,7 +913,17 @@ def _extract_deb_python(deb_path: Path, dest_dir: Path, verbosity: int = 2) -> N
                 print(f"  clamav: extracting ... [{i}/{total}]")
             # filter='data' skips uid/gid restoration (avoids "Cannot change
             # ownership" warnings when not running as root).
-            tf.extract(member, path=str(dest_dir), filter="data")
+            try:
+                tf.extract(member, path=str(dest_dir), filter="data")
+            except OSError:
+                # Symlinks and hardlinks fail on FAT32/exFAT — skip them.
+                # ClamAV still works without them.
+                if member.issym() or member.islnk():
+                    skipped_links += 1
+                else:
+                    raise
+    if skipped_links and verbosity >= 1:
+        print(f"  clamav: skipped {skipped_links} symlink(s) (filesystem does not support them)")
     if verbosity >= 1:
         print(f"  clamav: extracted {len(members)} entries to {dest_dir}")
 
@@ -961,12 +972,14 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
             stderr=subprocess.PIPE,
             text=True,
         )
-        # dpkg-deb emits "Cannot change ownership to uid ..." warnings when
-        # not running as root.  These are harmless — the files are still
-        # extracted correctly.  Suppress those lines; forward everything else.
+        # dpkg-deb emits harmless warnings when not running as root:
+        #   "Cannot change ownership to uid ..."  — no root for chown
+        #   "Cannot create symlink to ..."         — FAT32/exFAT USB can't store symlinks
+        # Both are safe to suppress; the binary files are still extracted correctly.
+        _DPKG_SUPPRESS = ("Cannot change ownership", "Cannot create symlink")
         if result.stderr:
             for line in result.stderr.splitlines():
-                if "Cannot change ownership" not in line:
+                if not any(pat in line for pat in _DPKG_SUPPRESS):
                     print(f"  dpkg-deb: {line}", file=sys.stderr)
         if result.returncode != 0:
             print(f"  ERROR: dpkg-deb --extract exited {result.returncode}")
@@ -1789,12 +1802,12 @@ class RoboCopy:
 
 if __name__ == "__main__":
 
-    if False:
+    if True:
         # Copy dist/NIELSOLN_RESCUE_USB to a physical USB drive.
         # Set usb_dest to the USB root (drive letter on Windows, mount point on Linux).
         # Uses update_only so unchanged files are skipped — much faster than a full copy.
         # Switch to mirror() to also delete files removed from the dist.
-        usb_dest = Path("E:\\")               # <-- set your USB drive path here
+        usb_dest = Path("D:\\")               # <-- set your USB drive path here
         src = usb_dist_path(file__fileSysD)
         dst = usb_dest / _USB_DIST_NAME
         print(f"Copying {src}")
@@ -1807,7 +1820,7 @@ if __name__ == "__main__":
             print(result.stdout)
         raise Exception("OK")
 
-    if True:
+    if False:
         build_usb_package(mode="update", verbosity=0)
         build_usb_package(mode="prune", verbosity=0)
         raise Exception("OK")
@@ -1822,7 +1835,7 @@ if __name__ == "__main__":
         # that is not present in the empty source — i.e. everything.
         # Toggle to True only when you are certain — this cannot be undone.
         import tempfile
-        usb_dest = Path("E:\\")               # <-- set your USB drive path here
+        usb_dest = Path("D:\\")               # <-- set your USB drive path here
         print(f"Wiping all contents of {usb_dest} ...")
         with tempfile.TemporaryDirectory() as empty_dir:
             rc = RoboCopy(threads=8, fat_timestamps=True)
