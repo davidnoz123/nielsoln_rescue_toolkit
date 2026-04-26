@@ -97,6 +97,11 @@ def main() -> int:
         help="0=silent  1=actions only  2=actions+decisions (default: 2).",
     )
 
+    sub.add_parser(
+        "dropbear",
+        help="Download the dropbear SSH server binary to _tools/dropbear on this USB.",
+    )
+
     p_ssh = sub.add_parser(
         "ssh",
         help="Start an SSH server (openssh/dropbear) for remote VS Code access.",
@@ -173,6 +178,15 @@ def main() -> int:
         if args.update_db:
             rc = run_clamav_update_db(root, verbosity=args.verbosity) or rc
         return rc
+
+    if args.command == "dropbear":
+        from toolkit import download_dropbear
+        try:
+            download_dropbear(root, verbosity=2)
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}")
+            return 1
+        return 0
 
     if args.command == "ssh":
         from toolkit import run_ssh

@@ -1681,6 +1681,116 @@ def run_ssh(
 
 
 # ---------------------------------------------------------------------------
+# dropbear — download and bundle the dropbear SSH server binary
+# ---------------------------------------------------------------------------
+#
+# Dropbear (~160 KB) is a self-contained SSH server.  Bundling it on the USB
+# means bootstrap.sh can start an SSH server on RescueZilla with no network
+# access or apt-get.
+#
+# Source: Ubuntu 22.04 LTS (jammy) — binary runs on any modern Linux kernel.
+# The .deb is fetched, parsed with a stdlib ar/tar reader, and the ELF binary
+# is written to <usb-root>/_tools/dropbear.
+
+_DROPBEAR_URLS = [
+    "http://security.ubuntu.com/ubuntu/pool/universe/d/dropbear/"
+    "dropbear-bin_2020.81-5ubuntu0.1_amd64.deb",
+    # archive.ubuntu.com fallback
+    "http://archive.ubuntu.com/ubuntu/pool/universe/d/dropbear/"
+    "dropbear-bin_2020.81-5ubuntu0.1_amd64.deb",
+]
+
+
+def _iter_ar(data: bytes):
+    """Yield (name, content) for each member of an ar archive."""
+    if not data.startswith(b"!<arch>\n"):
+        raise ValueError("Not an ar archive")
+    pos = 8
+    while pos + 60 <= len(data):
+        name = data[pos: pos + 16].rstrip().decode("latin-1")
+        size = int(data[pos + 48: pos + 58].strip())
+        pos += 60
+        content = data[pos: pos + size]
+        pos += size + (pos + size) % 2  # ar entries are word-aligned
+        yield name, content
+
+
+def _extract_dropbear_from_deb(deb_bytes: bytes) -> bytes:
+    """Parse a .deb file and return the raw dropbear ELF binary."""
+    import io as _io
+    data_entry = None
+    for name, content in _iter_ar(deb_bytes):
+        if name.startswith("data.tar"):
+            data_entry = (name, content)
+            break
+    if data_entry is None:
+        raise RuntimeError("No data.tar.* found in .deb")
+
+    ar_name, tar_bytes = data_entry
+    if ar_name.endswith(".zst"):
+        try:
+            import zstandard  # type: ignore
+        except ImportError:
+            raise RuntimeError(
+                "zstandard package required to extract this .deb — "
+                "run: pip install zstandard"
+            )
+        dctx = zstandard.ZstdDecompressor()
+        tar_bytes = dctx.decompress(tar_bytes, max_output_size=20 * 1024 * 1024)
+
+    import tarfile as _tarfile
+    with _tarfile.open(fileobj=_io.BytesIO(tar_bytes)) as tf:
+        for member in tf.getmembers():
+            if member.name.endswith("/dropbear") and "sbin" in member.name:
+                fobj = tf.extractfile(member)
+                if fobj:
+                    return fobj.read()
+    raise RuntimeError("dropbear binary not found inside data tarball")
+
+
+def download_dropbear(root, verbosity: int = 1) -> Path:
+    """Download the dropbear binary from Ubuntu and write it to <root>/_tools/dropbear.
+
+    If the binary already exists, returns its path immediately without downloading.
+    Returns the Path to the binary on success; raises RuntimeError on failure.
+    """
+    dest = Path(root) / "_tools" / "dropbear"
+    if dest.exists():
+        if verbosity >= 1:
+            print(f"  dropbear: already present ({dest.stat().st_size:,} bytes)")
+        return dest
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    deb_bytes = None
+    for url in _DROPBEAR_URLS:
+        if verbosity >= 1:
+            print(f"  dropbear: downloading {url} ...")
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "rescue-toolkit/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                deb_bytes = resp.read()
+            if verbosity >= 1:
+                print(f"  dropbear: {len(deb_bytes):,} bytes received")
+            break
+        except Exception as exc:
+            if verbosity >= 1:
+                print(f"  dropbear: {url} — {exc}")
+
+    if deb_bytes is None:
+        raise RuntimeError(
+            "All dropbear download URLs failed.  "
+            "Check network, or manually place the binary at: " + str(dest)
+        )
+
+    binary = _extract_dropbear_from_deb(deb_bytes)
+    dest.write_bytes(binary)
+    if verbosity >= 1:
+        print(f"  dropbear: saved {dest}  ({dest.stat().st_size:,} bytes)")
+    return dest
+
+
+# ---------------------------------------------------------------------------
 # build_usb_package — Assemble dist/NIELSOLN_RESCUE_USB
 # ---------------------------------------------------------------------------
 #
@@ -2188,20 +2298,22 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
     else:
         print(f"  would download {_CLAMAV_LINUX_URL}")
 
-    # --- _tools/ (bundled binaries: dropbear, etc.) ---
+    # --- _tools/ dropbear (download if absent) ---
     if verbosity >= 1:
         print("\n_tools:")
-    tools_src = root / "_tools"
     tools_dst = dist / "_tools"
-    if tools_src.is_dir():
-        if not dry_run:
-            tools_dst.mkdir(parents=True, exist_ok=True)
-        for src_file in sorted(tools_src.iterdir()):
-            if src_file.is_file():
-                _sync_core_file(src_file, tools_dst / src_file.name, mode=mode, verbosity=verbosity)
+    if not dry_run:
+        try:
+            download_dropbear(root, verbosity=verbosity)
+        except RuntimeError as exc:
+            print(f"  dropbear: WARNING — download failed: {exc}")
+            print("  SSH will not work offline without the binary.")
+        tools_dst.mkdir(parents=True, exist_ok=True)
+        dropbear_src = root / "_tools" / "dropbear"
+        if dropbear_src.exists():
+            _sync_core_file(dropbear_src, tools_dst / "dropbear", mode=mode, verbosity=verbosity)
     else:
-        if verbosity >= 1:
-            print("  (no _tools/ directory found — skipping)")
+        print("  would download dropbear if absent")
 
     # --- chmod bootstrap.sh and _tools/* ---
     if not dry_run:
