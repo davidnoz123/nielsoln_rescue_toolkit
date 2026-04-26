@@ -11,18 +11,27 @@ import runpy ; temp = runpy._run_module_as_main("toolkit")
 # Imports
 # ---------------------------------------------------------------------------
 
+import bz2 as _bz2
 import csv
 import dataclasses
+import gzip
 import hashlib
 import html
+import io
+import json
 import logging
+import lzma
 import os
 import platform
 import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
+import threading
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 file__fullPath = os.path.abspath(__file__)
