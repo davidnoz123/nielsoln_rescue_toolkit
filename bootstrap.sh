@@ -14,106 +14,50 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 # ---------------------------------------------------------------------------
 if [ "$1" = "ssh" ]; then
     PORT=22
-    # Parse --port from args
     for arg in "$@"; do
-        case "$arg" in
-            --port=*) PORT="${arg#--port=}" ;;
-        esac
+        case "$arg" in --port=*) PORT="${arg#--port=}" ;; esac
     done
 
-    # Locate sshd — Ubuntu puts it in /usr/sbin which may not be in PATH
-    SSHD=""
-    for candidate in \
-            "$(command -v sshd 2>/dev/null)" \
-            /usr/sbin/sshd \
-            /sbin/sshd; do
-        if [ -x "$candidate" ]; then
-            SSHD="$candidate"
-            break
-        fi
-    done
-
-    # Install if missing
-    if [ -z "$SSHD" ]; then
-        echo "[bootstrap.sh] sshd not found — running apt-get update ..."
-        apt-get update -qq -o Acquire::AllowReleaseInfoChange=true 2>&1 || true
-        echo "[bootstrap.sh] Installing openssh-server ..."
-        apt-get install -y -o Acquire::AllowInsecureRepositories=true openssh-server
-        # Re-probe after install
-        for candidate in \
-                "$(command -v sshd 2>/dev/null)" \
-                /usr/sbin/sshd \
-                /sbin/sshd; do
-            if [ -x "$candidate" ]; then
-                SSHD="$candidate"
-                break
-            fi
-        done
-    fi
-
-    if [ -z "$SSHD" ]; then
-        echo "ERROR: openssh-server install failed or sshd still not found."
+    # Dropbear is bundled on the USB — no apt-get, no network needed.
+    # FAT32 has no execute bit, so copy to /tmp (tmpfs) before running.
+    DROPBEAR_SRC="$ROOT/_tools/dropbear"
+    if [ ! -f "$DROPBEAR_SRC" ]; then
+        echo "ERROR: _tools/dropbear not found on USB."
+        echo "Run 'python scripts/fetch_dropbear.py' on your dev machine to bundle it."
         exit 1
     fi
-
-    # Ensure PermitRootLogin is set
-    SSHD_CONF=/etc/ssh/sshd_config
-    if [ -f "$SSHD_CONF" ]; then
-        if ! grep -q "PermitRootLogin" "$SSHD_CONF"; then
-            echo "PermitRootLogin yes" >> "$SSHD_CONF"
-        fi
-    else
-        mkdir -p /etc/ssh
-        cat > "$SSHD_CONF" <<EOF
-PermitRootLogin yes
-PubkeyAuthentication yes
-AuthorizedKeysFile /root/.ssh/authorized_keys
-PasswordAuthentication yes
-Port ${PORT}
-EOF
-    fi
-
-    # Generate host keys if absent
-    if command -v ssh-keygen >/dev/null 2>&1; then
-        ssh-keygen -A >/dev/null 2>&1 || true
-    fi
-
-    # Ensure /run/sshd exists (required by openssh)
-    mkdir -p /run/sshd
+    DROPBEAR=/tmp/dropbear_rescue
+    cp "$DROPBEAR_SRC" "$DROPBEAR"
+    chmod +x "$DROPBEAR"
 
     # Install bundled developer key from toolkit.py into authorized_keys.
-    # This runs in pure bash so key auth works even if Python never starts.
-    # The key is on a single line: _SSH_BUNDLED_PUBKEY = "ssh-ed25519 ..."
     TOOLKIT_PY="$ROOT/toolkit.py"
-    BUNDLED_KEY=""
     if [ -f "$TOOLKIT_PY" ]; then
         BUNDLED_KEY=$(
             grep '_SSH_BUNDLED_PUBKEY = ' "$TOOLKIT_PY" \
             | sed 's/.*"\(ssh-[^"]*\)".*/\1/'
         )
     fi
-
     if [ -n "$BUNDLED_KEY" ]; then
         mkdir -p /root/.ssh
         chmod 700 /root/.ssh
-        AUTHKEYS=/root/.ssh/authorized_keys
-        # Add only if not already present (match on key material, not comment).
         KEY_MATERIAL=$(echo "$BUNDLED_KEY" | awk '{print $2}')
-        if ! grep -qF "$KEY_MATERIAL" "$AUTHKEYS" 2>/dev/null; then
-            echo "$BUNDLED_KEY" >> "$AUTHKEYS"
-            echo "[bootstrap.sh] Bundled developer key installed."
-        else
-            echo "[bootstrap.sh] Bundled developer key already present."
+        if ! grep -qF "$KEY_MATERIAL" /root/.ssh/authorized_keys 2>/dev/null; then
+            echo "$BUNDLED_KEY" >> /root/.ssh/authorized_keys
+            echo "[bootstrap.sh] Developer key installed."
         fi
-        chmod 600 "$AUTHKEYS"
+        chmod 600 /root/.ssh/authorized_keys
     else
         echo "[bootstrap.sh] WARNING: could not extract bundled key from toolkit.py"
     fi
 
-    # Start sshd
-    echo "[bootstrap.sh] Starting sshd on port ${PORT} ..."
-    "$SSHD" -p "$PORT"
-    echo "[bootstrap.sh] sshd started."
+    # Start dropbear.
+    # -R  auto-generate host keys (stored in /etc/dropbear)
+    # -s  disable password auth (key-only)
+    # -p  listen port
+    echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
+    "$DROPBEAR" -R -s -p "$PORT"
+    echo "[bootstrap.sh] dropbear started. Connect as: ssh root@<ip> -p ${PORT}"
 fi
 # ---------------------------------------------------------------------------
 # End SSH special case — fall through to Python for key install + info print
