@@ -462,6 +462,12 @@ def _fetch_url(url: str, timeout: int = 30) -> bytes:
 
 _time_sync_log = logging.getLogger("time_sync")
 
+# Session flag written to /tmp after a successful clock check.  /tmp is tmpfs
+# on Linux — wiped on every reboot — so this is always absent after a fresh
+# boot (the most likely time for a dead CMOS to matter).  Its presence means
+# we already synced the clock once this session and do not need to do it again.
+_NRT_TIME_FLAG = "/tmp/.nrt_time_ok"
+
 # Probed in order; first reachable URL wins.
 _TIME_PROBE_URLS = [
     "https://www.google.com",
@@ -525,7 +531,17 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
     Why this matters: RescueZilla boots from a live USB; old laptops frequently
     have a dead CMOS battery.  A hardware clock years in the past causes TLS
     certificate validation failures that look like network errors.
+
+    A session flag (_NRT_TIME_FLAG) is written to /tmp after the first successful
+    check.  Subsequent calls this session return 0 immediately — no network probe
+    needed.  The flag lives in /tmp (tmpfs) so it is always absent after a reboot.
     """
+    # --- session flag: already checked this boot? ---
+    _flag = Path(_NRT_TIME_FLAG)
+    if _flag.exists():
+        _time_sync_log.debug("Clock already verified this session (flag: %s)", _flag)
+        return 0
+
     _time_sync_log.info("Checking system clock against internet time ...")
     print("Checking system clock ...", end=" ", flush=True)
     try:
@@ -542,6 +558,10 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
     if abs(skew) <= threshold_seconds:
         print(f"OK (skew {skew:+.1f}s)")
         _time_sync_log.info("Clock OK (skew %.1fs)", skew)
+        try:
+            _flag.write_text(str(int(time.time())), encoding="utf-8")
+        except OSError:
+            pass
         return 0
 
     # Skew exceeds threshold.
@@ -573,6 +593,10 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
             correct_str = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(internet_ts))
             print(f"  System clock set to {correct_str} (was off by {skew_str})")
             _time_sync_log.info("Clock corrected to %s (skew was %s)", correct_str, skew_str)
+            try:
+                _flag.write_text(str(int(internet_ts)), encoding="utf-8")
+            except OSError:
+                pass
             return 0
         else:
             print(f"  WARNING: `date -s` failed (exit {result.returncode}): {result.stderr.strip()}")
@@ -596,6 +620,14 @@ def run_update(root: Path = None, offline: bool = False) -> int:
         _updater_log.info(msg)
         print(msg)
         return 0
+
+    # Sync clock before any TLS-sensitive network activity.  A dead CMOS
+    # battery causes the hardware clock to be years in the past, which makes
+    # every HTTPS connection fail with a certificate validation error.  This
+    # runs exactly once per boot session (guarded by a /tmp flag file).
+    _sync_rc = run_sync_time(root)
+    if _sync_rc != 0:
+        print("  (continuing despite clock warning — update may fail if TLS rejects certs)")
 
     staging = root / "cache" / "update_staging"
     staging.mkdir(parents=True, exist_ok=True)
