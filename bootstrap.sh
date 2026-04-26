@@ -14,8 +14,12 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 # ---------------------------------------------------------------------------
 if [ "$1" = "ssh" ]; then
     PORT=22
+    DEBUG_MODE=0
     for arg in "$@"; do
-        case "$arg" in --port=*) PORT="${arg#--port=}" ;; esac
+        case "$arg" in
+            --port=*) PORT="${arg#--port=}" ;;
+            --debug)  DEBUG_MODE=1 ;;
+        esac
     done
 
     # Dropbear is bundled on the USB — no apt-get, no network needed.
@@ -29,8 +33,19 @@ if [ "$1" = "ssh" ]; then
     DROPBEAR=/tmp/dropbear_rescue
     # Kill any previous instance before overwriting the binary (avoids "Text
     # file busy" error when the executable is still mapped into memory).
-    pkill -x dropbear_rescue 2>/dev/null || true
-    sleep 0.3
+    if pgrep -x dropbear_rescue >/dev/null 2>&1; then
+        echo "[bootstrap.sh] Stopping existing dropbear_rescue (PID $(pgrep -x dropbear_rescue)) ..."
+        pkill -x dropbear_rescue 2>/dev/null || true
+        sleep 0.5
+        if pgrep -x dropbear_rescue >/dev/null 2>&1; then
+            echo "[bootstrap.sh] WARNING: dropbear_rescue still running after SIGTERM — sending SIGKILL ..."
+            pkill -9 -x dropbear_rescue 2>/dev/null || true
+            sleep 0.3
+        fi
+        echo "[bootstrap.sh] dropbear_rescue stopped."
+    else
+        echo "[bootstrap.sh] No existing dropbear_rescue process found."
+    fi
     rm -f "$DROPBEAR"
     cp "$DROPBEAR_SRC" "$DROPBEAR"
     chmod +x "$DROPBEAR"
@@ -79,11 +94,24 @@ if [ "$1" = "ssh" ]; then
     # -p  listen port
     # LD_LIBRARY_PATH points at the bundled .so files — no apt-get needed.
     # Kill once more in case anything restarted it between copy and now.
-    pkill -x dropbear_rescue 2>/dev/null || true
-    sleep 0.2
-    echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
-    LD_LIBRARY_PATH="$LIB_DIR" "$DROPBEAR" -R -s -p "$PORT"
-    echo "[bootstrap.sh] dropbear started. Connect as: ssh root@<ip> -p ${PORT}"
+    if pgrep -x dropbear_rescue >/dev/null 2>&1; then
+        echo "[bootstrap.sh] Stopping dropbear_rescue before start (PID $(pgrep -x dropbear_rescue)) ..."
+        pkill -x dropbear_rescue 2>/dev/null || true
+        sleep 0.3
+    fi
+
+    mkdir -p /etc/dropbear
+
+    if [ "$DEBUG_MODE" = "1" ]; then
+        echo "[bootstrap.sh] DEBUG MODE — running dropbear in foreground. Press Ctrl+C to stop."
+        echo "[bootstrap.sh] LD_LIBRARY_PATH=$LIB_DIR"
+        echo "[bootstrap.sh] Command: $DROPBEAR -F -E -R -s -p $PORT"
+        LD_LIBRARY_PATH="$LIB_DIR" "$DROPBEAR" -F -E -R -s -p "$PORT"
+    else
+        echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
+        LD_LIBRARY_PATH="$LIB_DIR" "$DROPBEAR" -R -s -p "$PORT"
+        echo "[bootstrap.sh] dropbear started. Connect as: ssh root@<ip> -p ${PORT}"
+    fi
 fi
 # ---------------------------------------------------------------------------
 # End SSH special case — fall through to Python for key install + info print
