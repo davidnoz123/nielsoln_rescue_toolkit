@@ -972,28 +972,16 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
             stderr=subprocess.PIPE,
             text=True,
         )
-        # dpkg-deb emits harmless warnings when not running as root:
-        #   "Cannot change ownership to uid ..."  — no root for chown
-        #   "Cannot create symlink to ..."         — FAT32/exFAT USB can't store symlinks
-        # Both are safe to suppress; the binary files are still extracted correctly.
-        _DPKG_SUPPRESS = ("cannot change ownership", "cannot create symlink", "operation not permitted")
-        if result.stderr:
+        # dpkg-deb commonly fails with non-zero exit on FAT32/exFAT USB drives:
+        # it cannot create symlinks, cannot change ownership, cannot set permissions.
+        # These are all harmless — the binary files extract correctly.
+        # Rather than filtering specific message patterns (fragile), we ignore the
+        # exit code here and rely entirely on the clamscan existence check below.
+        if result.stderr and verbosity >= 2:
             for line in result.stderr.splitlines():
-                if not any(pat in line.lower() for pat in _DPKG_SUPPRESS):
-                    print(f"  dpkg-deb: {line}", file=sys.stderr)
-        if result.returncode != 0:
-            # If every stderr line was a suppressed warning, treat as success.
-            # dpkg-deb may exit non-zero solely because of symlink/ownership
-            # warnings on FAT32/exFAT, even though all binary files extracted.
-            real_errors = [
-                line for line in result.stderr.splitlines()
-                if not any(pat in line.lower() for pat in _DPKG_SUPPRESS)
-            ]
-            if real_errors:
-                print(f"  ERROR: dpkg-deb --extract exited {result.returncode}")
-                return result.returncode
-            if verbosity >= 1:
-                print(f"  dpkg-deb exited {result.returncode} (only suppressed warnings — continuing)")
+                print(f"  dpkg-deb: {line}", file=sys.stderr)
+        if result.returncode != 0 and verbosity >= 1:
+            print(f"  dpkg-deb exited {result.returncode} — checking if binaries extracted ...")
     else:
         if verbosity >= 1:
             print("  dpkg-deb not found — using pure-Python extractor")
