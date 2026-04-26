@@ -976,14 +976,24 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
         #   "Cannot change ownership to uid ..."  — no root for chown
         #   "Cannot create symlink to ..."         — FAT32/exFAT USB can't store symlinks
         # Both are safe to suppress; the binary files are still extracted correctly.
-        _DPKG_SUPPRESS = ("Cannot change ownership", "Cannot create symlink")
+        _DPKG_SUPPRESS = ("cannot change ownership", "cannot create symlink")
         if result.stderr:
             for line in result.stderr.splitlines():
-                if not any(pat in line for pat in _DPKG_SUPPRESS):
+                if not any(pat in line.lower() for pat in _DPKG_SUPPRESS):
                     print(f"  dpkg-deb: {line}", file=sys.stderr)
         if result.returncode != 0:
-            print(f"  ERROR: dpkg-deb --extract exited {result.returncode}")
-            return result.returncode
+            # If every stderr line was a suppressed warning, treat as success.
+            # dpkg-deb may exit non-zero solely because of symlink/ownership
+            # warnings on FAT32/exFAT, even though all binary files extracted.
+            real_errors = [
+                line for line in result.stderr.splitlines()
+                if not any(pat in line.lower() for pat in _DPKG_SUPPRESS)
+            ]
+            if real_errors:
+                print(f"  ERROR: dpkg-deb --extract exited {result.returncode}")
+                return result.returncode
+            if verbosity >= 1:
+                print(f"  dpkg-deb exited {result.returncode} (only suppressed warnings — continuing)")
     else:
         if verbosity >= 1:
             print("  dpkg-deb not found — using pure-Python extractor")
