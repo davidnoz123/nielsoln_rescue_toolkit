@@ -56,11 +56,14 @@ if [ "$1" = "ssh" ]; then
     # -s  disable password auth (key-only)
     # -p  listen port
     #
-    # The Ubuntu 22.04 dropbear binary links against libatomic.so.1.
-    # Install it if missing (tiny package, ~15 KB).
-    if ! ldconfig -p 2>/dev/null | grep -q libatomic.so.1; then
-        echo "[bootstrap.sh] libatomic.so.1 not found — installing libatomic1 ..."
-        apt-get install -y -qq libatomic1 2>&1 || true
+    # The Ubuntu 22.04 dropbear binary links against libatomic.so.1 and
+    # libtomcrypt.so.1 — install both if missing (small packages, ~200 KB total).
+    MISSING_LIBS=""
+    ldconfig -p 2>/dev/null | grep -q libatomic.so.1   || MISSING_LIBS="$MISSING_LIBS libatomic1"
+    ldconfig -p 2>/dev/null | grep -q libtomcrypt.so.1 || MISSING_LIBS="$MISSING_LIBS libtomcrypt1"
+    if [ -n "$MISSING_LIBS" ]; then
+        echo "[bootstrap.sh] Missing libs:$MISSING_LIBS — installing ..."
+        apt-get install -y -qq $MISSING_LIBS 2>&1 || true
     fi
     echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
     "$DROPBEAR" -R -s -p "$PORT"
