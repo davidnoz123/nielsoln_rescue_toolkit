@@ -709,6 +709,18 @@ def run_update(root: Path = None, offline: bool = False) -> int:
 
     print("\nUpdate complete. Changes take effect on the next run.")
     _updater_log.info("Update complete.")
+
+    # --- Ensure dropbear is present (self-healing) ---
+    # If the USB was set up manually or dropbear was never copied, fetch it now.
+    # Skips silently if already present.
+    print("\nChecking _tools/dropbear ...")
+    try:
+        download_dropbear(root, verbosity=1)
+    except RuntimeError as exc:
+        print(f"  WARNING: could not fetch dropbear: {exc}")
+        print("  SSH will require the binary to be present — run: bootstrap.sh dropbear")
+        _updater_log.warning("dropbear download failed during update: %s", exc)
+
     return 0
 
 
