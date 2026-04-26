@@ -198,13 +198,13 @@ def run_scan(root: Path = None, target: Path = None) -> int:
     if clamscan is None:
         # Try bundled ClamAV extracted by `bootstrap clamav --install`
         bundled = (
-            root / "clamav" / "linux-x86_64" / "extracted" / "usr" / "bin" / "clamscan"
+            root / "clamav" / "linux-x86_64" / "extracted" / "usr" / "local" / "bin" / "clamscan"
         )
         if bundled.exists():
             clamscan = str(bundled)
             lib_dir = (
                 root / "clamav" / "linux-x86_64" / "extracted"
-                / "usr" / "lib" / "x86_64-linux-gnu"
+                / "usr" / "local" / "lib"
             )
             scan_env = dict(os.environ)
             if lib_dir.exists():
@@ -775,7 +775,7 @@ def _clamav_install_path(root) -> Path:
 
 def get_clamav_executable(root) -> Path:
     """Return the expected path of the bundled clamscan binary."""
-    return _clamav_install_path(root) / "usr" / "bin" / "clamscan"
+    return _clamav_install_path(root) / "usr" / "local" / "bin" / "clamscan"
 
 
 def _resolve_latest_clamav() -> tuple:
@@ -1072,7 +1072,7 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
     assert root.is_dir(), f"root is not an existing directory: {root!r}"
 
     # Prefer bundled freshclam; fall back to PATH
-    bundled_freshclam = _clamav_install_path(root) / "usr" / "bin" / "freshclam"
+    bundled_freshclam = _clamav_install_path(root) / "usr" / "local" / "bin" / "freshclam"
     freshclam_path = (
         str(bundled_freshclam) if bundled_freshclam.exists()
         else shutil.which("freshclam")
@@ -1085,7 +1085,7 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
     db_dir.mkdir(parents=True, exist_ok=True)
 
     # Add bundled lib path for dynamically linked freshclam
-    lib_dir = _clamav_install_path(root) / "usr" / "lib" / "x86_64-linux-gnu"
+    lib_dir = _clamav_install_path(root) / "usr" / "local" / "lib"
     env = dict(os.environ)
     if lib_dir.exists():
         prev = env.get("LD_LIBRARY_PATH", "")
@@ -1850,6 +1850,10 @@ class RoboCopy:
 if __name__ == "__main__":
 
     if True:
+        build_usb_package(mode="update", verbosity=1)
+        build_usb_package(mode="prune", verbosity=1)
+
+    if True:
         # Copy dist/NIELSOLN_RESCUE_USB to a physical USB drive.
         # Set usb_dest to the USB root (drive letter on Windows, mount point on Linux).
         # Uses update_only so unchanged files are skipped — much faster than a full copy.
@@ -1857,7 +1861,7 @@ if __name__ == "__main__":
         usb_dest = Path("D:\\")               # <-- set your USB drive path here
         src = usb_dist_path(file__fileSysD)
         dst = usb_dest / _USB_DIST_NAME
-        print(f"Copying {src}")
+        print(f"\nCopying {src}")
         print(f"     to {dst} ...")
         rc = RoboCopy(threads=8, fat_timestamps=True)
         result = rc.update_only(src, dst)
@@ -1865,11 +1869,6 @@ if __name__ == "__main__":
         print(f"Done ({status}, exit {result.returncode})")
         if result.stdout.strip():
             print(result.stdout)
-        raise Exception("OK")
-
-    if False:
-        build_usb_package(mode="update", verbosity=0)
-        build_usb_package(mode="prune", verbosity=0)
         raise Exception("OK")
 
     if False:
