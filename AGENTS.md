@@ -146,28 +146,26 @@ one-line changes.
 
 ## SHA256 Checksum After Every Push (mandatory)
 
-After every `git push`, compute the **LF-normalized SHA256** of `toolkit.py`
-and **display it to the user** so they can compare it against what `bootstrap update`
-prints on RescueZilla.  Do NOT write the hash value into this file.
+After every `git push`, compute the **LF-normalized SHA256** of **all three
+updateable files** (`bootstrap.sh`, `bootstrap.py`, `toolkit.py`) and
+**display them to the user** so they can be compared against what
+`bootstrap update` prints on RescueZilla.  Do NOT write the hash values into
+this file.
 
 **Run after every push and show the output to the user:**
 
 ```powershell
 C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -c "
 import hashlib, pathlib
-data = pathlib.Path('toolkit.py').read_bytes().replace(b'\r\n', b'\n')
-print(hashlib.sha256(data).hexdigest(), ' toolkit.py (LF-normalized)')
+for f in ['bootstrap.sh', 'bootstrap.py', 'toolkit.py']:
+    data = pathlib.Path(f).read_bytes().replace(b'\r\n', b'\n')
+    print(hashlib.sha256(data).hexdigest(), ' ', f)
 "
 ```
 
-**The user will compare this against the line printed by `bootstrap update` on RescueZilla:**
-
-```
-toolkit.py SHA256 (LF-normalized): <hash>
-```
-
-The two hashes must match exactly.  If they differ, the update did not land
-(stale CDN, partial download, or `.pyc` cache issue).
+The user will compare these against the lines printed by `bootstrap update`
+on RescueZilla.  All three hashes must match exactly.  If any differ, the
+update did not land (stale CDN, partial download, or `.pyc` cache issue).
 
 ## Process Visibility
 
