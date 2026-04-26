@@ -498,6 +498,14 @@ def run_update(root: Path = None, offline: bool = False) -> int:
                 except OSError as exc:
                     _updater_log.debug("Could not remove %s: %s", pyc, exc)
 
+    toolkit_dst = root / "toolkit.py"
+    if toolkit_dst.exists():
+        # Compute LF-normalized digest (matches GitHub raw / AGENTS.md table)
+        data = toolkit_dst.read_bytes().replace(b"\r\n", b"\n")
+        lf_digest = hashlib.sha256(data).hexdigest()
+        print(f"toolkit.py SHA256 (LF-normalized): {lf_digest}")
+        _updater_log.info("toolkit.py LF-normalized SHA256: %s", lf_digest)
+
     print("\nUpdate complete. Changes take effect on the next run.")
     _updater_log.info("Update complete.")
     return 0
