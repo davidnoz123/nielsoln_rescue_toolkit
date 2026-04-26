@@ -569,14 +569,16 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
     print(f"SKEWED ({skew_str})")
     _time_sync_log.warning("Clock skew %s exceeds threshold (%ds)", skew_str, threshold_seconds)
 
+    _correct_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(internet_ts))
+
     if not is_linux():
         print(f"WARNING: system clock is off by {skew_str} — cannot correct on non-Linux.")
-        print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
+        print(f'  Fix manually: sudo timedatectl set-time "{_correct_str}"')
         return 1
 
     if os.geteuid() != 0:
         print(f"WARNING: system clock is off by {skew_str} — cannot correct (not root).")
-        print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
+        print(f'  Fix manually: sudo timedatectl set-time "{_correct_str}"')
         _time_sync_log.warning("Not root; cannot set clock.")
         return 1
 
@@ -602,13 +604,13 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
             return 0
         else:
             print(f"  WARNING: `date -s` failed (exit {result.returncode}): {result.stderr.strip()}")
-            print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
+            print(f'  Fix manually: sudo timedatectl set-time "{_correct_str}"')
             print( "           or: sudo ntpdate pool.ntp.org")
             _time_sync_log.warning("`date -s` failed: %s", result.stderr.strip())
             return 1
     except OSError as exc:
         print(f"  WARNING: could not run `date -s`: {exc}")
-        print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
+        print(f'  Fix manually: sudo timedatectl set-time "{_correct_str}"')
         print( "           or: sudo ntpdate pool.ntp.org")
         _time_sync_log.warning("Could not run `date -s`: %s", exc)
         return 1
