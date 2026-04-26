@@ -705,16 +705,16 @@ def print_runtime_download_plan(
 #   OR copy existing .cvd / .cld files from the rescue environment into
 #   clamav/linux-x86_64/db/ before scanning offline.
 
+# Last known stable release — used as offline fallback when the GitHub API
+# is unreachable.  Update these together when pinning a new version manually.
 _CLAMAV_VERSION        = "1.5.2"
 _CLAMAV_LINUX_FILENAME = f"clamav-{_CLAMAV_VERSION}.linux.x86_64.deb"
-# Download from the official GitHub release assets.
-# SHA256 is listed on the GitHub releases page (no .sha256 sidecar exists).
-# Update both constants together when bumping the version.
 _CLAMAV_LINUX_SHA256   = "e92b0f1e5529bbaa4d9534a429c4d1133dbfe477b760365a113e63b54c5dcd75"
 _CLAMAV_LINUX_URL      = (
     f"https://github.com/Cisco-Talos/clamav/releases/download"
     f"/clamav-{_CLAMAV_VERSION}/{_CLAMAV_LINUX_FILENAME}"
 )
+_CLAMAV_GITHUB_API_LATEST = "https://api.github.com/repos/Cisco-Talos/clamav/releases/latest"
 
 
 def _clamav_cache_path(root) -> Path:
@@ -740,36 +740,101 @@ def get_clamav_executable(root) -> Path:
     return _clamav_install_path(root) / "usr" / "bin" / "clamscan"
 
 
-def download_clamav(root, verbosity: int = 2) -> Path:
-    """Download the ClamAV Linux .deb to the local cache.
+def _resolve_latest_clamav() -> tuple:
+    """Query the GitHub API for the latest stable ClamAV release.
 
-    Returns the cached .deb path.  Verifies SHA256 against _CLAMAV_LINUX_SHA256.
-    Skips download if already cached and verified.
+    Returns (version, filename, download_url) for the Linux x86_64 .deb.
+    Raises RuntimeError on any failure (caller falls back to hardcoded values).
     """
-    cache_dir  = _clamav_cache_path(root)
-    cached_deb = cache_dir / _CLAMAV_LINUX_FILENAME
-    expected_sha256 = _CLAMAV_LINUX_SHA256
-
-    if _verify_cached_file(cached_deb, expected_sha256):
-        if verbosity >= 1:
-            print(f"  clamav: already cached and verified: {cached_deb.name}")
-        return cached_deb
-
-    if verbosity >= 1:
-        print(f"  clamav: downloading {_CLAMAV_LINUX_URL} ...")
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    import json
     try:
-        data = _fetch_url(_CLAMAV_LINUX_URL)
+        data = _fetch_url(_CLAMAV_GITHUB_API_LATEST)
+    except RuntimeError as exc:
+        raise RuntimeError(f"Could not reach ClamAV release API: {exc}") from exc
+    release = json.loads(data.decode("utf-8"))
+    tag = release["tag_name"]                            # e.g. "clamav-1.5.2"
+    version = tag[len("clamav-"):] if tag.startswith("clamav-") else tag.lstrip("v")
+    filename = f"clamav-{version}.linux.x86_64.deb"
+    assets = release.get("assets", [])
+    asset = next((a for a in assets if a["name"] == filename), None)
+    if asset:
+        download_url = asset["browser_download_url"]
+    else:
+        download_url = (
+            f"https://github.com/Cisco-Talos/clamav/releases/download"
+            f"/{tag}/{filename}"
+        )
+    return version, filename, download_url
+
+
+def download_clamav(root, verbosity: int = 2) -> Path:
+    """Download the latest stable ClamAV Linux .deb to the local cache.
+
+    Resolves the current release via the GitHub API; falls back to the hardcoded
+    _CLAMAV_VERSION / _CLAMAV_LINUX_URL if the API is unreachable.
+
+    SHA256 is computed from the downloaded bytes and stored in a .sha256 sidecar
+    next to the .deb so subsequent runs can verify the cache without re-downloading.
+
+    Returns the cached .deb Path.
+    """
+    cache_dir = _clamav_cache_path(root)
+
+    # --- resolve latest version ---
+    try:
+        version, filename, download_url = _resolve_latest_clamav()
+        if verbosity >= 2:
+            print(f"  clamav: latest version is {version}")
+    except RuntimeError as exc:
+        if verbosity >= 1:
+            print(
+                f"  clamav: API unreachable ({exc}); "
+                f"using fallback version {_CLAMAV_VERSION}"
+            )
+        version, filename, download_url = (
+            _CLAMAV_VERSION, _CLAMAV_LINUX_FILENAME, _CLAMAV_LINUX_URL
+        )
+
+    cached_deb     = cache_dir / filename
+    sha256_sidecar = cache_dir / (filename + ".sha256")
+
+    # --- check existing cache ---
+    if cached_deb.exists():
+        if sha256_sidecar.exists():
+            expected = sha256_sidecar.read_text(encoding="utf-8").strip()
+            if _verify_cached_file(cached_deb, expected):
+                if verbosity >= 1:
+                    print(f"  clamav: already cached and verified: {cached_deb.name}")
+                return cached_deb
+        elif filename == _CLAMAV_LINUX_FILENAME and _verify_cached_file(
+            cached_deb, _CLAMAV_LINUX_SHA256
+        ):
+            # Legacy cache (no sidecar yet) — write sidecar and reuse.
+            sha256_sidecar.write_text(_CLAMAV_LINUX_SHA256 + "\n", encoding="utf-8")
+            if verbosity >= 1:
+                print(f"  clamav: already cached and verified: {cached_deb.name}")
+            return cached_deb
+
+    # --- remove stale .deb files so run_install_clamav sees exactly one ---
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    for stale in cache_dir.glob("*.deb"):
+        if stale.name != filename:
+            if verbosity >= 1:
+                print(f"  clamav: removing stale {stale.name}")
+            stale.unlink(missing_ok=True)
+            (cache_dir / (stale.name + ".sha256")).unlink(missing_ok=True)
+
+    # --- download ---
+    if verbosity >= 1:
+        print(f"  clamav: downloading {download_url} ...")
+    try:
+        data = _fetch_url(download_url)
     except RuntimeError as exc:
         raise RuntimeError(f"ClamAV download failed: {exc}") from exc
 
     cached_deb.write_bytes(data)
-
-    if not _verify_cached_file(cached_deb, expected_sha256):
-        cached_deb.unlink()
-        raise RuntimeError(
-            "ClamAV .deb SHA256 mismatch after download — deleted corrupted file."
-        )
+    actual_sha256 = sha256_file(cached_deb)
+    sha256_sidecar.write_text(actual_sha256 + "\n", encoding="utf-8")
 
     if verbosity >= 1:
         print(f"  clamav: downloaded and verified: {cached_deb.name}")
