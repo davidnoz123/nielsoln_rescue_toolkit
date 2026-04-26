@@ -1218,12 +1218,25 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
         print(f"ERROR: {exc}")
         return 1
 
-    cmd = [freshclam_path, f"--datadir={db_dir}"]
+    # freshclam refuses to run without a config file.  Write a minimal one
+    # to /tmp so it parses cleanly.  --datadir on the command line overrides
+    # the DatabaseDirectory directive inside the file.
+    conf_fd, conf_tmp = tempfile.mkstemp(prefix="nrt_freshclam_", suffix=".conf")
+    try:
+        os.write(conf_fd, f"DatabaseDirectory {db_dir}\n".encode())
+    finally:
+        os.close(conf_fd)
+
+    cmd = [freshclam_path, f"--config-file={conf_tmp}", f"--datadir={db_dir}"]
     if verbosity >= 1:
         print("Running:", " ".join(cmd))
     try:
         result = subprocess.run(cmd, env=env)
     finally:
+        try:
+            os.unlink(conf_tmp)
+        except OSError:
+            pass
         if freshclam_tmp:
             try:
                 os.unlink(freshclam_tmp)
