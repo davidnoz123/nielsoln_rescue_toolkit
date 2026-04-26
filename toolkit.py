@@ -976,7 +976,7 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
         #   "Cannot change ownership to uid ..."  — no root for chown
         #   "Cannot create symlink to ..."         — FAT32/exFAT USB can't store symlinks
         # Both are safe to suppress; the binary files are still extracted correctly.
-        _DPKG_SUPPRESS = ("cannot change ownership", "cannot create symlink")
+        _DPKG_SUPPRESS = ("cannot change ownership", "cannot create symlink", "operation not permitted")
         if result.stderr:
             for line in result.stderr.splitlines():
                 if not any(pat in line.lower() for pat in _DPKG_SUPPRESS):
