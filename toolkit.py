@@ -1664,25 +1664,33 @@ def run_ssh(
         except OSError as exc:
             print(f"  WARNING: could not set password: {exc}")
 
-    # --- verify sshd is running ---
-    # bootstrap.sh handles installation and startup before Python runs.
-    # This check is a safety net when run_ssh() is called directly (not via bootstrap.sh).
-    _sshd_candidates = [
-        shutil.which("sshd"),
-        "/usr/sbin/sshd",
-        "/sbin/sshd",
-    ]
-    sshd = next((p for p in _sshd_candidates if p and os.path.isfile(p) and os.access(p, os.X_OK)), None)
-
-    if sshd is None:
-        # bootstrap.sh should have installed openssh-server already.
-        # If we're here without it, something went wrong — tell the user.
-        print(
-            "ERROR: sshd not found.\n"
-            "Run via bootstrap.sh which installs openssh-server automatically:\n"
-            "  sudo bash bootstrap.sh ssh"
+    # --- verify dropbear is running ---
+    # bootstrap.sh starts dropbear before Python runs.  We just check that
+    # the process is up so we can print connection details.  If called
+    # directly (not via bootstrap.sh), emit a clear error.
+    _dropbear_binary = "/tmp/dropbear_rescue"
+    _dropbear_running = False
+    try:
+        result = subprocess.run(  # noqa: S603
+            ["pgrep", "-x", "dropbear_rescue"],
+            capture_output=True,
         )
-        return 1
+        _dropbear_running = result.returncode == 0
+    except OSError:
+        pass
+
+    if not _dropbear_running:
+        if not os.path.isfile(_dropbear_binary):
+            print(
+                "ERROR: dropbear is not running and _tools/dropbear was not found.\n"
+                "Run:  sudo bash bootstrap.sh ssh"
+            )
+            return 1
+        # Binary exists but process not found — bootstrap.sh may have started
+        # dropbear in the foreground (it exited).  Not an error here; connection
+        # details are still useful.
+        if verbosity >= 1:
+            print("  WARNING: dropbear process not detected (may have exited).")
 
     # --- print connection info ---
     ips = _get_local_ips()
