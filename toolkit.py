@@ -1412,27 +1412,55 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
             _system_ca_bundle = _cf
             break
 
-    if not os.path.isdir(_CLAMAV_CERT_DIR):
-        if is_linux() and os.geteuid() == 0:
-            try:
-                os.makedirs(_CLAMAV_CERT_DIR, exist_ok=True)
-                # Leave the directory EMPTY.  ClamAV's Rust codesign module
-                # scans this directory for ClamAV-format signing certificates.
-                # Copying the system CA bundle here causes a parse failure →
-                # unwrap() on None → panic in libclamav_rust/codesign.rs.
-                # TLS certificate lookup is handled separately via SSL_CERT_FILE /
-                # SSL_CERT_DIR env vars set below.
+    if is_linux() and os.geteuid() == 0:
+        # The bundled freshclam binary was compiled with /usr/local/etc/certs/ as
+        # its hard-coded codesign cert path.  ClamAV's Rust codesign module reads
+        # ClamAV-format (.crt) certificates from that directory to verify database
+        # signatures.  It does NOT want system CA bundle files there — putting a
+        # PEM CA bundle there causes an unwrap() panic in codesign.rs.
+        #
+        # Fix: copy ClamAV's own codesign certs (extracted from the .deb into the
+        # USB bundle) to /usr/local/etc/certs/ on the live tmpfs filesystem.
+        # Also remove any stale CA bundle file left by a previous toolkit version.
+        _src_certs = _clamav_install_path(root) / "usr" / "local" / "etc" / "certs"
+        try:
+            os.makedirs(_CLAMAV_CERT_DIR, exist_ok=True)
+            # Remove any stale system CA bundle we may have placed here previously.
+            for _stale in ("ca-certificates.crt", "ca-bundle.crt", "ca-bundle.pem"):
+                _stale_path = os.path.join(_CLAMAV_CERT_DIR, _stale)
+                if os.path.isfile(_stale_path):
+                    os.unlink(_stale_path)
+                    if verbosity >= 2:
+                        print(f"  removed stale CA bundle from {_CLAMAV_CERT_DIR}: {_stale}")
+            # Copy ClamAV's own codesign certs from the extracted bundle.
+            if _src_certs.is_dir():
+                _copied = 0
+                for _cert_src in _src_certs.iterdir():
+                    if _cert_src.is_file():
+                        _cert_dst = os.path.join(_CLAMAV_CERT_DIR, _cert_src.name)
+                        if not os.path.exists(_cert_dst):
+                            shutil.copy2(str(_cert_src), _cert_dst)
+                            _copied += 1
                 if verbosity >= 2:
-                    print(f"  created empty {_CLAMAV_CERT_DIR} (ClamAV codesign dir)")
-            except OSError as _exc:
+                    if _copied:
+                        print(f"  copied {_copied} ClamAV codesign cert(s) to {_CLAMAV_CERT_DIR}")
+                    else:
+                        print(f"  {_CLAMAV_CERT_DIR}: codesign certs already in place")
+            else:
                 if verbosity >= 1:
-                    print(f"  WARNING: could not create {_CLAMAV_CERT_DIR}: {_exc}")
-        elif verbosity >= 1:
-            print(
-                f"  WARNING: {_CLAMAV_CERT_DIR} does not exist and cannot be created"
-                f" (root={is_linux() and os.geteuid()==0})"
-                " — freshclam may fail with a certs error"
-            )
+                    print(
+                        f"  WARNING: no codesign certs found in extracted bundle"
+                        f" ({_src_certs}) — freshclam database verification may fail"
+                    )
+        except OSError as _exc:
+            if verbosity >= 1:
+                print(f"  WARNING: could not populate {_CLAMAV_CERT_DIR}: {_exc}")
+    elif not os.path.isdir(_CLAMAV_CERT_DIR) and verbosity >= 1:
+        print(
+            f"  WARNING: {_CLAMAV_CERT_DIR} does not exist and cannot be created"
+            f" (root={is_linux() and os.geteuid()==0})"
+            " — freshclam may fail with a certs error"
+        )
 
     # Also set the standard OpenSSL env vars so any direct OpenSSL calls
     # (e.g. in linked libssl) also find the system CA bundle.
