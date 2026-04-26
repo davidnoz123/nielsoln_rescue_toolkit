@@ -739,9 +739,29 @@ def _extract_members(
     expected = _collect_expected_paths(tf, dest)
     members = tf.getmembers()
     total = len(members)
+
+    # On case-insensitive filesystems (Windows, macOS HFS+) two archive members
+    # that differ only in case — e.g. terminfo/E/Eterm vs terminfo/e/eterm —
+    # would collide on the same on-disk path.  Track written paths by their
+    # case-folded form and skip (with a loud warning) any later collision.
+    case_insensitive_fs: bool = (os.path.normcase("A") == "a")
+    seen_ci: set = set()  # case-folded str(target) → populated when case_insensitive_fs
+
     for i, member in enumerate(members, 1):
         target = _safe_member_path(dest, member.name)
         tag = f"  {platform_tag}: [{i:>{len(str(total))}}/{total}]"
+
+        # --- case-collision guard (case-insensitive filesystems only) ---
+        if case_insensitive_fs and not member.isdir():
+            key = str(target).lower()
+            if key in seen_ci:
+                # Always warn regardless of verbosity — this is a data-integrity issue.
+                print(
+                    f"{tag} SKIP-COLLISION  {member.name}"
+                    f"  (case collision on case-insensitive filesystem)"
+                )
+                continue
+            seen_ci.add(key)
 
         # --- directories ---
         if member.isdir():
@@ -776,7 +796,7 @@ def _extract_members(
                 continue
 
         verb = "would-write" if dry_run else "write      "
-        suffix = f"  ({reason})" if verbosity >= 2 and reason else ""
+        suffix = f"  ({reason})" #if verbosity >= 2 and reason else ""
         if verbosity >= 1:
             print(f"{tag} {verb} {member.name}{suffix}")
         if not dry_run:
@@ -1034,8 +1054,6 @@ if __name__ == "__main__":
         for fn in checksums:
             if _match_runtime_filename(fn, platform_tag, python_version):
                 archive = cache_dir / fn
-                #print(archive)
-                #_extract_runtime(archive, dest_dir, platform_tag, mode=mode)
-                pass
+                _extract_runtime(archive, dest_dir, platform_tag, mode=mode, verbosity=1)
 
         raise Exception("OK")        
