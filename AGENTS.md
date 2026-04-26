@@ -125,6 +125,38 @@ error.  **Do not `git commit` or `git push` if this command fails.**
 This check is in addition to any manual testing — it must be run even for
 one-line changes.
 
+## SHA256 Checksum After Every Push (mandatory)
+
+After every `git push`, compute the **LF-normalized SHA256** of `toolkit.py`
+and record it here.  GitHub raw serves LF bytes; this is what RescueZilla
+receives after `bootstrap update`.  Use the value to verify the update landed
+correctly on the target machine.
+
+**Compute on Windows (run after every push):**
+
+```powershell
+C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -c "
+import hashlib, pathlib
+data = pathlib.Path('toolkit.py').read_bytes().replace(b'\r\n', b'\n')
+print(hashlib.sha256(data).hexdigest(), ' toolkit.py (LF-normalized)')
+"
+```
+
+**Verify on RescueZilla after `bootstrap update`:**
+
+```bash
+sha256sum /path/to/NIELSOLN_RESCUE_USB/toolkit.py
+```
+
+The two hashes must match exactly.  If they differ, the update did not land
+(stale CDN, partial download, or `.pyc` cache issue).
+
+### Current published SHA256
+
+| File | SHA256 (LF-normalized) | Commit |
+|------|------------------------|--------|
+| `toolkit.py` | `f1ecfef8fde2e77afd1812069184ef9d9800aa458527a0525f2d1601a26dd0b5` | `3f55028` |
+
 ## Process Visibility
 
 - **No hidden processes.** Never start Python or Excel processes invisibly.
