@@ -1243,6 +1243,7 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
         os.write(conf_fd, (
             f"DatabaseDirectory {db_dir}\n"
             "DatabaseMirror database.clamav.net\n"
+            "DatabaseOwner root\n"
         ).encode())
     finally:
         os.close(conf_fd)
