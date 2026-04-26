@@ -325,8 +325,7 @@ def _stage_clamav_certs(extracted_root: Path) -> None:
 
     The bundled clamscan binary has '/usr/local/etc/certs' compiled in as the
     certificate directory.  In the live environment that path doesn't exist,
-    which causes 'Broken or not a CVD file' errors.  We copy (or create) the
-    directory once per session.
+    which causes 'Broken or not a CVD file' errors.
     """
     dst = Path("/usr/local/etc/certs")
     if dst.exists():
@@ -358,7 +357,6 @@ def _resolve_clamscan(root: Path) -> tuple[str | None, dict | None]:
             extracted_root = root / "clamav" / "linux-x86_64" / "extracted"
             lib_dir = extracted_root / "usr" / "local" / "lib"
             scan_env = dict(os.environ)
-            # Stage certs so clamscan can verify CVD databases.
             _stage_clamav_certs(extracted_root)
             if lib_dir.exists():
                 try:
@@ -394,12 +392,7 @@ def _run_clamscan_on_dir(
     log_path: Path,
     verbose: bool = False,
 ) -> int:
-    """Run clamscan against a single directory. Returns the raw exit code.
-
-    NOTE: This function does NOT clean up temp files.  Lifecycle of the staged
-    binary and lib directory is managed by the caller (run_scan) so that the
-    same temp binary can be reused across multiple segment scans.
-    """
+    """Run clamscan against a single directory. Returns the raw exit code."""
     cmd = [clamscan] + _CLAMSCAN_COMMON + profile_flags + db_args
     if include_exts:
         for ext in include_exts:
@@ -409,7 +402,8 @@ def _run_clamscan_on_dir(
     if verbose:
         print(f"    cmd: {' '.join(cmd)}", flush=True)
 
-    # Strip the internal lifecycle keys before passing env to subprocess.
+    # Strip internal lifecycle keys — don't pass them to clamscan, and don't
+    # delete the files here; run_scan owns that lifecycle across all segments.
     clean_env = None
     if scan_env is not None:
         clean_env = {k: v for k, v in scan_env.items()
@@ -546,7 +540,7 @@ def run_scan(
     errored = False
     scanned_count = 0
 
-    try:  # outer try: guarantees temp binary/libs are cleaned up on exit
+    try:
         for scan_dir in scan_dirs:
             dir_key = str(scan_dir)
             if dir_key in completed_dirs:
@@ -562,7 +556,7 @@ def run_scan(
 
             rc = _run_clamscan_on_dir(
                 clamscan,
-                scan_env,  # read-only; _run_clamscan_on_dir no longer mutates it
+                dict(scan_env) if scan_env else None,  # fresh copy each time
                 scan_dir,
                 profile_flags,
                 include_exts,
@@ -597,7 +591,7 @@ def run_scan(
             completed_dirs.add(dir_key)
 
     finally:
-        # Clean up the staged clamscan binary and libs (created once, used for all segments).
+        # Clean up the staged clamscan binary and libs (created once for all segments).
         if clamscan_tmp:
             try:
                 os.unlink(clamscan_tmp)
