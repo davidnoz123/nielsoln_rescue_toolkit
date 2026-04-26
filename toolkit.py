@@ -969,17 +969,10 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
         install_dir.mkdir(parents=True, exist_ok=True)
         result = subprocess.run(
             [dpkg_deb, "--extract", str(deb_path), str(install_dir)],
-            stderr=subprocess.PIPE,
-            text=True,
         )
-        # dpkg-deb commonly fails with non-zero exit on FAT32/exFAT USB drives:
-        # it cannot create symlinks, cannot change ownership, cannot set permissions.
-        # These are all harmless — the binary files extract correctly.
-        # Rather than filtering specific message patterns (fragile), we ignore the
-        # exit code here and rely entirely on the clamscan existence check below.
-        if result.stderr and verbosity >= 2:
-            for line in result.stderr.splitlines():
-                print(f"  dpkg-deb: {line}", file=sys.stderr)
+        # Exit code is ignored — dpkg-deb exits non-zero on FAT32/exFAT when it
+        # cannot create symlinks or change permissions, even though the binaries
+        # extract correctly.  Success is determined by the clamscan check below.
         if result.returncode != 0 and verbosity >= 1:
             print(f"  dpkg-deb exited {result.returncode} — checking if binaries extracted ...")
     else:
