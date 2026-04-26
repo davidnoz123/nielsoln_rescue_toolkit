@@ -1413,23 +1413,24 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
             break
 
     if not os.path.isdir(_CLAMAV_CERT_DIR):
-        if is_linux() and os.geteuid() == 0 and _system_ca_bundle:
+        if is_linux() and os.geteuid() == 0:
             try:
                 os.makedirs(_CLAMAV_CERT_DIR, exist_ok=True)
-                # Copy the bundle as both the canonical name and ca-certificates.crt
-                # so freshclam finds it regardless of which filename it expects.
-                _bundle_dest = os.path.join(_CLAMAV_CERT_DIR, "ca-certificates.crt")
-                if not os.path.exists(_bundle_dest):
-                    shutil.copy2(_system_ca_bundle, _bundle_dest)
+                # Leave the directory EMPTY.  ClamAV's Rust codesign module
+                # scans this directory for ClamAV-format signing certificates.
+                # Copying the system CA bundle here causes a parse failure →
+                # unwrap() on None → panic in libclamav_rust/codesign.rs.
+                # TLS certificate lookup is handled separately via SSL_CERT_FILE /
+                # SSL_CERT_DIR env vars set below.
                 if verbosity >= 2:
-                    print(f"  created {_CLAMAV_CERT_DIR} from {_system_ca_bundle}")
+                    print(f"  created empty {_CLAMAV_CERT_DIR} (ClamAV codesign dir)")
             except OSError as _exc:
                 if verbosity >= 1:
                     print(f"  WARNING: could not create {_CLAMAV_CERT_DIR}: {_exc}")
         elif verbosity >= 1:
             print(
                 f"  WARNING: {_CLAMAV_CERT_DIR} does not exist and cannot be created"
-                f" (root={is_linux() and os.geteuid()==0}, ca_bundle={_system_ca_bundle!r})"
+                f" (root={is_linux() and os.geteuid()==0})"
                 " — freshclam may fail with a certs error"
             )
 
