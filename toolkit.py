@@ -1539,6 +1539,9 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
             clamav_dist_dir = dist / "clamav" / "linux-x86_64"
             clamav_dist_dir.mkdir(parents=True, exist_ok=True)
             _sync_core_file(deb, clamav_dist_dir / deb.name, mode=mode, verbosity=verbosity)
+            sha256_sidecar = deb.parent / (deb.name + ".sha256")
+            if sha256_sidecar.exists():
+                _sync_core_file(sha256_sidecar, clamav_dist_dir / sha256_sidecar.name, mode=mode, verbosity=verbosity)
         except RuntimeError as exc:
             print(f"  ERROR downloading ClamAV: {exc}")
             print("  Skipping ClamAV bundle.  run_scan will fall back to system ClamAV.")
