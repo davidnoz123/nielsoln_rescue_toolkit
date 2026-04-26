@@ -1815,3 +1815,28 @@ if __name__ == "__main__":
     if False:
         run_install_runtime(platform_tag="linux-x86_64", mode="update", verbosity=1)
         raise Exception("OK")
+
+    if False:
+        # Delete ALL contents of a USB drive.
+        # Every file and folder at usb_dest is permanently removed.
+        # Toggle to True only when you are certain — this cannot be undone.
+        usb_dest = Path("E:\\")               # <-- set your USB drive path here
+        print(f"Deleting all contents of {usb_dest} ...")
+        deleted_files = 0
+        deleted_dirs  = 0
+        errors        = 0
+        for item in sorted(usb_dest.iterdir()):
+            try:
+                if item.is_dir() and not item.is_symlink():
+                    shutil.rmtree(item)
+                    deleted_dirs += 1
+                    print(f"  rmtree  {item.name}/")
+                else:
+                    item.unlink()
+                    deleted_files += 1
+                    print(f"  unlink  {item.name}")
+            except OSError as exc:
+                errors += 1
+                print(f"  ERROR   {item.name}: {exc}")
+        print(f"Done ({deleted_files} file(s), {deleted_dirs} dir(s) deleted, {errors} error(s))")
+        raise Exception("OK")
