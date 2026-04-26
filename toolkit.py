@@ -909,7 +909,9 @@ def _extract_deb_python(deb_path: Path, dest_dir: Path, verbosity: int = 2) -> N
         for i, member in enumerate(members, 1):
             if verbosity >= 2 and i % 200 == 0:
                 print(f"  clamav: extracting ... [{i}/{total}]")
-            tf.extract(member, path=str(dest_dir))
+            # filter='data' skips uid/gid restoration (avoids "Cannot change
+            # ownership" warnings when not running as root).
+            tf.extract(member, path=str(dest_dir), filter="data")
     if verbosity >= 1:
         print(f"  clamav: extracted {len(members)} entries to {dest_dir}")
 
@@ -954,8 +956,17 @@ def run_install_clamav(root=None, verbosity: int = 2) -> int:
             print(f"  using dpkg-deb: {dpkg_deb}")
         install_dir.mkdir(parents=True, exist_ok=True)
         result = subprocess.run(
-            [dpkg_deb, "--extract", str(deb_path), str(install_dir)]
+            [dpkg_deb, "--extract", str(deb_path), str(install_dir)],
+            stderr=subprocess.PIPE,
+            text=True,
         )
+        # dpkg-deb emits "Cannot change ownership to uid ..." warnings when
+        # not running as root.  These are harmless — the files are still
+        # extracted correctly.  Suppress those lines; forward everything else.
+        if result.stderr:
+            for line in result.stderr.splitlines():
+                if "Cannot change ownership" not in line:
+                    print(f"  dpkg-deb: {line}", file=sys.stderr)
         if result.returncode != 0:
             print(f"  ERROR: dpkg-deb --extract exited {result.returncode}")
             return result.returncode
