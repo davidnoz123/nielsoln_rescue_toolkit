@@ -128,11 +128,10 @@ one-line changes.
 ## SHA256 Checksum After Every Push (mandatory)
 
 After every `git push`, compute the **LF-normalized SHA256** of `toolkit.py`
-and record it here.  GitHub raw serves LF bytes; this is what RescueZilla
-receives after `bootstrap update`.  Use the value to verify the update landed
-correctly on the target machine.
+and **display it to the user** so they can compare it against what `bootstrap update`
+prints on RescueZilla.  Do NOT write the hash value into this file.
 
-**Compute on Windows (run after every push):**
+**Run after every push and show the output to the user:**
 
 ```powershell
 C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -c "
@@ -142,20 +141,14 @@ print(hashlib.sha256(data).hexdigest(), ' toolkit.py (LF-normalized)')
 "
 ```
 
-**Verify on RescueZilla after `bootstrap update`:**
+**The user will compare this against the line printed by `bootstrap update` on RescueZilla:**
 
-```bash
-sha256sum /path/to/NIELSOLN_RESCUE_USB/toolkit.py
+```
+toolkit.py SHA256 (LF-normalized): <hash>
 ```
 
 The two hashes must match exactly.  If they differ, the update did not land
 (stale CDN, partial download, or `.pyc` cache issue).
-
-### Current published SHA256
-
-| File | SHA256 (LF-normalized) | Commit |
-|------|------------------------|--------|
-| `toolkit.py` | `de593f9db7b3f7a57dad2365dc56349a43f16d40f6c7bb5ecdf0d2f01359130e` | `d6052e1` |
 
 ## Process Visibility
 
