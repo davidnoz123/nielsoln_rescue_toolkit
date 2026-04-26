@@ -706,12 +706,15 @@ def print_runtime_download_plan(
 #   clamav/linux-x86_64/db/ before scanning offline.
 
 _CLAMAV_VERSION        = "1.5.2"
-_CLAMAV_RELEASE_BASE   = "https://github.com/Cisco-Talos/clamav/releases/download"
+_CLAMAV_DOWNLOAD_BASE  = "https://www.clamav.net/downloads/production"
+_CLAMAV_GITHUB_BASE    = "https://github.com/Cisco-Talos/clamav/releases/download"
 _CLAMAV_LINUX_FILENAME = f"clamav-{_CLAMAV_VERSION}.linux.x86_64.deb"
-_CLAMAV_LINUX_URL      = (
-    f"{_CLAMAV_RELEASE_BASE}/clamav-{_CLAMAV_VERSION}/{_CLAMAV_LINUX_FILENAME}"
+_CLAMAV_LINUX_URL      = f"{_CLAMAV_DOWNLOAD_BASE}/{_CLAMAV_LINUX_FILENAME}"
+# SHA256 sidecar is only published on GitHub (clamav.net provides PGP .sig only)
+_CLAMAV_LINUX_SHA256_URL = (
+    f"{_CLAMAV_GITHUB_BASE}/clamav-{_CLAMAV_VERSION}"
+    f"/{_CLAMAV_LINUX_FILENAME}.sha256"
 )
-_CLAMAV_LINUX_SHA256_URL = f"{_CLAMAV_LINUX_URL}.sha256"
 
 
 def _clamav_cache_path(root) -> Path:
