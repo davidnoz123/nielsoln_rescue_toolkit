@@ -1574,7 +1574,7 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
 # Invocation:
 #   sudo bash bootstrap.sh ssh [--port 22] [--password <pw>] [--pubkey "<key>"]
 
-_SSH_BUNDLED_PUBKEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP4nGPugJWZyWJSFiqjCZPlvD0an9+aWjT5/KbsWLh24 david@DESKTOP-EQ1D9DI"
+_SSH_BUNDLED_PUBKEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOX9wXrgJFMzhn+QSWi0Ee2DgPfTdBa/qckRO7lrD6Lk david@LAPTOP-HB3IGVLU"
 
 _ssh_log = logging.getLogger("ssh")
 
