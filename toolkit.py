@@ -858,10 +858,14 @@ def _extract_runtime(
     dry_run     = (mode == "check")
     incremental = (mode in ("update", "prune", "check"))
 
-    if mode == "full" and dest_dir.exists() and not dry_run:
-        if verbosity >= 1:
-            print(f"  {platform_tag}: clearing existing dir ...")
-        shutil.rmtree(dest_dir)
+    if mode == "full" and not dry_run:
+        # Only remove the extracted python/ subtree, not the whole dest_dir.
+        # The archive (.tar.gz) may also live in dest_dir and must be preserved.
+        python_sub = dest_dir / "python"
+        if python_sub.exists():
+            if verbosity >= 1:
+                print(f"  {platform_tag}: clearing existing python/ ...")
+            shutil.rmtree(python_sub)
 
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_resolved = dest_dir.resolve()
@@ -952,6 +956,65 @@ def runtime_cache_path(root, platform_tag: str) -> Path:
     return p / "runtimes" / platform_tag
 
 
+def run_install_runtime(
+    root: Path = None,
+    platform_tag: str = None,
+    mode: str = "update",
+    verbosity: int = 2,
+) -> int:
+    """Extract (or update/check/prune) the bundled Python runtime on the USB.
+
+    Locates the .tar.gz archive that was copied into runtimes/<platform>/
+    by build_usb_package, then calls _extract_runtime to (re-)install it
+    in-place.  The extracted python/ tree lives alongside the archive in
+    the same directory.
+
+    mode is passed through to _extract_runtime:
+      full    Wipe python/ and re-extract everything.
+      update  Skip files that are already up-to-date (default).
+      check   Dry run — print what would change, touch nothing.
+      prune   update + delete files not present in the archive.
+    """
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
+
+    if platform_tag is None:
+        platform_tag = get_platform()
+
+    if mode not in _VALID_MODES:
+        raise ValueError(f"Unknown mode {mode!r}. Valid values: {_VALID_MODES}")
+
+    plat_dir = runtime_cache_path(root, platform_tag)
+
+    if not plat_dir.exists():
+        print(f"Runtime directory not found: {plat_dir}")
+        print("Run build_usb_package first, or copy the archive manually.")
+        return 1
+
+    archives = sorted(plat_dir.glob("*.tar.gz"))
+    if not archives:
+        print(f"No .tar.gz archive found in {plat_dir}")
+        print("Run build_usb_package to download and copy the archive to the USB.")
+        return 1
+
+    if len(archives) > 1:
+        names = [a.name for a in archives]
+        print(f"Multiple archives found in {plat_dir}: {names}")
+        print("Remove all but one and retry.")
+        return 1
+
+    archive = archives[0]
+    dest_dir = plat_dir  # python/ will be extracted alongside the archive
+
+    if verbosity >= 1:
+        print(f"Installing runtime for {platform_tag}  (mode={mode})")
+        print(f"  archive : {archive}")
+        print(f"  dest    : {dest_dir}")
+
+    _extract_runtime(archive, dest_dir, platform_tag, mode=mode, verbosity=verbosity)
+    return 0
+
+
 def build_usb_package(dist_root: Path = None, verbosity: int = 2) -> None:
     """Build dist/NIELSOLN_RESCUE_USB from repo sources.
 
@@ -1015,6 +1078,14 @@ def build_usb_package(dist_root: Path = None, verbosity: int = 2) -> None:
                 continue
 
         _extract_runtime(entry["cached_file"], dest_dir, platform_tag, verbosity=verbosity)
+
+        # Copy the archive into the dist so the USB is self-contained.
+        # This lets `bootstrap runtime` re-extract without needing the dev cache.
+        archive_dest = dest_dir / entry["cached_file"].name
+        if not archive_dest.exists():
+            shutil.copy2(entry["cached_file"], archive_dest)
+            if verbosity >= 1:
+                print(f"  {platform_tag}: copied archive  {entry['cached_file'].name}")
 
     # Make bootstrap.sh executable on Unix-like systems
     try:

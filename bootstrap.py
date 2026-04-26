@@ -51,6 +51,27 @@ def main() -> int:
     sub.add_parser("detect", help="Detect likely Windows installations under /mnt or /media")
     sub.add_parser("update", help="Pull latest toolkit from repository")
 
+    p_runtime = sub.add_parser(
+        "runtime",
+        help="Install or update the bundled Python runtime on this USB",
+    )
+    p_runtime.add_argument(
+        "--platform", default=None,
+        help="Platform tag, e.g. linux-x86_64 (default: current platform)",
+    )
+    p_runtime.add_argument(
+        "--mode", default="update",
+        choices=["full", "update", "check", "prune"],
+        help=(
+            "full=wipe+re-extract  update=incremental (default)  "
+            "check=dry-run  prune=update+delete-extras"
+        ),
+    )
+    p_runtime.add_argument(
+        "--verbosity", type=int, default=2, choices=[0, 1, 2],
+        help="0=silent  1=actions only  2=actions+decisions (default)",
+    )
+
     args = parser.parse_args()
 
     setup_logging(root, getattr(args, "verbose", False))
@@ -59,8 +80,8 @@ def main() -> int:
     log.debug("Command: %s", args.command)
 
     # Fire background auto-update unless suppressed or running the explicit
-    # update command (which provides its own foreground progress output).
-    if not args.no_update and not args.offline and args.command != "update":
+    # update/runtime commands (which provide their own foreground output).
+    if not args.no_update and not args.offline and args.command not in ("update", "runtime"):
         from toolkit import start_background_update
         start_background_update(root)
 
@@ -79,6 +100,15 @@ def main() -> int:
     if args.command == "update":
         from toolkit import run_update
         return run_update(root, offline=args.offline)
+
+    if args.command == "runtime":
+        from toolkit import run_install_runtime
+        return run_install_runtime(
+            root,
+            platform_tag=args.platform,
+            mode=args.mode,
+            verbosity=args.verbosity,
+        )
 
     parser.print_help()
     return 0
