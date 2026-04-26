@@ -44,6 +44,18 @@ def main() -> int:
 
     p_scan = sub.add_parser("scan", help="Run ClamAV scan against target")
     p_scan.add_argument("--target", required=True, help="Path to mounted Windows installation")
+    p_scan.add_argument(
+        "--profile", choices=["quick", "thorough"], default="quick",
+        help="Scan profile: quick (exe/script types, no archives) or thorough (all files, archives bounded). Default: quick",
+    )
+    p_scan.add_argument(
+        "--no-swap", action="store_true",
+        help="Skip automatic swap file creation (not recommended on low-RAM systems)",
+    )
+    p_scan.add_argument(
+        "--no-resume", action="store_true",
+        help="Ignore any existing checkpoint and restart the scan from the beginning",
+    )
 
     p_triage = sub.add_parser("triage", help="Python-only suspicious file triage")
     p_triage.add_argument("--target", required=True, help="Path to mounted Windows installation")
@@ -159,7 +171,14 @@ def main() -> int:
 
     if args.command == "scan":
         from toolkit import run_scan
-        return run_scan(root, Path(args.target))
+        return run_scan(
+            root,
+            Path(args.target),
+            profile=args.profile,
+            no_swap=args.no_swap,
+            resume=not args.no_resume,
+            verbose=args.verbose,
+        )
 
     if args.command == "triage":
         from toolkit import run_triage

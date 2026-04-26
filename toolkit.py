@@ -178,27 +178,157 @@ def run_triage(root: Path = None, target: Path = None) -> int:
 
 
 # ---------------------------------------------------------------------------
-# scan — ClamAV orchestration
+# scan — ClamAV orchestration (robust low-memory profiles)
 # ---------------------------------------------------------------------------
 
 _scan_log = logging.getLogger("scan")
 
+# Ordered list of Windows subdirectories scanned as separate checkpointed
+# units, from highest malware prevalence to lowest.
+_WIN_SCAN_DIRS = [
+    "Windows/System32",
+    "Windows/SysWOW64",
+    "Windows/Temp",
+    "Windows",               # remaining Windows files (not System32/SysWOW64/Temp)
+    "Users",
+    "ProgramData",
+    "Program Files",
+    "Program Files (x86)",
+    ".",                     # root-level files only (non-recursive catch-all)
+]
 
-def run_scan(root: Path = None, target: Path = None) -> int:
-    if root is None: root = Path(file__fileSysD)
-    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
-    if not target.exists():
-        _scan_log.error("Target does not exist: %s", target)
-        print("Target does not exist:", target)
-        return 2
+# Extensions targeted by the quick profile (no archive scanning).
+_QUICK_EXTENSIONS = [
+    "*.exe", "*.dll", "*.sys", "*.bat", "*.cmd",
+    "*.ps1", "*.vbs", "*.js", "*.jse", "*.wsf",
+    "*.scr", "*.pif", "*.com", "*.cpl", "*.msi",
+    "*.hta", "*.lnk",
+]
 
+# clamscan flags common to all profiles.
+_CLAMSCAN_COMMON = [
+    "--recursive",
+    "--infected",
+    "--no-summary",
+]
+
+# Quick profile: executable/script types only, no archive expansion.
+_PROFILE_QUICK = [
+    "--scan-archive=no",
+    "--max-filesize=20M",
+    "--max-scansize=50M",
+    "--max-recursion=3",
+    "--max-files=500",
+    "--pcre-max-filesize=5M",
+]
+
+# Thorough profile: archives enabled but tightly bounded to prevent OOM.
+_PROFILE_THOROUGH = [
+    "--scan-archive=yes",
+    "--scan-ole2=yes",
+    "--scan-pdf=yes",
+    "--scan-html=yes",
+    "--max-filesize=50M",
+    "--max-scansize=200M",
+    "--max-recursion=5",
+    "--max-files=500",
+    "--max-embeddedpe=10M",
+    "--max-htmlnormalize=5M",
+    "--max-scriptnormalize=5M",
+    "--max-ziptypercg=5M",
+    "--max-partitions=50",
+    "--pcre-max-filesize=10M",
+]
+
+
+def _setup_swap(swap_mb: int = 2048) -> str | None:
+    """Create and activate a swap file of *swap_mb* MiB on /tmp.
+
+    Returns the path to the swap file on success, None if it could not be
+    created (e.g. not root, not enough space, already present).
+    """
+    swap_path = "/tmp/nrt_rescue_swap"
+    try:
+        if os.path.exists(swap_path):
+            _scan_log.info("Swap file already exists at %s — skipping creation.", swap_path)
+            return swap_path
+
+        _scan_log.info("Creating %d MiB swap file at %s …", swap_mb, swap_path)
+        print(f"  Setting up {swap_mb} MiB swap file ({swap_path}) …", flush=True)
+
+        # fallocate is faster; fall back to dd.
+        rc = subprocess.run(  # noqa: S603
+            ["fallocate", "-l", f"{swap_mb}M", swap_path],
+            capture_output=True,
+        ).returncode
+        if rc != 0:
+            subprocess.run(  # noqa: S603
+                ["dd", "if=/dev/zero", f"of={swap_path}", "bs=1M", f"count={swap_mb}"],
+                capture_output=True,
+                check=True,
+            )
+
+        os.chmod(swap_path, 0o600)
+        subprocess.run(["mkswap", swap_path], capture_output=True, check=True)  # noqa: S603
+        subprocess.run(["swapon", swap_path], capture_output=True, check=True)  # noqa: S603
+        _scan_log.info("Swap activated: %s", swap_path)
+        print(f"  Swap activated ({swap_mb} MiB).", flush=True)
+        return swap_path
+
+    except Exception as exc:
+        _scan_log.warning("Could not set up swap: %s", exc)
+        print(f"  WARNING: Could not set up swap: {exc}", flush=True)
+        return None
+
+
+def _teardown_swap(swap_path: str) -> None:
+    """Deactivate and remove the swap file created by _setup_swap."""
+    try:
+        subprocess.run(["swapoff", swap_path], capture_output=True)  # noqa: S603
+        os.unlink(swap_path)
+        _scan_log.info("Swap removed: %s", swap_path)
+    except Exception as exc:
+        _scan_log.warning("Could not remove swap %s: %s", swap_path, exc)
+
+
+def _check_free_ram_mb() -> int:
+    """Return available RAM in MiB from /proc/meminfo (0 if unreadable)."""
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) // 1024
+    except Exception:
+        pass
+    return 0
+
+
+def _check_oom_killed(pid: int | None = None) -> bool:
+    """Return True if dmesg shows a recent OOM kill (optionally for *pid*)."""
+    try:
+        out = subprocess.run(  # noqa: S603
+            ["dmesg"],
+            capture_output=True, text=True,
+        ).stdout
+        needle = str(pid) if pid else "clamscan"
+        for line in out.splitlines():
+            low = line.lower()
+            if "oom" in low or "out of memory" in low or "killed process" in low:
+                if needle in line:
+                    return True
+        return False
+    except Exception:
+        return False
+
+
+def _resolve_clamscan(root: Path) -> tuple[str | None, dict | None]:
+    """Return (clamscan_path, env) or (None, None) if not found."""
     clamscan = shutil.which("clamscan")
     scan_env = None
 
     if clamscan is None:
-        # Try bundled ClamAV extracted by `bootstrap clamav --install`
         bundled = (
-            root / "clamav" / "linux-x86_64" / "extracted" / "usr" / "local" / "bin" / "clamscan"
+            root / "clamav" / "linux-x86_64" / "extracted"
+            / "usr" / "local" / "bin" / "clamscan"
         )
         if bundled.exists():
             lib_dir = (
@@ -208,14 +338,14 @@ def run_scan(root: Path = None, target: Path = None) -> int:
             scan_env = dict(os.environ)
             if lib_dir.exists():
                 try:
-                    _lib_tmp_str, _lib_tmp_path = _stage_clamav_libs(lib_dir)
+                    _lib_tmp_str, _ = _stage_clamav_libs(lib_dir)
                     scan_env["_NRT_LIB_TMP"] = _lib_tmp_str
                     prev = scan_env.get("LD_LIBRARY_PATH", "")
                     scan_env["LD_LIBRARY_PATH"] = (
                         f"{_lib_tmp_str}:{prev}" if prev else _lib_tmp_str
                     )
                 except Exception as exc:
-                    _scan_log.warning("Could not stage ClamAV libs to /tmp: %s", exc)
+                    _scan_log.warning("Could not stage ClamAV libs: %s", exc)
                     prev = scan_env.get("LD_LIBRARY_PATH", "")
                     scan_env["LD_LIBRARY_PATH"] = (
                         f"{lib_dir}:{prev}" if prev else str(lib_dir)
@@ -226,40 +356,29 @@ def run_scan(root: Path = None, target: Path = None) -> int:
                 scan_env["_NRT_CLAMSCAN_TMP"] = _clamscan_tmp or ""
             except RuntimeError as exc:
                 _scan_log.warning("%s", exc)
-                print(f"WARNING: {exc}")
 
-    if clamscan is None:
-        msg = (
-            "clamscan not found. "
-            "ClamAV is not installed, not on PATH, and not yet extracted from the bundle. "
-            "Run `bootstrap clamav --install` to extract the bundled ClamAV, "
-            "then `bootstrap clamav --update-db` to download a virus database. "
-            "Run 'triage' for a Python-only scan instead."
-        )
-        _scan_log.warning(msg)
-        print(msg)
-        return 3
+    return clamscan, scan_env
 
-    log_path = root / "logs" / "clamav_scan.log"
-    log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Point clamscan at the locally cached virus database if present.
-    db_dir = root / "clamav" / "linux-x86_64" / "db"
-    extra_args = []
-    if db_dir.is_dir() and any(db_dir.glob("*.c?d")):
-        extra_args.append(f"--database={db_dir}")
+def _run_clamscan_on_dir(
+    clamscan: str,
+    scan_env: dict | None,
+    target_dir: Path,
+    profile_flags: list,
+    include_exts: list | None,
+    db_args: list,
+    log_path: Path,
+    verbose: bool = False,
+) -> int:
+    """Run clamscan against a single directory. Returns the raw exit code."""
+    cmd = [clamscan] + _CLAMSCAN_COMMON + profile_flags + db_args
+    if include_exts:
+        for ext in include_exts:
+            cmd += ["--include", ext]
+    cmd += [f"--log={log_path}", str(target_dir)]
 
-    cmd = [
-        clamscan,
-        "--recursive",
-        "--infected",
-        f"--log={log_path}",
-        *extra_args,
-        str(target),
-    ]
-
-    _scan_log.info("Running ClamAV: %s", " ".join(cmd))
-    print("Running:", " ".join(cmd))
+    if verbose:
+        print(f"    cmd: {' '.join(cmd)}", flush=True)
 
     clamscan_tmp = (scan_env or {}).pop("_NRT_CLAMSCAN_TMP", "") or None
     lib_tmp = (scan_env or {}).pop("_NRT_LIB_TMP", "") or None
@@ -274,14 +393,231 @@ def run_scan(root: Path = None, target: Path = None) -> int:
         if lib_tmp:
             shutil.rmtree(lib_tmp, ignore_errors=True)
 
-    _scan_log.info("ClamAV finished with exit code %d. Log: %s", result.returncode, log_path)
-    print("ClamAV log:", log_path)
-
-    if result.returncode == 1:
-        _scan_log.warning("ClamAV found infected files — see log for details.")
-        return 4  # toolkit exit code: suspicious/infected found
-
     return result.returncode
+
+
+def run_scan(
+    root: Path = None,
+    target: Path = None,
+    profile: str = "quick",
+    no_swap: bool = False,
+    resume: bool = True,
+    verbose: bool = False,
+) -> int:
+    """Run a ClamAV scan against *target* with OOM-safe memory limits.
+
+    Usage (from REPL):
+        import runpy ; temp = runpy._run_module_as_main("bootstrap")
+
+    Profiles:
+        quick    — executables/scripts only, no archive scanning (~350 MB RAM)
+        thorough — archives enabled, tightly bounded (~600 MB peak, needs swap)
+
+    Exit codes:
+        0  clean
+        1  interrupted / partial (SIGKILL / OOM)
+        2  target not found
+        3  clamscan not available
+        4  infected files found
+        5  error during scan
+    """
+    if root is None:
+        root = Path(file__fileSysD)  # noqa: F821
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
+
+    if target is None or not target.exists():
+        _scan_log.error("Target does not exist: %s", target)
+        print(f"ERROR: Target does not exist: {target}")
+        return 2
+
+    # ---- resolve clamscan binary ----
+    clamscan, scan_env = _resolve_clamscan(root)
+    if clamscan is None:
+        msg = (
+            "clamscan not found. ClamAV is not installed, not on PATH, and not bundled.\n"
+            "Run `bootstrap clamav --install` then `bootstrap clamav --update-db`.\n"
+            "Run `bootstrap triage` for a Python-only scan instead."
+        )
+        _scan_log.warning(msg)
+        print(msg)
+        return 3
+
+    # ---- select profile ----
+    if profile == "thorough":
+        profile_flags = _PROFILE_THOROUGH
+        include_exts = None        # scan all file types
+        swap_mb = 2048
+    else:
+        profile = "quick"          # default / normalise
+        profile_flags = _PROFILE_QUICK
+        include_exts = _QUICK_EXTENSIONS
+        swap_mb = 1024
+
+    # ---- check RAM and set up swap ----
+    free_ram = _check_free_ram_mb()
+    swap_path = None
+    if not no_swap:
+        min_ram = 500 if profile == "quick" else 700
+        if free_ram < min_ram:
+            print(
+                f"  Available RAM: {free_ram} MiB — below {min_ram} MiB threshold. "
+                f"Setting up swap …",
+                flush=True,
+            )
+            swap_path = _setup_swap(swap_mb)
+        else:
+            print(f"  Available RAM: {free_ram} MiB — swap not required.", flush=True)
+    else:
+        print(f"  Available RAM: {free_ram} MiB (swap disabled by --no-swap).", flush=True)
+
+    # ---- prepare log / report dirs ----
+    logs_dir = root / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = __import__("datetime").datetime.now().strftime("%Y%m%d_%H%M%S")
+    scan_log_path = logs_dir / f"clamav_{profile}_{timestamp}.log"
+
+    # ---- database args ----
+    db_dir = root / "clamav" / "linux-x86_64" / "db"
+    db_args = [f"--database={db_dir}"] if (db_dir.is_dir() and any(db_dir.glob("*.c?d"))) else []
+
+    # ---- checkpoint file ----
+    checkpoint_path = root / "logs" / f"scan_checkpoint_{profile}.txt"
+    completed_dirs: set[str] = set()
+    if resume and checkpoint_path.exists():
+        completed_dirs = set(checkpoint_path.read_text(encoding="utf-8").splitlines())
+        if completed_dirs:
+            print(
+                f"  Resuming: {len(completed_dirs)} director(ies) already completed "
+                f"({checkpoint_path.name}).",
+                flush=True,
+            )
+
+    # ---- build the list of directories to scan ----
+    scan_dirs: list[Path] = []
+    for rel in _WIN_SCAN_DIRS:
+        if rel == ".":
+            scan_dirs.append(target)
+        else:
+            candidate = target / rel
+            if candidate.exists():
+                scan_dirs.append(candidate)
+
+    # If target doesn't look like a Windows root, scan it directly as one unit.
+    if not scan_dirs:
+        scan_dirs = [target]
+
+    print(
+        f"\n=== NIELSOLN ClamAV SCAN ({profile.upper()}) ===",
+        flush=True,
+    )
+    print(f"  Target : {target}", flush=True)
+    print(f"  Profile: {profile}", flush=True)
+    print(f"  Log    : {scan_log_path}", flush=True)
+    print(f"  Units  : {len(scan_dirs)} director(ies)", flush=True)
+    print(flush=True)
+
+    infected_total = 0
+    oom_killed = False
+    errored = False
+    scanned_count = 0
+
+    try:
+        for scan_dir in scan_dirs:
+            dir_key = str(scan_dir)
+            if dir_key in completed_dirs:
+                print(f"  [skip]  {scan_dir} (already done)", flush=True)
+                continue
+
+            print(f"  [scan]  {scan_dir} …", flush=True)
+            _scan_log.info("Scanning: %s", scan_dir)
+
+            # Each dir gets its own numbered log segment so partial results survive.
+            seg_log = logs_dir / f"clamav_{profile}_{timestamp}_{scanned_count:02d}.log"
+            scanned_count += 1
+
+            rc = _run_clamscan_on_dir(
+                clamscan,
+                dict(scan_env) if scan_env else None,  # fresh copy each time
+                scan_dir,
+                profile_flags,
+                include_exts,
+                db_args,
+                seg_log,
+                verbose=verbose,
+            )
+
+            _scan_log.info("Segment exit code %d: %s", rc, scan_dir)
+
+            if rc in (-9, 137):
+                # SIGKILL — almost certainly OOM
+                oom_hint = " (OOM killer likely — check: dmesg | grep -i oom)" if _check_oom_killed() else ""
+                msg = f"  [KILL]  clamscan killed (SIGKILL) while scanning {scan_dir}{oom_hint}"
+                print(msg, flush=True)
+                _scan_log.error(msg)
+                oom_killed = True
+                break  # stop — don't attempt more dirs under memory pressure
+
+            if rc == 1:
+                infected_total += 1
+                print(f"  [INFECTED] threats found in {scan_dir}", flush=True)
+            elif rc == 2:
+                print(f"  [ERROR] clamscan error in {scan_dir}", flush=True)
+                errored = True
+            elif rc == 0:
+                print(f"  [clean]  {scan_dir}", flush=True)
+
+            # Checkpoint this dir as complete.
+            with checkpoint_path.open("a", encoding="utf-8") as f:
+                f.write(dir_key + "\n")
+            completed_dirs.add(dir_key)
+
+    finally:
+        if swap_path:
+            _teardown_swap(swap_path)
+
+    # ---- summary report ----
+    total_dirs = len(scan_dirs)
+    skipped = len([d for d in scan_dirs if str(d) in completed_dirs - {str(d) for d in scan_dirs if d not in scan_dirs}])
+    status = "PARTIAL (killed)" if oom_killed else ("COMPLETE" if not errored else "COMPLETE with errors")
+
+    summary_lines = [
+        "=" * 50,
+        "NIELSOLN SCAN SUMMARY",
+        f"  Date       : {timestamp}",
+        f"  Target     : {target}",
+        f"  Profile    : {profile}",
+        f"  Status     : {status}",
+        f"  Infected   : {infected_total} segment(s) with threats",
+        f"  Scanned    : {scanned_count}/{total_dirs} unit(s)",
+        f"  Log        : {scan_log_path}",
+    ]
+    if oom_killed:
+        summary_lines.append("  ACTION     : Add more swap and re-run (--resume will skip completed dirs)")
+        summary_lines.append("  DIAGNOSE   : dmesg | grep -i oom")
+    if checkpoint_path.exists() and not oom_killed:
+        # Clean run completed — remove checkpoint so next run starts fresh.
+        checkpoint_path.unlink(missing_ok=True)
+        summary_lines.append(f"  Checkpoint : removed (scan complete)")
+    elif checkpoint_path.exists():
+        summary_lines.append(f"  Checkpoint : {checkpoint_path} (resume with --resume)")
+    summary_lines.append("=" * 50)
+
+    summary = "\n".join(summary_lines)
+    print("\n" + summary, flush=True)
+    _scan_log.info(summary)
+
+    # Write summary to a fixed-name file for easy retrieval.
+    report_path = logs_dir / f"scan_report_{profile}_{timestamp}.txt"
+    report_path.write_text(summary + "\n", encoding="utf-8")
+    print(f"  Report: {report_path}", flush=True)
+
+    if oom_killed:
+        return 1
+    if infected_total > 0:
+        return 4
+    if errored:
+        return 5
+    return 0
 
 
 # ---------------------------------------------------------------------------
