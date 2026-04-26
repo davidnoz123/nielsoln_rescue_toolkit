@@ -2188,12 +2188,33 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
     else:
         print(f"  would download {_CLAMAV_LINUX_URL}")
 
-    # --- chmod bootstrap.sh ---
+    # --- _tools/ (bundled binaries: dropbear, etc.) ---
+    if verbosity >= 1:
+        print("\n_tools:")
+    tools_src = root / "_tools"
+    tools_dst = dist / "_tools"
+    if tools_src.is_dir():
+        if not dry_run:
+            tools_dst.mkdir(parents=True, exist_ok=True)
+        for src_file in sorted(tools_src.iterdir()):
+            if src_file.is_file():
+                _sync_core_file(src_file, tools_dst / src_file.name, mode=mode, verbosity=verbosity)
+    else:
+        if verbosity >= 1:
+            print("  (no _tools/ directory found — skipping)")
+
+    # --- chmod bootstrap.sh and _tools/* ---
     if not dry_run:
         try:
             os.chmod(dist / "bootstrap.sh", 0o755)
         except (AttributeError, NotImplementedError):
             pass  # Windows — permissions applied when copying to USB
+        if tools_dst.is_dir():
+            for f in tools_dst.iterdir():
+                try:
+                    os.chmod(f, 0o755)
+                except (AttributeError, NotImplementedError):
+                    pass
 
     if dry_run:
         return
