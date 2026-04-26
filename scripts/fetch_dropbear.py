@@ -24,7 +24,7 @@ import urllib.request
 # Configuration
 # ---------------------------------------------------------------------------
 
-DEST = pathlib.Path("dist/NIELSOLN_RESCUE_USB/_tools/dropbear")
+DEST = pathlib.Path("_tools/dropbear")
 
 # Ubuntu 22.04 LTS (jammy) — stable LTS, binary works on any modern Linux kernel.
 # To find the current filename: https://packages.ubuntu.com/jammy/amd64/dropbear-bin/download
