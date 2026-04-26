@@ -1223,7 +1223,10 @@ def run_clamav_update_db(root=None, verbosity: int = 2) -> int:
     # the DatabaseDirectory directive inside the file.
     conf_fd, conf_tmp = tempfile.mkstemp(prefix="nrt_freshclam_", suffix=".conf")
     try:
-        os.write(conf_fd, f"DatabaseDirectory {db_dir}\n".encode())
+        os.write(conf_fd, (
+            f"DatabaseDirectory {db_dir}\n"
+            "DatabaseMirror database.clamav.net\n"
+        ).encode())
     finally:
         os.close(conf_fd)
 
