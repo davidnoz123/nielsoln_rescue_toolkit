@@ -40,6 +40,25 @@ nielsoln-rescue-toolkit
 - Keep `bootstrap.sh` minimal.
 - Put as much logic as practical into Python.
 
+## Self-healing USB principle
+
+The toolkit must be self-healing: a USB stick containing only the three source
+files (`bootstrap.sh`, `bootstrap.py`, `toolkit.py`) should be able to fully
+provision itself given a network connection.
+
+Rules that follow from this:
+
+- `run_update()` must fetch all binary dependencies (currently: `dropbear`)
+  in addition to updating the source files.  When adding a new bundled binary,
+  also add its download call to `run_update()`.
+- `build_usb_package()` must include the same binaries so an offline USB built
+  on the dev machine is also complete.
+- Do not commit binaries to Git.  Store them under `_tools/` (gitignored) and
+  always provide a `download_<tool>(root)` function in `toolkit.py` that
+  fetches them from a stable public URL.
+- If a binary download fails (no network), `run_update` must warn clearly and
+  continue — never abort the source-file update.
+
 ## GitHub
 
 Use the `gh` CLI if available and authenticated:

@@ -571,10 +571,12 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
 
     if not is_linux():
         print(f"WARNING: system clock is off by {skew_str} — cannot correct on non-Linux.")
+        print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
         return 1
 
     if os.geteuid() != 0:
         print(f"WARNING: system clock is off by {skew_str} — cannot correct (not root).")
+        print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
         _time_sync_log.warning("Not root; cannot set clock.")
         return 1
 
@@ -600,10 +602,14 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
             return 0
         else:
             print(f"  WARNING: `date -s` failed (exit {result.returncode}): {result.stderr.strip()}")
+            print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
+            print( "           or: sudo ntpdate pool.ntp.org")
             _time_sync_log.warning("`date -s` failed: %s", result.stderr.strip())
             return 1
     except OSError as exc:
         print(f"  WARNING: could not run `date -s`: {exc}")
+        print(f"  Fix manually: sudo date -s '@{int(internet_ts)}'")
+        print( "           or: sudo ntpdate pool.ntp.org")
         _time_sync_log.warning("Could not run `date -s`: %s", exc)
         return 1
 
@@ -1670,15 +1676,16 @@ def run_ssh(
 
     print()
     print("=" * 60)
-    print("  SSH server is running")
+    print("  dropbear SSH server is running")
     print("=" * 60)
-    if ips:
-        for ip in ips:
-            print(f"  ssh root@{ip}{port_suffix}")
-    else:
+    if not ips:
         print("  (could not detect IP — check with: ip addr)")
     print()
-    print("  VS Code Remote-SSH config (add to ~/.ssh/config):")
+    print("  Connect from Windows/Mac/Linux terminal:")
+    for ip in (ips or ["<IP_ADDRESS>"]):
+        print(f"    ssh -i ~/.ssh/id_ed25519 root@{ip}{port_suffix}")
+    print()
+    print("  VS Code Remote-SSH config (~/.ssh/config):")
     print()
     for ip in (ips or ["<IP_ADDRESS>"]):
         print(f"    Host rescuezilla-{ip.replace('.', '-')}")
@@ -1686,7 +1693,7 @@ def run_ssh(
         print( "        User root")
         print(f"        IdentityFile ~/.ssh/id_ed25519{config_port}")
         print()
-    print("  Then in VS Code: Ctrl+Shift+P -> Remote-SSH: Connect to Host")
+    print("  In VS Code: Ctrl+Shift+P -> Remote-SSH: Connect to Host")
     print("=" * 60)
     _ssh_log.info("SSH server started on port %d. IPs: %s", port, ips)
     return 0
