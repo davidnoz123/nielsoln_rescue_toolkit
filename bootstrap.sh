@@ -23,7 +23,7 @@ if [ "$1" = "ssh" ]; then
     DROPBEAR_SRC="$ROOT/_tools/dropbear"
     if [ ! -f "$DROPBEAR_SRC" ]; then
         echo "ERROR: _tools/dropbear not found on USB."
-        echo "Run 'python scripts/fetch_dropbear.py' on your dev machine to bundle it."
+        echo "Run: sudo bash bootstrap.sh update    (requires network)"
         exit 1
     fi
     DROPBEAR=/tmp/dropbear_rescue
@@ -55,6 +55,13 @@ if [ "$1" = "ssh" ]; then
     # -R  auto-generate host keys (stored in /etc/dropbear)
     # -s  disable password auth (key-only)
     # -p  listen port
+    #
+    # The Ubuntu 22.04 dropbear binary links against libatomic.so.1.
+    # Install it if missing (tiny package, ~15 KB).
+    if ! ldconfig -p 2>/dev/null | grep -q libatomic.so.1; then
+        echo "[bootstrap.sh] libatomic.so.1 not found — installing libatomic1 ..."
+        apt-get install -y -qq libatomic1 2>&1 || true
+    fi
     echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
     "$DROPBEAR" -R -s -p "$PORT"
     echo "[bootstrap.sh] dropbear started. Connect as: ssh root@<ip> -p ${PORT}"
