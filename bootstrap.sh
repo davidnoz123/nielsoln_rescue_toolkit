@@ -29,11 +29,9 @@ if [ "$1" = "ssh" ]; then
     DROPBEAR=/tmp/dropbear_rescue
     # Kill any previous instance before overwriting the binary (avoids "Text
     # file busy" error when the executable is still mapped into memory).
-    if [ -f "$DROPBEAR" ]; then
-        pkill -x dropbear_rescue 2>/dev/null || true
-        sleep 0.3
-        rm -f "$DROPBEAR"
-    fi
+    pkill -x dropbear_rescue 2>/dev/null || true
+    sleep 0.3
+    rm -f "$DROPBEAR"
     cp "$DROPBEAR_SRC" "$DROPBEAR"
     chmod +x "$DROPBEAR"
 
@@ -80,6 +78,9 @@ if [ "$1" = "ssh" ]; then
     # -s  disable password auth (key-only)
     # -p  listen port
     # LD_LIBRARY_PATH points at the bundled .so files — no apt-get needed.
+    # Kill once more in case anything restarted it between copy and now.
+    pkill -x dropbear_rescue 2>/dev/null || true
+    sleep 0.2
     echo "[bootstrap.sh] Starting dropbear SSH on port ${PORT} ..."
     LD_LIBRARY_PATH="$LIB_DIR" "$DROPBEAR" -R -s -p "$PORT"
     echo "[bootstrap.sh] dropbear started. Connect as: ssh root@<ip> -p ${PORT}"
