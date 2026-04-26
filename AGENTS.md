@@ -98,6 +98,33 @@ Rules that follow from this:
 - The working directory at the prompt is the script's folder, so the module name
   resolves without any path manipulation.
 
+## Python Compile-Time Checks (mandatory before every commit)
+
+Every `.py` file that is **added or modified** in a commit must pass a compile
+check before the commit is made.  A syntax error in `toolkit.py` or
+`bootstrap.py` would be downloaded by the auto-updater and immediately break
+the rescue toolkit on the target machine with no recovery path.
+
+**Run this for every changed `.py` file:**
+
+```powershell
+C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -m py_compile toolkit.py bootstrap.py
+```
+
+Or for all `.py` files in the repo at once:
+
+```powershell
+Get-ChildItem -Recurse -Filter *.py | ForEach-Object {
+    C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -m py_compile $_.FullName
+}
+```
+
+`py_compile` exits 0 on success and prints the offending line on any syntax
+error.  **Do not `git commit` or `git push` if this command fails.**
+
+This check is in addition to any manual testing — it must be run even for
+one-line changes.
+
 ## Process Visibility
 
 - **No hidden processes.** Never start Python or Excel processes invisibly.

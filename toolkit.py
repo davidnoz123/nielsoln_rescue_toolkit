@@ -12,6 +12,7 @@ import runpy ; temp = runpy._run_module_as_main("toolkit")
 # ---------------------------------------------------------------------------
 
 import csv
+import dataclasses
 import hashlib
 import html
 import logging
@@ -1565,7 +1566,243 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
             print(f"  {indent}{label}")
 
 
+# ---------------------------------------------------------------------------
+# RoboCopy — fast, incremental directory copy (robocopy on Windows, rsync on Linux)
+# ---------------------------------------------------------------------------
+#
+# Usage:
+#   rc = RoboCopy(threads=8)
+#   result = rc.update_only(src, dst)
+#   result = rc.mirror(src, dst)
+#   result = rc.copy_tree(src, dst, dry_run=True)
+
+
+class RoboCopy:
+    @dataclasses.dataclass
+    class Result:
+        returncode: int
+        command: list
+        stdout: str
+        stderr: str
+        backend: str
+
+        @property
+        def ok(self) -> bool:
+            if self.backend == "robocopy":
+                return self.returncode < 8
+            return self.returncode == 0
+
+        @property
+        def changed(self) -> bool:
+            if self.backend == "robocopy":
+                return self.returncode in {1, 3, 5, 7}
+            return bool(self.stdout.strip() or self.stderr.strip())
+
+    def __init__(
+        self,
+        threads: int = 8,
+        retries: int = 1,
+        wait_seconds: int = 1,
+        fat_timestamps: bool = True,
+        robocopy_exe: str = "robocopy",
+        rsync_exe: str = "rsync",
+    ):
+        self.threads = threads
+        self.retries = retries
+        self.wait_seconds = wait_seconds
+        self.fat_timestamps = fat_timestamps
+        self.robocopy_exe = robocopy_exe
+        self.rsync_exe = rsync_exe
+        self.backend = "robocopy" if os.name == "nt" else "rsync"
+
+    def copy_tree(
+        self,
+        src,
+        dst,
+        *,
+        include_empty_dirs: bool = True,
+        dry_run: bool = False,
+        extra_args=None,
+    ):
+        if self.backend == "robocopy":
+            args = ["/E" if include_empty_dirs else "/S"]
+        else:
+            args = ["-a"]
+            if dry_run:
+                args.append("--dry-run")
+            if not include_empty_dirs:
+                args.append("--prune-empty-dirs")
+        return self._run(src, dst, args, dry_run=dry_run, extra_args=extra_args)
+
+    def mirror(
+        self,
+        src,
+        dst,
+        *,
+        dry_run: bool = False,
+        extra_args=None,
+    ):
+        if self.backend == "robocopy":
+            args = ["/MIR"]
+        else:
+            args = ["-a", "--delete"]
+            if dry_run:
+                args.append("--dry-run")
+        return self._run(src, dst, args, dry_run=dry_run, extra_args=extra_args)
+
+    def update_only(
+        self,
+        src,
+        dst,
+        *,
+        include_empty_dirs: bool = True,
+        dry_run: bool = False,
+        extra_args=None,
+    ):
+        if self.backend == "robocopy":
+            args = ["/E" if include_empty_dirs else "/S", "/XO"]
+        else:
+            args = ["-a", "--update"]
+            if dry_run:
+                args.append("--dry-run")
+            if not include_empty_dirs:
+                args.append("--prune-empty-dirs")
+        return self._run(src, dst, args, dry_run=dry_run, extra_args=extra_args)
+
+    def copy_matching(
+        self,
+        src,
+        dst,
+        patterns: list,
+        *,
+        dry_run: bool = False,
+        extra_args=None,
+    ):
+        if self.backend == "robocopy":
+            args = patterns + ["/E"]
+        else:
+            args = ["-a"]
+            for pattern in patterns:
+                args.extend(["--include", pattern])
+            args.extend(["--exclude", "*"])
+            if dry_run:
+                args.append("--dry-run")
+        return self._run(src, dst, args, dry_run=dry_run, extra_args=extra_args)
+
+    def _run(
+        self,
+        src,
+        dst,
+        mode_args: list,
+        *,
+        dry_run: bool = False,
+        extra_args=None,
+    ):
+        src = Path(src)
+        dst = Path(dst)
+
+        if not src.exists():
+            raise FileNotFoundError(f"Source does not exist: {src}")
+
+        if self.backend == "robocopy":
+            command = self._robocopy_command(src, dst, mode_args, dry_run, extra_args)
+        else:
+            command = self._rsync_command(src, dst, mode_args, extra_args)
+
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+
+        result = self.Result(
+            returncode=proc.returncode,
+            command=command,
+            stdout=proc.stdout,
+            stderr=proc.stderr,
+            backend=self.backend,
+        )
+
+        if not result.ok:
+            raise RuntimeError(
+                f"{self.backend} failed with exit code {result.returncode}\n"
+                f"Command: {' '.join(result.command)}\n\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
+
+        return result
+
+    def _robocopy_command(
+        self,
+        src: Path,
+        dst: Path,
+        mode_args: list,
+        dry_run: bool,
+        extra_args,
+    ) -> list:
+        args = [
+            self.robocopy_exe,
+            str(src),
+            str(dst),
+            *mode_args,
+            f"/R:{self.retries}",
+            f"/W:{self.wait_seconds}",
+            f"/MT:{self.threads}",
+            "/NP",
+        ]
+        if self.fat_timestamps:
+            args.append("/FFT")
+        if dry_run:
+            args.append("/L")
+        if extra_args:
+            args.extend(extra_args)
+        return args
+
+    def _rsync_command(
+        self,
+        src: Path,
+        dst: Path,
+        mode_args: list,
+        extra_args,
+    ) -> list:
+        src_arg = str(src)
+        dst_arg = str(dst)
+        if src.is_dir():
+            src_arg = src_arg.rstrip("/\\") + "/"
+        args = [
+            self.rsync_exe,
+            *mode_args,
+            "--human-readable",
+            "--info=stats2",
+            src_arg,
+            dst_arg,
+        ]
+        if extra_args:
+            args.extend(extra_args)
+        return args
+
+
 if __name__ == "__main__":
+
+    if False:
+        # Copy dist/NIELSOLN_RESCUE_USB to a physical USB drive.
+        # Set usb_dest to the USB root (drive letter on Windows, mount point on Linux).
+        # Uses update_only so unchanged files are skipped — much faster than a full copy.
+        # Switch to mirror() to also delete files removed from the dist.
+        usb_dest = Path("E:\\")               # <-- set your USB drive path here
+        src = usb_dist_path(file__fileSysD)
+        dst = usb_dest / _USB_DIST_NAME
+        print(f"Copying {src}")
+        print(f"     to {dst} ...")
+        rc = RoboCopy(threads=8, fat_timestamps=True)
+        result = rc.update_only(src, dst)
+        status = "changed" if result.changed else "no changes"
+        print(f"Done ({status}, exit {result.returncode})")
+        if result.stdout.strip():
+            print(result.stdout)
+        raise Exception("OK")
 
     if True:
         build_usb_package(mode="update", verbosity=0)
