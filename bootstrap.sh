@@ -79,6 +79,35 @@ EOF
     # Ensure /run/sshd exists (required by openssh)
     mkdir -p /run/sshd
 
+    # Install bundled developer key from toolkit.py into authorized_keys.
+    # This runs in pure bash so key auth works even if Python never starts.
+    # The key is on a single line: _SSH_BUNDLED_PUBKEY = "ssh-ed25519 ..."
+    TOOLKIT_PY="$ROOT/toolkit.py"
+    BUNDLED_KEY=""
+    if [ -f "$TOOLKIT_PY" ]; then
+        BUNDLED_KEY=$(
+            grep '_SSH_BUNDLED_PUBKEY = ' "$TOOLKIT_PY" \
+            | sed 's/.*"\(ssh-[^"]*\)".*/\1/'
+        )
+    fi
+
+    if [ -n "$BUNDLED_KEY" ]; then
+        mkdir -p /root/.ssh
+        chmod 700 /root/.ssh
+        AUTHKEYS=/root/.ssh/authorized_keys
+        # Add only if not already present (match on key material, not comment).
+        KEY_MATERIAL=$(echo "$BUNDLED_KEY" | awk '{print $2}')
+        if ! grep -qF "$KEY_MATERIAL" "$AUTHKEYS" 2>/dev/null; then
+            echo "$BUNDLED_KEY" >> "$AUTHKEYS"
+            echo "[bootstrap.sh] Bundled developer key installed."
+        else
+            echo "[bootstrap.sh] Bundled developer key already present."
+        fi
+        chmod 600 "$AUTHKEYS"
+    else
+        echo "[bootstrap.sh] WARNING: could not extract bundled key from toolkit.py"
+    fi
+
     # Start sshd
     echo "[bootstrap.sh] Starting sshd on port ${PORT} ..."
     "$SSHD" -p "$PORT"
