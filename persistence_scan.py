@@ -305,15 +305,15 @@ class _RegHive:
         if cell is None or len(cell) < 0x50 or bytes(cell[0:2]) != b"nk":
             return None
         flags           = struct.unpack_from("<H", cell, 2)[0]
-        subkeys_count   = struct.unpack_from("<I", cell, 0x18)[0]
-        subkeys_offset  = struct.unpack_from("<I", cell, 0x20)[0]
-        values_count    = struct.unpack_from("<I", cell, 0x28)[0]
-        values_list_off = struct.unpack_from("<I", cell, 0x2C)[0]
-        name_length     = struct.unpack_from("<H", cell, 0x4C)[0]
+        subkeys_count   = struct.unpack_from("<I", cell, 0x14)[0]   # stable subkeys count
+        subkeys_offset  = struct.unpack_from("<I", cell, 0x1C)[0]   # stable subkeys list offset
+        values_count    = struct.unpack_from("<I", cell, 0x24)[0]   # values count
+        values_list_off = struct.unpack_from("<I", cell, 0x28)[0]   # values list offset
+        name_length     = struct.unpack_from("<H", cell, 0x48)[0]   # key name length
         is_ascii        = bool(flags & 0x0020)
-        # Name bytes follow the fixed 0x50-byte header; account for the 4-byte
-        # size prefix that precedes the cell body in the file.
-        abs_name_off = _HIVE_BINS_OFFSET + offset + 4 + 0x50
+        # Name bytes follow the fixed 0x4C-byte nk header; account for the
+        # 4-byte size prefix that precedes the cell body in the file.
+        abs_name_off = _HIVE_BINS_OFFSET + offset + 4 + 0x4C
         name = self._str_at(abs_name_off, name_length, is_ascii)
         return {
             "name": name,
