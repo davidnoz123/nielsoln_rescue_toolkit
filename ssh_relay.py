@@ -160,16 +160,31 @@ def _scp_base_args(src: str, dst: str) -> list:
     ]
 
 
+_SSH_RETRY_ATTEMPTS = 3   # total attempts (1 original + 2 retries)
+_SSH_RETRY_DELAY    = 2   # seconds between attempts
+
+
 def _run_buffered(args: list, stdin_bytes: bytes = None) -> dict:
-    """Run a subprocess, capture all output, return result dict."""
+    """Run a subprocess, capture all output, return result dict.
+
+    Retries up to _SSH_RETRY_ATTEMPTS times on SSH connection failure (rc=255).
+    """
     t0 = time.monotonic()
-    result = subprocess.run(
-        args,
-        env=_askpass_env(),
-        input=stdin_bytes,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    for attempt in range(1, _SSH_RETRY_ATTEMPTS + 1):
+        result = subprocess.run(
+            args,
+            env=_askpass_env(),
+            input=stdin_bytes,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 255 or attempt == _SSH_RETRY_ATTEMPTS:
+            break
+        _logger.warning(
+            "ssh rc=255 (connection dropped) — retry %d/%d in %ds",
+            attempt, _SSH_RETRY_ATTEMPTS, _SSH_RETRY_DELAY,
+        )
+        time.sleep(_SSH_RETRY_DELAY)
     elapsed = time.monotonic() - t0
     return {
         "done":    True,
@@ -182,7 +197,13 @@ def _run_buffered(args: list, stdin_bytes: bytes = None) -> dict:
 
 
 def _run_streaming(args: list, stdin_bytes: bytes, send_line):
-    """Run a subprocess, streaming stdout/stderr back via *send_line* callback."""
+    """Run a subprocess, streaming stdout/stderr back via *send_line* callback.
+
+    Retries up to _SSH_RETRY_ATTEMPTS times on SSH connection failure (rc=255).
+    Note: on retry, previously-streamed output is NOT re-streamed; only the
+    retry's output is forwarded.  This is acceptable because a dropped
+    connection typically produces no useful output before failing.
+    """
     lock = threading.Lock()
     t0 = time.monotonic()
 
@@ -190,31 +211,52 @@ def _run_streaming(args: list, stdin_bytes: bytes, send_line):
         with lock:
             send_line(obj)
 
-    proc = subprocess.Popen(
-        args,
-        env=_askpass_env(),
-        stdin=subprocess.PIPE  if stdin_bytes is not None else subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    for attempt in range(1, _SSH_RETRY_ATTEMPTS + 1):
+        proc = subprocess.Popen(
+            args,
+            env=_askpass_env(),
+            stdin=subprocess.PIPE  if stdin_bytes is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
-    if stdin_bytes is not None:
-        proc.stdin.write(stdin_bytes)
-        proc.stdin.close()
+        if stdin_bytes is not None:
+            proc.stdin.write(stdin_bytes)
+            proc.stdin.close()
 
-    def _pump(pipe, msg_type):
-        for chunk in iter(lambda: pipe.read(256), b""):
-            _emit({"type": msg_type, "data": chunk.decode("utf-8", errors="replace")})
-        pipe.close()
+        # Collect output into lists so we can decide whether to emit or retry
+        out_chunks: list[str] = []
+        err_chunks: list[str] = []
 
-    t1 = threading.Thread(target=_pump, args=(proc.stdout, "out"), daemon=True)
-    t2 = threading.Thread(target=_pump, args=(proc.stderr, "err"), daemon=True)
-    t1.start(); t2.start()
-    t1.join(); t2.join()
+        def _collect(pipe, store):
+            for chunk in iter(lambda: pipe.read(256), b""):
+                store.append(chunk.decode("utf-8", errors="replace"))
+            pipe.close()
 
-    rc = proc.wait()
-    elapsed = time.monotonic() - t0
-    _emit({"done": True, "rc": rc, "elapsed": round(elapsed, 2)})
+        t1 = threading.Thread(target=_collect, args=(proc.stdout, out_chunks), daemon=True)
+        t2 = threading.Thread(target=_collect, args=(proc.stderr, err_chunks), daemon=True)
+        t1.start(); t2.start()
+        t1.join(); t2.join()
+        rc = proc.wait()
+
+        if rc != 255 or attempt == _SSH_RETRY_ATTEMPTS:
+            # Emit all collected output, then final done packet
+            for chunk in out_chunks:
+                _emit({"type": "out", "data": chunk})
+            for chunk in err_chunks:
+                _emit({"type": "err", "data": chunk})
+            elapsed = time.monotonic() - t0
+            _emit({"done": True, "rc": rc, "elapsed": round(elapsed, 2)})
+            return
+
+        _logger.warning(
+            "ssh rc=255 (connection dropped) — retry %d/%d in %ds",
+            attempt, _SSH_RETRY_ATTEMPTS, _SSH_RETRY_DELAY,
+        )
+        _emit({"type": "err",
+               "data": f"[relay] connection dropped (rc=255) — retry {attempt}/{_SSH_RETRY_ATTEMPTS}...\n"})
+        time.sleep(_SSH_RETRY_DELAY)
+
 
 
 # ---------------------------------------------------------------------------

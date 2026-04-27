@@ -99,6 +99,52 @@ def encode_script(source: str) -> str:
 RELAY_PORT = 19022
 RELAY_ADDR = "127.0.0.1"
 
+_relay_started = False   # set once we've launched the relay this session
+
+
+def _relay_up() -> bool:
+    """Return True if the relay is accepting connections."""
+    try:
+        with socket.create_connection((RELAY_ADDR, RELAY_PORT), timeout=2):
+            return True
+    except OSError:
+        return False
+
+
+def _ensure_relay() -> None:
+    """If the relay isn't running, launch ssh_relay.py in a new console window.
+
+    The user types the passphrase once in that window.  We wait up to 60 s
+    for the relay to come up, then proceed.  All subsequent SSH/SCP calls go
+    through the relay without further prompts.
+    """
+    global _relay_started
+    if _relay_up():
+        return
+
+    relay_script = str(pathlib.Path(__file__).with_name("ssh_relay.py"))
+    print("SSH relay is not running — launching it now.")
+    print("Please enter the key passphrase in the new console window that opens.")
+    print("Waiting for relay to start (up to 60 s)...")
+
+    # Open a new visible console window so the passphrase prompt is visible.
+    import subprocess as _sp
+    _sp.Popen(
+        ["cmd", "/c", "start", "SSH Relay",
+         _PY, relay_script],
+        creationflags=0,   # no hidden flags — window is visible
+    )
+
+    deadline = __import__("time").monotonic() + 60
+    while __import__("time").monotonic() < deadline:
+        __import__("time").sleep(1)
+        if _relay_up():
+            print("Relay is up — proceeding.")
+            _relay_started = True
+            return
+
+    print("WARNING: relay did not start within 60 s — falling back to direct SSH (will prompt for passphrase).")
+
 
 def _relay_call(op: str, **kwargs):
     """Send one command to the SSH relay daemon.  Returns response dict or None."""
@@ -157,6 +203,7 @@ def _relay_stream(op: str, **kwargs) -> bool:
 
 def _ssh_run(cmd: str, stdin_data: bytes = None) -> None:
     """Run an SSH command, using the relay if available, else direct subprocess."""
+    _ensure_relay()
     stdin_b64 = base64.b64encode(stdin_data).decode() if stdin_data else None
     if _relay_stream("ssh", cmd=cmd, stdin_b64=stdin_b64):
         return
@@ -167,6 +214,7 @@ def _ssh_run(cmd: str, stdin_data: bytes = None) -> None:
 
 def _scp_run(local: str, remote: str) -> None:
     """SCP a local file to the device, using the relay if available."""
+    _ensure_relay()
     resp = _relay_call("scp_put", local=local, remote=remote)
     if resp is not None:
         if resp.get("out"):
