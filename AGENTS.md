@@ -117,55 +117,57 @@ Rules that follow from this:
 - The working directory at the prompt is the script's folder, so the module name
   resolves without any path manipulation.
 
-## Python Compile-Time Checks (mandatory before every commit)
+## Python Compile-Time Checks + Release (mandatory before every commit)
 
-Every `.py` file that is **added or modified** in a commit must pass a compile
-check before the commit is made.  A syntax error in `toolkit.py` or
-`bootstrap.py` would be downloaded by the auto-updater and immediately break
-the rescue toolkit on the target machine with no recovery path.
+Use `devtools.py` with `action = "release"`.  It compiles every `.py`, commits,
+pushes, and prints LF-normalised SHA256 hashes in one step.
 
-**Run this for every changed `.py` file:**
+Run it with:
 
-```powershell
-C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -m py_compile toolkit.py bootstrap.py
+```python
+import runpy ; temp = runpy._run_module_as_main("devtools")
 ```
 
-Or for all `.py` files in the repo at once:
+`release()` aborts before committing if any `.py` file fails `py_compile`.
+Never bypass this — a syntax error in `bootstrap.py` or `toolkit.py` would
+break the auto-updater on the rescue machine with no recovery path.
+
+## SHA256 Hashes After Every Push (mandatory)
+
+`devtools.py release()` prints LF-normalised SHA256 for every file listed in
+`UPDATE_FILES` automatically at the end of each push.  Compare these against
+the hashes printed by `bootstrap update` on RescueZilla.  All hashes must
+match exactly.  If any differ, the update did not land (stale CDN, partial
+download, or `.pyc` cache issue).
+
+## Ad-hoc Remote Python (use devtools.py run_remote)
+
+To run a diagnostic script on RescueZilla without copying a file:
+
+1. Write the script locally (it will NOT be committed).
+2. In `devtools.py`, set `action = "run_remote"` and `remote_script = "<script>.py"`.
+3. Run `devtools` via `runpy` — the script is gzip+base64 encoded, sent over
+   SSH, and executed by `bootstrap.py exec` on the remote host.  Output
+   streams back to your terminal.
+
+## SSH Key Passphrase Caching (one-time setup per machine)
+
+The `devtools.py` SSH/SCP calls all use the key
+`C:\Users\david\.ssh\id_ed25519`.  To avoid passphrase prompts on every call:
+
+**One-time setup (requires an elevated (Admin) PowerShell):**
 
 ```powershell
-Get-ChildItem -Recurse -Filter *.py | ForEach-Object {
-    C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -m py_compile $_.FullName
-}
+Set-Service ssh-agent -StartupType Automatic
+Start-Service ssh-agent
+ssh-add C:\Users\david\.ssh\id_ed25519   # prompts for passphrase once
 ```
 
-`py_compile` exits 0 on success and prints the offending line on any syntax
-error.  **Do not `git commit` or `git push` if this command fails.**
+After this, all ssh/scp/devtools calls in any terminal session are
+passphrase-free until the machine is rebooted (at which point the agent
+auto-starts and you re-run just `ssh-add`).
 
-This check is in addition to any manual testing — it must be run even for
-one-line changes.
-
-## SHA256 Checksum After Every Push (mandatory)
-
-After every `git push`, compute the **LF-normalized SHA256** of **all three
-updateable files** (`bootstrap.py`, `bootstrap.sh`, `toolkit.py`) and
-**display them to the user** so they can be compared against what
-`bootstrap update` prints on RescueZilla.  Do NOT write the hash values into
-this file.
-
-**Run after every push and show the output to the user:**
-
-```powershell
-C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -c "
-import hashlib, pathlib
-for f in ['bootstrap.py', 'bootstrap.sh', 'toolkit.py']:
-    data = pathlib.Path(f).read_bytes().replace(b'\r\n', b'\n')
-    print(hashlib.sha256(data).hexdigest(), ' ', f)
-"
-```
-
-The user will compare these against the lines printed by `bootstrap update`
-on RescueZilla.  All three hashes must match exactly.  If any differ, the
-update did not land (stale CDN, partial download, or `.pyc` cache issue).
+**Do NOT store the passphrase in any source file or AGENTS.md.**
 
 ## Process Visibility
 

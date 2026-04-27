@@ -25,6 +25,12 @@ Operations
 
 ``push_file``
     SCP a single local file to the USB root on the remote host.
+
+``setup_ssh_agent``
+    One-time setup: enable the Windows OpenSSH agent service (requires the
+    terminal to be running as Administrator) and load the private key so all
+    subsequent ssh/scp calls are passphrase-free.  Run this once per machine.
+    If the terminal is not elevated, it prints the manual steps to run.
 """
 
 import base64
@@ -75,7 +81,35 @@ def encode_script(source: str) -> str:
 # Operations
 # ---------------------------------------------------------------------------
 
-def run_remote(script_path: str) -> None:
+def setup_ssh_agent() -> None:
+    """Enable the Windows OpenSSH agent service and load the private key.
+
+    Must be run from an elevated (Administrator) terminal.  Safe to re-run;
+    if the service is already running it just ensures the key is loaded.
+    """
+    import ctypes
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        print(
+            "Not running as Administrator.  Open an elevated PowerShell and run:\n"
+            "\n"
+            "  Set-Service ssh-agent -StartupType Automatic\n"
+            "  Start-Service ssh-agent\n"
+            f"  ssh-add {KEY}\n"
+            "\n"
+            "After that, all ssh/scp calls are passphrase-free until next reboot,\n"
+            "at which point only 'ssh-add' needs to be re-run."
+        )
+        return
+    subprocess.run(
+        ["powershell", "-Command",
+         "Set-Service ssh-agent -StartupType Automatic; Start-Service ssh-agent"],
+        check=True,
+    )
+    subprocess.run(["ssh-add", KEY])   # prompts for passphrase once
+    print("ssh-agent configured and key loaded.")
+
+
+
     """Encode *script_path* and execute it on the remote host via bootstrap exec.
 
     The script runs inside the USB root directory with ``root`` (Path) and
@@ -149,10 +183,10 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"            # "release" | "run_remote" | "push_file"
+    action = "release"            # "release" | "run_remote" | "push_file" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "feat: exec subcommand in bootstrap.py; devtools.py run_remote + release"
+    commit_message = "docs/feat: devtools setup_ssh_agent; AGENTS.md updated for devtools workflow"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely
@@ -168,8 +202,10 @@ def main() -> None:
         run_remote(remote_script)
     elif action == "push_file":
         push_file(push_local, push_subpath)
+    elif action == "setup_ssh_agent":
+        setup_ssh_agent()
     else:
-        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file")
+        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, setup_ssh_agent")
         sys.exit(1)
 
 
