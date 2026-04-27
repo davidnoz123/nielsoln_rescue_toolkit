@@ -57,6 +57,7 @@ UPDATE_FILES = [
     "modules/m01_persistence_scan.py",
     "modules/m02_detect.py",
     "modules/m03_triage.py",
+    "modules/m04_hardware_profile.py",
     "modules/m18_clamav_scan.py",
 ]
 
@@ -218,7 +219,7 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"            # "release" | "run_remote" | "push_file" | "setup_ssh_agent"
+    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
     commit_message = "refactor: dynamic module dispatch; modules/ subfolder; run/load/status commands"
@@ -227,12 +228,12 @@ def main() -> None:
     remote_script = "svc_diag.py"   # local path to the script to run remotely
 
     # --- push_file config ---
-    push_local  = "modules/m01_persistence_scan.py"
-    push_subpath = "modules"        # "" = USB root; e.g. "modules" for a module file
+    push_local  = "toolkit.py"
+    push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m01_persistence_scan"
-    module_args = ["--target", "/mnt/windows", "--summary"]
+    module_name = "m04_hardware_profile"
+    module_args = []
 
     # ---------------------------------------------------
     if action == "release":

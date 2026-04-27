@@ -793,6 +793,7 @@ _UPDATE_FILES = [
     "modules/m01_persistence_scan.py",
     "modules/m02_detect.py",
     "modules/m03_triage.py",
+    "modules/m04_hardware_profile.py",
     "modules/m18_clamav_scan.py",
 ]
 
@@ -835,6 +836,38 @@ def load_module(root: Path, name: str):
     except Exception as exc:
         raise ImportError(f"Failed to load module {name}: {exc}") from exc
     return mod
+
+
+def acquire_run_lock(root: Path, command: str) -> Path:
+    """Write .lock on the USB root. Raises RuntimeError if already locked."""
+    lock_path = root / ".lock"
+    if lock_path.exists():
+        try:
+            info = json.loads(lock_path.read_text())
+            msg = (
+                f"Another operation is already running: '{info.get('command', '?')}' "
+                f"(started {info.get('started', '?')}, PID {info.get('pid', '?')}). "
+                f"If the process is dead, remove {lock_path} and retry."
+            )
+        except Exception:
+            msg = f"Lock file exists: {lock_path}. Remove it if no operation is running."
+        raise RuntimeError(msg)
+    import os as _os
+    from datetime import datetime as _dt, timezone as _tz
+    lock_path.write_text(json.dumps({
+        "pid": _os.getpid(),
+        "command": command,
+        "started": _dt.now(_tz.utc).isoformat(),
+    }))
+    return lock_path
+
+
+def release_run_lock(root: Path) -> None:
+    """Remove .lock; silently ignores missing file."""
+    try:
+        (root / ".lock").unlink()
+    except FileNotFoundError:
+        pass
 
 
 def status_report(root: Path = None) -> int:

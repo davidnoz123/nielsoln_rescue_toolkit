@@ -192,17 +192,25 @@ def main() -> int:
         start_background_update(root)
 
     if args.command == "run":
-        from toolkit import load_module
+        from toolkit import load_module, acquire_run_lock, release_run_lock
         module_argv = args.args
         # Strip a leading '--' separator if the user wrote: bootstrap run <name> -- --flag
         if module_argv and module_argv[0] == "--":
             module_argv = module_argv[1:]
         try:
-            mod = load_module(root, args.name)
-        except (FileNotFoundError, ImportError) as exc:
+            acquire_run_lock(root, f"run {args.name}")
+        except RuntimeError as exc:
             print(f"ERROR: {exc}", file=sys.stderr)
             return 1
-        return mod.run(root, module_argv)
+        try:
+            try:
+                mod = load_module(root, args.name)
+            except (FileNotFoundError, ImportError) as exc:
+                print(f"ERROR: {exc}", file=sys.stderr)
+                return 1
+            return mod.run(root, module_argv)
+        finally:
+            release_run_lock(root)
 
     if args.command == "load":
         import base64, gzip
@@ -225,25 +233,42 @@ def main() -> int:
 
     if args.command == "exec":
         import base64, gzip, traceback
+        from toolkit import acquire_run_lock, release_run_lock
+        try:
+            acquire_run_lock(root, "exec")
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
         try:
             raw = args.payload or sys.stdin.read().strip()
-            code = gzip.decompress(base64.b64decode(raw)).decode("utf-8")
-        except Exception as exc:
-            print(f"exec: failed to decode payload: {exc}", file=sys.stderr)
-            return 1
-        globs = {"root": root, "Path": Path, "__name__": "__remote_exec__"}
-        try:
-            exec(compile(code, "<remote-exec>", "exec"), globs)  # noqa: S102
-        except SystemExit as exc:
-            return exc.code or 0
-        except Exception:
-            traceback.print_exc()
-            return 1
-        return 0
+            try:
+                code = gzip.decompress(base64.b64decode(raw)).decode("utf-8")
+            except Exception as exc:
+                print(f"exec: failed to decode payload: {exc}", file=sys.stderr)
+                return 1
+            globs = {"root": root, "Path": Path, "__name__": "__remote_exec__"}
+            try:
+                exec(compile(code, "<remote-exec>", "exec"), globs)  # noqa: S102
+            except SystemExit as exc:
+                return exc.code or 0
+            except Exception:
+                traceback.print_exc()
+                return 1
+            return 0
+        finally:
+            release_run_lock(root)
 
     if args.command == "update":
-        from toolkit import run_update
-        return run_update(root, offline=args.offline)
+        from toolkit import run_update, acquire_run_lock, release_run_lock
+        try:
+            acquire_run_lock(root, "update")
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        try:
+            return run_update(root, offline=args.offline)
+        finally:
+            release_run_lock(root)
 
     if args.command == "runtime":
         from toolkit import run_install_runtime
@@ -255,24 +280,32 @@ def main() -> int:
         )
 
     if args.command == "clamav":
-        from toolkit import download_clamav, run_install_clamav, run_clamav_update_db
+        from toolkit import download_clamav, run_install_clamav, run_clamav_update_db, acquire_run_lock, release_run_lock
         if not args.download and not args.install and not args.update_db:
             p_clamav.print_help()
             return 0
-        rc = 0
-        if args.download:
-            try:
-                download_clamav(root, verbosity=args.verbosity)
-            except RuntimeError as exc:
-                print(f"ERROR: {exc}")
-                rc = 1
-        if args.install and rc == 0:
-            rc = run_install_clamav(root, verbosity=args.verbosity)
-        elif args.install:
-            print("Skipping --install because --download failed.")
-        if args.update_db:
-            rc = run_clamav_update_db(root, verbosity=args.verbosity) or rc
-        return rc
+        try:
+            acquire_run_lock(root, "clamav")
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        try:
+            rc = 0
+            if args.download:
+                try:
+                    download_clamav(root, verbosity=args.verbosity)
+                except RuntimeError as exc:
+                    print(f"ERROR: {exc}")
+                    rc = 1
+            if args.install and rc == 0:
+                rc = run_install_clamav(root, verbosity=args.verbosity)
+            elif args.install:
+                print("Skipping --install because --download failed.")
+            if args.update_db:
+                rc = run_clamav_update_db(root, verbosity=args.verbosity) or rc
+            return rc
+        finally:
+            release_run_lock(root)
 
     if args.command == "dropbear":
         from toolkit import download_dropbear
