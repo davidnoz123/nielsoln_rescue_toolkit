@@ -109,7 +109,7 @@ def setup_ssh_agent() -> None:
     print("ssh-agent configured and key loaded.")
 
 
-
+def run_remote(script_path: str) -> None:
     """Encode *script_path* and execute it on the remote host via bootstrap exec.
 
     The script runs inside the USB root directory with ``root`` (Path) and
@@ -186,7 +186,7 @@ def main() -> None:
     action = "release"            # "release" | "run_remote" | "push_file" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "docs/feat: devtools setup_ssh_agent; AGENTS.md updated for devtools workflow"
+    commit_message = "fix/docs: restore run_remote def; AGENTS.md push_file, scp -O, setup_ssh_agent, persistence_scan"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely

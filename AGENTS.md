@@ -58,6 +58,8 @@ Rules that follow from this:
   fetches them from a stable public URL.
 - If a binary download fails (no network), `run_update` must warn clearly and
   continue — never abort the source-file update.
+- `dropbear` does not include an SFTP server — always use `scp -O` (legacy SCP
+  protocol) when copying files to the rescue machine.
 
 ## GitHub
 
@@ -78,6 +80,7 @@ Allowed:
 - run ClamAV if available
 - write logs to USB
 - write reports to USB
+- run offline persistence scan (`persistence_scan.py`) — produces JSONL report
 
 Disallowed in v1:
 
@@ -150,6 +153,18 @@ To run a diagnostic script on RescueZilla without copying a file:
    SSH, and executed by `bootstrap.py exec` on the remote host.  Output
    streams back to your terminal.
 
+## Pushing a File to the Device (use devtools.py push_file)
+
+To copy a single file to the USB root on the rescue machine:
+
+1. In `devtools.py`, set `action = "push_file"`, `push_local = "<file>"`, and
+   optionally `push_subpath = "<subdir>"` (default `""` = USB root).
+2. Run `devtools` via `runpy`.
+
+Note: the underlying `scp` call always uses the `-O` flag (legacy SCP protocol)
+because the remote host runs `dropbear`, which does not include an SFTP server.
+Always use `-O` in any manual `scp` commands to the rescue machine.
+
 ## SSH Key Passphrase Caching (one-time setup per machine)
 
 The `devtools.py` SSH/SCP calls all use the key
@@ -166,6 +181,9 @@ ssh-add C:\Users\david\.ssh\id_ed25519   # prompts for passphrase once
 After this, all ssh/scp/devtools calls in any terminal session are
 passphrase-free until the machine is rebooted (at which point the agent
 auto-starts and you re-run just `ssh-add`).
+
+Alternatively, set `action = "setup_ssh_agent"` in `devtools.py` and run it
+from an elevated terminal — it performs the same steps automatically.
 
 **Do NOT store the passphrase in any source file or AGENTS.md.**
 
