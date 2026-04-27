@@ -109,7 +109,7 @@ _PROG_FILES_HINTS = [
 _OBFUSCATION_HINTS = [
     "-encodedcommand", "-enc ", " -e ", "frombase64string",
     "iex(", "invoke-expression", "downloadstring(",
-    "hidden", "char(", "[convert]::",
+    "-windowstyle hidden", "-w hidden", "char(", "[convert]::",
 ]
 
 
@@ -448,7 +448,7 @@ class _RegHive:
         # flags bit 0: name is ASCII; otherwise UTF-16-LE
         is_ascii = bool(flags & 0x0001)
         if name_length > 0:
-            abs_name = _HIVE_BINS_OFFSET + offset + 4 + 0x18
+            abs_name = _HIVE_BINS_OFFSET + offset + 4 + 0x14
             name = self._str_at(abs_name, name_length, is_ascii)
         else:
             name = ""   # the default value "(Default)"
@@ -1176,6 +1176,9 @@ def scan_registry_autoruns(target: Path) -> List[Finding]:
         ))
 
     # ---- HKU: Per-user NTUSER.DAT hives ----
+    # Track inodes to avoid processing the same hive twice (Vista's
+    # "Documents and Settings" is an NTFS junction to "Users").
+    seen_hive_inodes: set = set()
     for users_base in ["Users", "Documents and Settings"]:
         users_path = target / users_base
         if not users_path.is_dir():
@@ -1188,6 +1191,14 @@ def scan_registry_autoruns(target: Path) -> List[Finding]:
                 ntuser = entry / "NTUSER.DAT"
                 if not ntuser.exists():
                     continue
+                try:
+                    st = ntuser.stat()
+                    inode_key = (st.st_dev, st.st_ino)
+                    if inode_key in seen_hive_inodes:
+                        continue
+                    seen_hive_inodes.add(inode_key)
+                except OSError:
+                    pass
                 hive = _open_hive(ntuser)
                 if hive is None:
                     findings.append(_error_finding(
