@@ -87,10 +87,22 @@ def load_hardware() -> dict:
 def load_disk() -> list:
     d = _load("disk_health_*.json")
     if isinstance(d, list):
-        return d
-    if isinstance(d, dict):
-        return d.get("drives", d.get("disks", [d]))
-    return []
+        raw = d
+    elif isinstance(d, dict):
+        raw = d.get("drives", d.get("disks", [d]))
+    else:
+        return []
+    # Skip removable / USB drives — they're rescue media, not the patient's disk
+    return [disk for disk in raw if not _is_removable(disk)]
+
+def _is_removable(disk: dict) -> bool:
+    note = str(disk.get("note") or "").lower()
+    media = str(disk.get("media_type") or disk.get("type") or "").lower()
+    if "removable" in note or "usb" in note:
+        return True
+    if "removable" in media or "usb" in media:
+        return True
+    return False
 
 def load_software() -> dict:
     d = _load("software_inventory_*.json")
@@ -111,6 +123,23 @@ def load_upgrade() -> dict:
 def load_logon() -> dict:
     d = _load("logon_audit_*.json")
     return d or {}
+
+def load_event_archive_summary() -> dict:
+    """Read checkpoint files from event_archive/ and return a summary dict."""
+    archive_root = USB / "event_archive"
+    if not archive_root.exists():
+        return {}
+    result = {}
+    for checkpoint in sorted(archive_root.glob("*/channels/*/checkpoint.json")):
+        parts = checkpoint.parts
+        # ...event_archive/<machine_id>/channels/<channel>/checkpoint.json
+        try:
+            channel = parts[-2]
+            data = json.loads(checkpoint.read_text(encoding="utf-8"))
+            result[channel] = data
+        except Exception:
+            pass
+    return result
 
 def load_persistence() -> list:
     p = _latest("persist_*.jsonl")
@@ -302,6 +331,35 @@ def section_disk() -> str:
                 lines.append(f"- {f_item}")
             lines.append("")
 
+        # Bearing-wear detail block when Spin_Retry_Count is non-zero
+        spin_retry = info.get("Spin_Retry_Count")
+        try:
+            spin_int = int(spin_retry) if spin_retry is not None else 0
+        except (TypeError, ValueError):
+            spin_int = 0
+        if spin_int > 0:
+            lines += [
+                "<details>",
+                "<summary>What does Spin Retry Count mean? (click to expand)</summary>",
+                "",
+                f"The drive has recorded **{spin_int} spin-up retries**.",
+                "",
+                "When a hard drive powers on, its motor must spin the magnetic platters up to",
+                "operating speed (typically 5,400 RPM for laptop drives). The spindle bearings",
+                "that support the rotating platters are lubricated at the factory. Over time,",
+                "and especially with heat cycling and vibration, this lubricant degrades.",
+                "A retried spin-up means the drive\'s motor controller tried to reach speed,",
+                "detected it hadn\'t reached it within the allowed time window, and tried again.",
+                "",
+                "Each retry is a sign the bearings are worn and the motor is struggling.",
+                "The drive may still function for weeks or months, but it is mechanically",
+                "degraded — a full backup and drive replacement are strongly recommended",
+                "before it seizes completely.",
+                "",
+                "</details>",
+                "",
+            ]
+
         if rec:
             lines += [f"**Recommendation:** {rec}", ""]
 
@@ -348,8 +406,11 @@ def section_antivirus() -> str:
 
 def section_logon() -> str:
     la = load_logon()
-    if not la:
+    archive = load_event_archive_summary()
+    if not la and not archive:
         return "## Windows Security — Logon Audit\n\n_No logon audit data available._\n\n"
+    if not la:
+        la = {}
 
     verdict = _str(la.get("verdict"), "UNKNOWN")
     totals  = la.get("totals", {})
@@ -419,6 +480,23 @@ def section_logon() -> str:
                 f"| {_na(r.get('reason'))} | {_na(r.get('ip'))} "
                 f"| {_na(r.get('workstation'))} |"
             )
+        lines.append("")
+
+    # Event archive summary
+    if archive:
+        lines += [
+            "**Event log archive (incremental capture):**",
+            "",
+            "| Channel | Records archived | Last record | Last run |",
+            "|---|---|---|---|",
+        ]
+        for channel, cp in sorted(archive.items()):
+            last_id  = cp.get("last_record_id", "?")
+            last_ts  = cp.get("last_timestamp", "?")
+            last_run = cp.get("last_run", "?")
+            lines.append(f"| {channel} | {last_id:,} | {last_ts} | {last_run} |"
+                         if isinstance(last_id, int)
+                         else f"| {channel} | {last_id} | {last_ts} | {last_run} |")
         lines.append("")
 
     return "\n".join(lines)
@@ -508,6 +586,45 @@ def section_services() -> str:
                 f"| {_na(s.get('image_path'))} | {_na(s.get('suspicious_reason') or s.get('reason'))} |"
             )
         lines.append("")
+
+        lines += [
+            "<details>",
+            "<summary>Analysis of suspicious services (click to expand)</summary>",
+            "",
+        ]
+        for s in susp_services[:20]:
+            name        = _na(s.get('name'))
+            display     = _na(s.get('display_name'))
+            image_path  = _na(s.get('image_path'))
+            reason      = _na(s.get('suspicious_reason') or s.get('reason'))
+            img_lower   = image_path.lower()
+
+            lines += [f"**{display}** (`{name}`)", ""]
+            lines.append(f"- Image path: `{image_path}`")
+            lines.append(f"- Flagged reason: {reason}")
+
+            # Per-service contextual analysis
+            if "system32" not in img_lower and "syswow64" not in img_lower and img_lower not in ("", "n/a", "?"):
+                lines.append("- **Not in System32** — executable is outside the standard Windows directory, "
+                             "which is unusual for a system service and may indicate a third-party or rogue install.")
+            if "temp" in img_lower or "appdata" in img_lower:
+                lines.append("- **Runs from a user temp/AppData path** — a known malware persistence pattern.")
+            if img_lower.endswith(".bat") or img_lower.endswith(".vbs") or img_lower.endswith(".ps1"):
+                lines.append("- **Script-based service** — services normally run native executables (.exe). "
+                             "A script-backed service is highly unusual and warrants investigation.")
+            if "svchost" in img_lower:
+                lines.append("- Runs under `svchost.exe` — this is normal for Windows built-in services, "
+                             "but the service key itself should be verified against known-good lists.")
+            if "teamviewer" in img_lower or "vnc" in img_lower or "anydesk" in img_lower:
+                lines.append("- **Remote access software** — this service provides remote desktop access. "
+                             "Verify the owner knowingly installed this.")
+            if "tor" in name.lower() or "proxy" in name.lower() or "tunnel" in name.lower():
+                lines.append("- **Network tunnelling indicator** — name suggests this service may route "
+                             "traffic through a proxy or anonymising network.")
+
+            lines.append("")
+
+        lines += ["</details>", ""]
 
     return "\n".join(lines)
 

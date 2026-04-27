@@ -239,7 +239,7 @@ def main() -> None:
     action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "perf: m25 incremental header-skip — avoid full XML decode for archived records"
+    commit_message = "feat: m25 full channel discovery + progress logging; docs: AGENTS deploy method rule"
 
     # --- run_remote config ---
     remote_script = "report_gen.py"  # local path to the script to run remotely

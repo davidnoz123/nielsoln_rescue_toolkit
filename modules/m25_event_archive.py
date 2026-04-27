@@ -46,9 +46,14 @@ DESCRIPTION = "Incremental Windows Event Log archive — appends new events to U
 # Constants
 # ---------------------------------------------------------------------------
 
-_DEFAULT_CHANNELS = ["Security", "System", "Application"]
+# Default named channels; used only when --channels is supplied explicitly.
+# By default all .evtx files in the winevt/Logs directory are discovered.
+_DEFAULT_CHANNELS: list[str] = []
 _EVTX_BASE = "Windows/System32/winevt/Logs"
 _NS = "http://schemas.microsoft.com/win/2004/08/events/event"
+
+# Print a progress line every this many records while parsing.
+_PROGRESS_INTERVAL = 5000
 
 # Warn (but continue) if a gap exceeds this many RecordIds.
 _GAP_WARN_THRESHOLD = 100
@@ -166,6 +171,31 @@ def _save_checkpoint(channel_dir: Path, checkpoint: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Channel discovery
+# ---------------------------------------------------------------------------
+
+def _discover_channels(target: Path) -> list[str]:
+    """Return all channel names found in the winevt/Logs directory.
+
+    Each .evtx filename maps to a channel name: the filename without the
+    .evtx extension, with %4 URL-decoded back to '/'.  For example:
+        Microsoft-Windows-TaskScheduler%4Operational.evtx
+        -> Microsoft-Windows-TaskScheduler/Operational
+    """
+    logs_dir = target / _EVTX_BASE
+    if not logs_dir.exists():
+        print(f"[m25] winevt/Logs directory not found: {logs_dir}")
+        return []
+    channels = []
+    for evtx_file in sorted(logs_dir.glob("*.evtx")):
+        name = evtx_file.stem  # filename without .evtx
+        # URL-decode %4 (and %4F etc.) back to '/'
+        channel = name.replace("%4", "/").replace("%4f", "/")
+        channels.append(channel)
+    return channels
+
+
+# ---------------------------------------------------------------------------
 # EVTX parsing
 # ---------------------------------------------------------------------------
 
@@ -195,8 +225,13 @@ def _parse_evtx(evtx_path: Path, after_id: int | None = None) -> list[dict]:
         raw_sha256  str  (sha256 of raw XML bytes)
     """
     import Evtx.Evtx as evtx
+    import time as _time
 
     records = []
+    skipped = 0
+    parsed  = 0
+    t_start = _time.monotonic()
+    last_progress = 0
     with evtx.Evtx(str(evtx_path)) as log:
         for record in log.records():
             try:
@@ -205,7 +240,16 @@ def _parse_evtx(evtx_path: Path, after_id: int | None = None) -> list[dict]:
                 # record.xml() is the expensive full binary decode + serialisation.
                 if after_id is not None:
                     try:
-                        if record.record_num() <= after_id:
+                        rnum = record.record_num()
+                        if rnum <= after_id:
+                            skipped += 1
+                            total_seen = skipped + parsed
+                            if total_seen - last_progress >= _PROGRESS_INTERVAL:
+                                last_progress = total_seen
+                                elapsed = _time.monotonic() - t_start
+                                print(f"    ... {total_seen:,} records scanned "
+                                      f"({skipped:,} skipped, {parsed:,} new) "
+                                      f"[{elapsed:.0f}s]", flush=True)
                             continue
                     except Exception:
                         pass  # fall through to full parse if header read fails
@@ -260,9 +304,20 @@ def _parse_evtx(evtx_path: Path, after_id: int | None = None) -> list[dict]:
                     "raw_xml":   raw_xml,
                     "raw_sha256": raw_sha,
                 })
+                parsed += 1
+                total_seen = skipped + parsed
+                if total_seen - last_progress >= _PROGRESS_INTERVAL:
+                    last_progress = total_seen
+                    elapsed = _time.monotonic() - t_start
+                    print(f"    ... {total_seen:,} records scanned "
+                          f"({skipped:,} skipped, {parsed:,} new) "
+                          f"[{elapsed:.0f}s]", flush=True)
             except Exception:
                 continue
 
+    elapsed_total = _time.monotonic() - t_start
+    print(f"    ... done: {skipped + parsed:,} records scanned, "
+          f"{parsed:,} new, {skipped:,} skipped [{elapsed_total:.1f}s]", flush=True)
     records.sort(key=lambda r: r["record_id"])
     return records
 
@@ -514,8 +569,8 @@ def run(root: Path, argv: list) -> int:
     )
     parser.add_argument("--target",     default="/",
                         help="Mounted Windows root path")
-    parser.add_argument("--channels",   nargs="+", default=_DEFAULT_CHANNELS,
-                        help="Channel names to archive")
+    parser.add_argument("--channels",   nargs="+", default=None,
+                        help="Channel names to archive (default: all discovered .evtx files)")
     parser.add_argument("--machine-id", default="",
                         help="Override machine ID (16 hex chars)")
     parser.add_argument("--summary",    action="store_true",
@@ -569,8 +624,17 @@ def run(root: Path, argv: list) -> int:
         print(f"\n[m25] Archive root: {archive_root}\n")
 
     # ---- per-channel ----
-    channels = args.channels
-    print(f"[m25] Channels: {', '.join(channels)}\n")
+    if args.channels:
+        channels = args.channels
+        print(f"[m25] Channels (explicit): {', '.join(channels)}\n")
+    else:
+        channels = _discover_channels(target)
+        if not channels:
+            print("[m25] No .evtx files found — check --target path.")
+            return 1
+        print(f"[m25] Discovered {len(channels)} channel(s):"
+              f" {', '.join(channels[:5])}"
+              f"{', ...' if len(channels) > 5 else ''}\n")
 
     results = []
     rc = 0

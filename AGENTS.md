@@ -143,6 +143,27 @@ the hashes printed by `bootstrap update` on RescueZilla.  All hashes must
 match exactly.  If any differ, the update did not land (stale CDN, partial
 download, or `.pyc` cache issue).
 
+## CRITICAL: Deploy via SSH/SCP — NEVER use `bootstrap update` from the dev machine
+
+There are **two separate deployment paths** and they must never be confused:
+
+| Path | When to use | How it works |
+|---|---|---|
+| **`push_module` / `push_file`** (devtools.py) | Dev machine → device | Direct SCP over SSH. Instant. No internet needed on device. |
+| **`bootstrap update`** (on device) | Device self-update in the field | Device pulls from GitHub over the internet. Has CDN lag after a push. |
+
+**Rules:**
+
+- **When deploying a change from the dev machine, always use `push_module` or
+  `push_file` in `devtools.py`.**  This uses SCP directly and is immediate.
+- **NEVER run `bootstrap update` from the dev machine as a deploy step.**
+  It tells the *device* to fetch from GitHub.  This requires internet on the device,
+  has CDN propagation delay after a `git push`, and is slower than SCP.
+- `bootstrap update` is the *self-healing* mechanism for the rescue machine when
+  it has internet access in the field.  It is not a dev tool.
+- If you accidentally `bootstrap update` instead of `push_module`, you may deploy
+  a stale version (GitHub CDN may not have the latest commit yet).
+
 ## CRITICAL: Lock File Safety — NEVER Delete Blindly
 
 The USB toolkit uses a `.lock` file to prevent concurrent operations.  When a
