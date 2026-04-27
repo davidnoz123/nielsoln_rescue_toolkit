@@ -220,7 +220,7 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "run_module"          # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
+    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
     commit_message = "refactor: dynamic module dispatch; modules/ subfolder; run/load/status commands"
