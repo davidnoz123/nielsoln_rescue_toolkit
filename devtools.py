@@ -239,7 +239,7 @@ def main() -> None:
     action = "release"                # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "feat: m23_logon_audit + robust stale-lock self-heal in toolkit"
+    commit_message = "feat: m07_service_analysis — offline SYSTEM hive service audit"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely
@@ -249,7 +249,7 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m23_logon_audit"
+    module_name = "m07_service_analysis"
     module_args = ["--target", "/mnt/windows"]
 
     # ---------------------------------------------------
