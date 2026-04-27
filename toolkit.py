@@ -795,6 +795,7 @@ _UPDATE_FILES = [
     "modules/m03_triage.py",
     "modules/m04_hardware_profile.py",
     "modules/m05_disk_health.py",
+    "modules/m09_thermal_health.py",
     "modules/m18_clamav_scan.py",
 ]
 
