@@ -186,7 +186,7 @@ def main() -> None:
     action = "release"            # "release" | "run_remote" | "push_file" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "fix/docs: restore run_remote def; AGENTS.md push_file, scp -O, setup_ssh_agent, persistence_scan"
+    commit_message = "docs: add subprojects/ folder with 28 spec files and ORDERING.md"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely
