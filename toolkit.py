@@ -935,8 +935,12 @@ def status_report(root: Path = None) -> int:
     return 0
 
 
-def _fetch_url(url: str, timeout: int = 30) -> bytes:
-    """Download url and return raw bytes. Raises RuntimeError on any failure."""
+def _fetch_url(url: str, timeout: int = 30, progress: bool = False) -> bytes:
+    """Download url and return raw bytes. Raises RuntimeError on any failure.
+
+    When *progress* is True, prints a one-line progress indicator to stdout
+    every 5 MB so long-running downloads don't appear to hang.
+    """
     import urllib.request
     import urllib.error
 
@@ -949,11 +953,34 @@ def _fetch_url(url: str, timeout: int = 30) -> bytes:
         url,
         headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
     )
+    _CHUNK = 1024 * 1024        # 1 MB read chunks
+    _REPORT_EVERY = 5 * 1024 * 1024  # print progress every 5 MB
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
             if resp.status != 200:
                 raise RuntimeError(f"HTTP {resp.status} for {url}")
-            return resp.read()
+            total_str = ""
+            try:
+                cl = int(resp.headers.get("Content-Length", 0))
+                if cl:
+                    total_str = f"/{cl // (1024*1024)}MB"
+            except (TypeError, ValueError):
+                pass
+            chunks = []
+            downloaded = 0
+            next_report = _REPORT_EVERY
+            while True:
+                chunk = resp.read(_CHUNK)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                downloaded += len(chunk)
+                if progress and downloaded >= next_report:
+                    print(f"  ... {downloaded // (1024*1024)}MB{total_str} downloaded", flush=True)
+                    next_report += _REPORT_EVERY
+            if progress:
+                print(f"  ... {downloaded // (1024*1024)}MB{total_str} — complete", flush=True)
+            return b"".join(chunks)
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Network error fetching {url}: {exc}") from exc
 
@@ -1790,8 +1817,9 @@ def download_clamav(root, verbosity: int = 2) -> Path:
     # --- download ---
     if verbosity >= 1:
         print(f"  clamav: downloading {download_url} ...")
+        print(f"  clamav: (this is ~100 MB — progress updates every 5 MB)", flush=True)
     try:
-        data = _fetch_url(download_url)
+        data = _fetch_url(download_url, progress=(verbosity >= 1))
     except RuntimeError as exc:
         raise RuntimeError(f"ClamAV download failed: {exc}") from exc
 

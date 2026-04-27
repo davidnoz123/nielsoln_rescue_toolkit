@@ -578,6 +578,16 @@ def section_logon() -> str:
         f"",
     ]
 
+    # Warn prominently when failed count is zero — Vista Home disables Failure auditing
+    if totals.get("failed_logons", 0) == 0:
+        lines += [
+            "> **Audit policy caveat:** Windows Vista Home editions disable Failure "
+            "auditing for Logon events by default.  A count of zero failed logons "
+            "does **not** prove that no failed attempts occurred — they may simply "
+            "not have been recorded by the OS.",
+            "",
+        ]
+
     if notes:
         lines += ["**Notes:**", ""]
         for n in notes:

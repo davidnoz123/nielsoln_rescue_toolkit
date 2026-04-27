@@ -658,7 +658,13 @@ def _summarize(events: list[dict]) -> dict:
         )
     else:
         verdict = "CLEAN"
-        verdict_note = "No failed logon attempts found in the Security log."
+        verdict_note = (
+            "No failed logon attempts found in the Security log.  "
+            "NOTE: Windows Vista Home editions disable Failure auditing for Logon "
+            "events by default — this means failed logon attempts may have occurred "
+            "but were never written to the Security log.  Absence of 4625 events "
+            "does NOT guarantee the password was never guessed."
+        )
 
     if lockouts:
         if verdict in ("CLEAN", "MINOR"):

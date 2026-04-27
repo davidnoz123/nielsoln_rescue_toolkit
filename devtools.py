@@ -374,13 +374,13 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status"
+    action = "release"              # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status"
 
     # --- release config ---
     commit_message = "feat: m25 full channel discovery + progress logging; docs: AGENTS deploy method rule"
 
     # --- run_remote config ---
-    remote_script = "report_gen.py"  # local path to the script to run remotely
+    remote_script = "_setup_clamav.py"  # local path to the script to run remotely
 
     # --- push_file config ---
     push_local  = "toolkit.py"
