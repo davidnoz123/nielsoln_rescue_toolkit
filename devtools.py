@@ -236,20 +236,20 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"                # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
+    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "feat: m07_service_analysis — offline SYSTEM hive service audit"
+    commit_message = "feat: m10/m11/m13/m17/m25 — battery, memory, clone-readiness, system summary, event archive"
 
     # --- run_remote config ---
-    remote_script = "svc_diag.py"   # local path to the script to run remotely
+    remote_script = "report_gen.py"  # local path to the script to run remotely
 
     # --- push_file config ---
     push_local  = "toolkit.py"
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m07_service_analysis"
+    module_name = "m25_event_archive"
     module_args = ["--target", "/mnt/windows"]
 
     # ---------------------------------------------------

@@ -801,6 +801,11 @@ _UPDATE_FILES = [
     "modules/m18_clamav_scan.py",
     "modules/m07_service_analysis.py",
     "modules/m23_logon_audit.py",
+    "modules/m10_battery_health.py",
+    "modules/m11_memory_health.py",
+    "modules/m13_clone_ready.py",
+    "modules/m17_system_summary.py",
+    "modules/m25_event_archive.py",
 ]
 
 
