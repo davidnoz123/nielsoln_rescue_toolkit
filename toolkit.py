@@ -786,7 +786,15 @@ _REPO_RAW_BASE = (
     "https://raw.githubusercontent.com/davidnoz123/nielsoln_rescue_toolkit/master"
 )
 
-_UPDATE_FILES = ["bootstrap.py", "bootstrap.sh", "toolkit.py", "persistence_scan.py"]
+_UPDATE_FILES = [
+    "bootstrap.py",
+    "bootstrap.sh",
+    "toolkit.py",
+    "modules/m01_persistence_scan.py",
+    "modules/m02_detect.py",
+    "modules/m03_triage.py",
+    "modules/m18_clamav_scan.py",
+]
 
 
 def current_version(root: Path = None) -> str:
@@ -796,6 +804,62 @@ def current_version(root: Path = None) -> str:
     if vf.exists():
         return vf.read_text(encoding="utf-8").strip()
     return "unknown"
+
+
+# ---------------------------------------------------------------------------
+# module_dispatch — Dynamic module loading and USB status reporting
+# ---------------------------------------------------------------------------
+
+_MODULE_GLOB = "m[0-9][0-9]_*.py"
+_CORE_FILES  = ["bootstrap.sh", "bootstrap.py", "toolkit.py"]
+
+
+def load_module(root: Path, name: str):
+    """Load modules/<name>.py from the USB root and return the module object.
+
+    Raises FileNotFoundError if the module file does not exist.
+    Raises ImportError (with cause) if the file fails to import.
+    """
+    import importlib.util
+    module_path = root / "modules" / f"{name}.py"
+    if not module_path.exists():
+        raise FileNotFoundError(
+            f"Module not found: {module_path}\n"
+            f"Run `bootstrap load --name {name} --payload <b64gz>` to install it, "
+            f"or `bootstrap update` to pull all tracked modules."
+        )
+    spec = importlib.util.spec_from_file_location(name, module_path)
+    mod  = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as exc:
+        raise ImportError(f"Failed to load module {name}: {exc}") from exc
+    return mod
+
+
+def status_report(root: Path = None) -> int:
+    """Print SHA256 + present/absent for all core files and discovered modules."""
+    if root is None: root = Path(file__fileSysD)
+    assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
+
+    entries = [(f, root / f) for f in _CORE_FILES]
+    modules_dir = root / "modules"
+    if modules_dir.exists():
+        for p in sorted(modules_dir.glob(_MODULE_GLOB)):
+            entries.append((f"modules/{p.name}", p))
+
+    col = 42
+    print(f"\n{'File':<{col}} {'Status':<9} SHA256 (LF-normalised)")
+    print("-" * (col + 9 + 65))
+    for label, path in entries:
+        if path.exists():
+            data   = path.read_bytes().replace(b"\r\n", b"\n")
+            digest = hashlib.sha256(data).hexdigest()
+            print(f"{label:<{col}} {'present':<9} {digest}")
+        else:
+            print(f"{label:<{col}} {'MISSING':<9} —")
+    print()
+    return 0
 
 
 def _fetch_url(url: str, timeout: int = 30) -> bytes:
@@ -2863,8 +2927,18 @@ def build_usb_package(dist_root: Path = None, mode: str = "full", verbosity: int
     # --- Core files ---
     if verbosity >= 1:
         print("\nCore files:")
-    for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py", "persistence_scan.py"]:
+    for name in ["bootstrap.sh", "bootstrap.py", "toolkit.py"]:
         _sync_core_file(root / name, dist / name, mode=mode, verbosity=verbosity)
+
+    # --- Modules ---
+    if verbosity >= 1:
+        print("\nModules:")
+    modules_src = root / "modules"
+    modules_dst = dist / "modules"
+    if modules_src.exists():
+        modules_dst.mkdir(parents=True, exist_ok=True)
+        for p in sorted(modules_src.glob("m[0-9][0-9]_*.py")):
+            _sync_core_file(p, modules_dst / p.name, mode=mode, verbosity=verbosity)
 
     # --- Runtimes ---
     if verbosity >= 1:

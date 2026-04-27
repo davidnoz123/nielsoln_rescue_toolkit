@@ -42,42 +42,35 @@ def main() -> int:
 
     sub = parser.add_subparsers(dest="command")
 
-    p_scan = sub.add_parser("scan", help="Run ClamAV scan against target")
-    p_scan.add_argument("--target", required=True, help="Path to mounted Windows installation")
-    p_scan.add_argument(
-        "--profile", choices=["quick", "thorough"], default="quick",
-        help="Scan profile: quick (exe/script types, no archives) or thorough (all files, archives bounded). Default: quick",
+    p_run = sub.add_parser(
+        "run",
+        help="Run a scan module by name (e.g. bootstrap run m01_persistence_scan -- --target /mnt/windows)",
     )
-    p_scan.add_argument(
-        "--no-swap", action="store_true",
-        help="Skip automatic swap file creation (not recommended on low-RAM systems)",
+    p_run.add_argument(
+        "name",
+        help="Module name without .py extension (e.g. m01_persistence_scan)",
     )
-    p_scan.add_argument(
-        "--no-resume", action="store_true",
-        help="Ignore any existing checkpoint and restart the scan from the beginning",
+    p_run.add_argument(
+        "args",
+        nargs=argparse.REMAINDER,
+        help="Arguments passed directly to the module (use -- to separate)",
     )
 
-    p_triage = sub.add_parser("triage", help="Python-only suspicious file triage")
-    p_triage.add_argument("--target", required=True, help="Path to mounted Windows installation")
+    p_load = sub.add_parser(
+        "load",
+        help="Install a module from a base64+gzip encoded payload onto this USB",
+    )
+    p_load.add_argument(
+        "--name", required=True,
+        help="Module filename without .py (e.g. m02_disk_overview)",
+    )
+    p_load.add_argument(
+        "--payload", default="",
+        metavar="B64GZ",
+        help="Base64+gzip-encoded Python source.  If omitted, read from stdin.",
+    )
 
-    p_persist = sub.add_parser(
-        "persist",
-        help="Scan for persistence mechanisms (startup, tasks, services, registry autoruns)",
-    )
-    p_persist.add_argument(
-        "--target", required=True,
-        help="Path to mounted Windows installation (e.g. /mnt/windows)",
-    )
-    p_persist.add_argument(
-        "--summary", action="store_true",
-        help="Print a sorted human-readable summary after scanning",
-    )
-    p_persist.add_argument("--no-startup",  action="store_true", help="Skip startup folder scan")
-    p_persist.add_argument("--no-tasks",    action="store_true", help="Skip scheduled task scan")
-    p_persist.add_argument("--no-services", action="store_true", help="Skip service scan")
-    p_persist.add_argument("--no-registry", action="store_true", help="Skip registry autorun scan")
-
-    sub.add_parser("detect", help="Detect likely Windows installations under /mnt or /media")
+    sub.add_parser("status", help="Show SHA256 and presence of all core files and modules on this USB")
     sub.add_parser("update", help="Pull latest toolkit from repository")
 
     p_exec = sub.add_parser(
@@ -191,38 +184,44 @@ def main() -> int:
     log.debug("USB root: %s", root)
     log.debug("Command: %s", args.command)
 
-    # Fire background auto-update unless suppressed or running the explicit
-    # update/runtime/clamav commands (which provide their own foreground output).
-    if not args.no_update and not args.offline and args.command not in ("update", "runtime", "clamav"):
+    # Fire background auto-update unless suppressed or running lifecycle commands.
+    if not args.no_update and not args.offline and args.command not in (
+        "update", "runtime", "clamav", "load", "status",
+    ):
         from toolkit import start_background_update
         start_background_update(root)
 
-    if args.command == "scan":
-        from toolkit import run_scan
-        return run_scan(
-            root,
-            Path(args.target),
-            profile=args.profile,
-            no_swap=args.no_swap,
-            resume=not args.no_resume,
-            verbose=args.verbose,
-        )
+    if args.command == "run":
+        from toolkit import load_module
+        module_argv = args.args
+        # Strip a leading '--' separator if the user wrote: bootstrap run <name> -- --flag
+        if module_argv and module_argv[0] == "--":
+            module_argv = module_argv[1:]
+        try:
+            mod = load_module(root, args.name)
+        except (FileNotFoundError, ImportError) as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        return mod.run(root, module_argv)
 
-    if args.command == "triage":
-        from toolkit import run_triage
-        return run_triage(root, Path(args.target))
+    if args.command == "load":
+        import base64, gzip
+        try:
+            raw = args.payload or sys.stdin.read().strip()
+            source = gzip.decompress(base64.b64decode(raw))
+        except Exception as exc:
+            print(f"load: failed to decode payload: {exc}", file=sys.stderr)
+            return 1
+        modules_dir = root / "modules"
+        modules_dir.mkdir(parents=True, exist_ok=True)
+        dest = modules_dir / f"{args.name}.py"
+        dest.write_bytes(source)
+        print(f"Installed: {dest}")
+        return 0
 
-    if args.command == "persist":
-        from persistence_scan import run_persistence_scan
-        return run_persistence_scan(
-            root,
-            Path(args.target),
-            summary=args.summary,
-            no_startup=args.no_startup,
-            no_tasks=args.no_tasks,
-            no_services=args.no_services,
-            no_registry=args.no_registry,
-        )
+    if args.command == "status":
+        from toolkit import status_report
+        return status_report(root)
 
     if args.command == "exec":
         import base64, gzip, traceback
@@ -241,10 +240,6 @@ def main() -> int:
             traceback.print_exc()
             return 1
         return 0
-
-    if args.command == "detect":
-        from toolkit import run_detect
-        return run_detect(root)
 
     if args.command == "update":
         from toolkit import run_update

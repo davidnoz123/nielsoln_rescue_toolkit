@@ -50,7 +50,15 @@ KEY         = r"C:\Users\david\.ssh\id_ed25519"
 USB_PATH    = "/media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB"
 
 # Files kept in sync by bootstrap update / build_usb_package
-UPDATE_FILES = ["bootstrap.py", "bootstrap.sh", "toolkit.py", "persistence_scan.py"]
+UPDATE_FILES = [
+    "bootstrap.py",
+    "bootstrap.sh",
+    "toolkit.py",
+    "modules/m01_persistence_scan.py",
+    "modules/m02_detect.py",
+    "modules/m03_triage.py",
+    "modules/m18_clamav_scan.py",
+]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
 
@@ -132,6 +140,33 @@ def push_file(local_path: str, remote_subpath: str = "") -> None:
     subprocess.run(_scp_args(local_path, dst))
 
 
+def push_module(name: str) -> None:
+    """SCP modules/<name>.py to the modules/ directory on the USB.
+
+    Creates the remote modules/ directory if absent via SSH.
+    """
+    remote_modules = f"{USB_PATH}/modules"
+    subprocess.run(_ssh_args([f"mkdir -p {remote_modules}"]))
+    subprocess.run(_scp_args(f"modules/{name}.py", f"root@{HOST}:{remote_modules}/"))
+    print(f"Pushed modules/{name}.py to device.")
+
+
+def run_module(name: str, module_argv: list = None) -> None:
+    """Push modules/<name>.py to device then run it via bootstrap run.
+
+    *module_argv* is a list of strings passed after ``--`` to the module.
+    Example: run_module("m01_persistence_scan", ["--target", "/mnt/windows"])
+    """
+    push_module(name)
+    argv_str = " ".join(module_argv) if module_argv else ""
+    sep = " -- " if argv_str else ""
+    remote_cmd = (
+        f"cd {USB_PATH} && "
+        f"python3 bootstrap.py --no-update run {name}{sep}{argv_str}"
+    )
+    subprocess.run(_ssh_args([remote_cmd]))
+
+
 def release(message: str) -> None:
     """Compile-check all .py files, commit, push, print LF-normalised SHA256s.
 
@@ -186,14 +221,18 @@ def main() -> None:
     action = "release"            # "release" | "run_remote" | "push_file" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "docs: modern Windows support — SP29, SP15/SP24/SP01/SP04 updates, ORDERING.md BitLocker"
+    commit_message = "refactor: dynamic module dispatch; modules/ subfolder; run/load/status commands"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely
 
     # --- push_file config ---
-    push_local  = "persistence_scan.py"
-    push_subpath = ""               # "" = USB root; e.g. "logs" for a subdir
+    push_local  = "modules/m01_persistence_scan.py"
+    push_subpath = "modules"        # "" = USB root; e.g. "modules" for a module file
+
+    # --- run_module / push_module config ---
+    module_name = "m01_persistence_scan"
+    module_args = ["--target", "/mnt/windows", "--summary"]
 
     # ---------------------------------------------------
     if action == "release":
@@ -202,10 +241,14 @@ def main() -> None:
         run_remote(remote_script)
     elif action == "push_file":
         push_file(push_local, push_subpath)
+    elif action == "push_module":
+        push_module(module_name)
+    elif action == "run_module":
+        run_module(module_name, module_args)
     elif action == "setup_ssh_agent":
         setup_ssh_agent()
     else:
-        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, setup_ssh_agent")
+        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent")
         sys.exit(1)
 
 

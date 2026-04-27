@@ -1,5 +1,5 @@
 r"""
-persistence_scan.py — Nielsoln Rescue Toolkit: offline Windows persistence mechanism scanner.
+m01_persistence_scan.py — Nielsoln Rescue Toolkit: offline Windows persistence mechanism scanner.
 
 Scans a mounted, read-only Windows filesystem for all common persistence mechanisms:
   - Startup folders (system-wide and per-user)
@@ -9,7 +9,7 @@ Scans a mounted, read-only Windows filesystem for all common persistence mechani
 
 Usage (REPL):
     import runpy ; temp = runpy._run_module_as_main("bootstrap")
-    # Then: bootstrap.py persist --target /mnt/windows [--summary]
+    # Then: bootstrap run m01_persistence_scan -- --target /mnt/windows [--summary]
 
 Output:
   Default  : JSON lines to logs/persist_<timestamp>.jsonl (one Finding per line)
@@ -30,6 +30,11 @@ from pathlib import Path
 from typing import List, Optional
 
 _log = logging.getLogger("persist")
+
+DESCRIPTION = (
+    "Scan for persistence mechanisms: startup folders, scheduled tasks, "
+    "services, registry autoruns"
+)
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -1340,3 +1345,34 @@ def _print_summary(findings: List[Finding]) -> None:
         for reason in f.reasons:
             print(f"       reason  : {reason}")
         print()
+
+
+# ---------------------------------------------------------------------------
+# Module protocol entry point
+# ---------------------------------------------------------------------------
+
+def run(root: Path, argv: list) -> int:
+    """Module protocol entry point — called by `bootstrap run m01_persistence_scan`."""
+    import argparse
+    p = argparse.ArgumentParser(
+        prog="bootstrap run m01_persistence_scan",
+        description=DESCRIPTION,
+    )
+    p.add_argument("--target", required=True,
+                   help="Path to mounted Windows installation (e.g. /mnt/windows)")
+    p.add_argument("--summary", action="store_true",
+                   help="Print a sorted human-readable summary after scanning")
+    p.add_argument("--no-startup",  action="store_true", help="Skip startup folder scan")
+    p.add_argument("--no-tasks",    action="store_true", help="Skip scheduled task scan")
+    p.add_argument("--no-services", action="store_true", help="Skip service scan")
+    p.add_argument("--no-registry", action="store_true", help="Skip registry autorun scan")
+    args = p.parse_args(argv)
+    return run_persistence_scan(
+        root,
+        Path(args.target),
+        summary=args.summary,
+        no_startup=args.no_startup,
+        no_tasks=args.no_tasks,
+        no_services=args.no_services,
+        no_registry=args.no_registry,
+    )

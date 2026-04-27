@@ -80,7 +80,7 @@ Allowed:
 - run ClamAV if available
 - write logs to USB
 - write reports to USB
-- run offline persistence scan (`persistence_scan.py`) — produces JSONL report
+- run offline persistence scan (`modules/m01_persistence_scan.py`) — produces JSONL report
 
 Disallowed in v1:
 
@@ -152,6 +152,69 @@ To run a diagnostic script on RescueZilla without copying a file:
 3. Run `devtools` via `runpy` — the script is gzip+base64 encoded, sent over
    SSH, and executed by `bootstrap.py exec` on the remote host.  Output
    streams back to your terminal.
+
+## Module index
+
+All scan/analysis tools live in `modules/mNN_*.py`.  See `MODULES.md` (when
+created) for a concise per-module API reference.  Until then, read the
+`DESCRIPTION` constant and `run()` signature at the top/bottom of each file.
+
+### Built-in vs. module rule
+
+| Category | Examples | Location |
+|---|---|---|
+| **USB lifecycle** | `update`, `load`, `run`, `status`, `exec`, `ssh`, `runtime`, `clamav` (install), `dropbear` | Hardcoded in `bootstrap.py` + `toolkit.py` |
+| **Analysis modules** | everything that scans a target | `modules/mNN_*.py` |
+
+Never add a new analysis command as a hardcoded `if args.command ==` block in
+`bootstrap.py`.  Create a module file instead.
+
+### Module protocol (required symbols)
+
+Every `modules/mNN_*.py` must expose:
+
+```python
+DESCRIPTION: str               # one-line summary shown by bootstrap status
+def run(root: Path, argv: list) -> int:  # argv = raw string args; module owns its own argparse
+```
+
+### Running a module on the device
+
+```bash
+# From RescueZilla:
+cd /media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB
+python3 bootstrap.py run m01_persistence_scan -- --target /mnt/windows
+
+# Via devtools.py from dev machine:
+action = "run_module"
+module_name = "m01_persistence_scan"
+module_args = ["--target", "/mnt/windows", "--summary"]
+```
+
+### Deploying a new module to device (without a full update)
+
+```python
+# In devtools.py:
+action = "push_module"
+module_name = "m02_disk_overview"   # pushes modules/m02_disk_overview.py
+```
+
+Or push-and-run in one step:
+
+```python
+action = "run_module"
+module_name = "m02_disk_overview"
+module_args = ["--target", "/mnt/windows"]
+```
+
+### Checking USB state
+
+```bash
+# On RescueZilla:
+python3 bootstrap.py status
+# Prints SHA256 + present/absent for all core files and installed modules.
+# Compare hashes against those printed by devtools release.
+```
 
 ## Pushing a File to the Device (use devtools.py push_file)
 
