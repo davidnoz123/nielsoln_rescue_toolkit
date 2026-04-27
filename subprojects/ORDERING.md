@@ -43,6 +43,8 @@ conventions.
 | # | Subproject | Why here |
 |---|---|---|
 | 8 | SP08 RISK_SCORING | Shared `core.py` library; extract from persistence_scan.py |
+| 8b | SP29 MODERN_WINDOWS_ARTEFACTS | Amcache, Shimcache, WMI, PowerShell, Defender exclusions; needed for any Win10/11 machine |
+| 8c | SP24 SCAN_PROFILE_OS | Promoted from Phase 6; needed before scanning any non-Vista machine |
 | 9 | SP09 HASH_TRACKING | Scoped to suspect files only — not full-partition hash |
 | 10 | SP10 ENTROPY_CHECK | Pure Python, no deps; high value for packed malware |
 | 11 | SP11 INCREMENTAL_SCAN | Depends on SP09; makes repeat scans practical |
@@ -74,11 +76,10 @@ conventions.
 | 22 | SP22 CLIENT_REPORT | Depends on SP21 |
 | 23 | SP23 ACTION_SUGGESTIONS | Depends on SP21 + SP18 (confirmed vs suspected) |
 
-### Phase 6 — OS expansion (future; Windows coverage must be solid first)
+### Phase 6 — OS expansion (macOS; only after Win10/11 coverage is solid)
 
 | # | Subproject | Why here |
 |---|---|---|
-| 24 | SP24 SCAN_PROFILE_OS | Infrastructure for multi-OS; must precede all Mac modules |
 | 25 | SP25 MAC_LAUNCH_AGENTS | macOS persistence equivalent of SP01 |
 | 26 | SP26 MAC_APP_SCAN | macOS suspicious files equivalent of SP03 |
 | 27 | SP27 MAC_QUARANTINE | macOS-specific; no Windows equivalent |
@@ -90,6 +91,8 @@ conventions.
 
 | Module | ChatGPT rank | This ordering | Reason |
 |---|---|---|---|
+| SP29 MODERN_WINDOWS_ARTEFACTS | Not listed | 8b | Amcache, Shimcache, WMI subscriptions, PowerShell history, Defender exclusions — essential for Win10/11 |
+| SP24 SCAN_PROFILE_OS | Not listed | 8c (was 24) | Promoted from Phase 6; needed before the first non-Vista machine is scanned |
 | SP07 WINDOWS_EVENT_LOGS | Not listed | 7 | Critical forensic source; Vista EVTX is very informative; inexplicable omission |
 | SP02 DISK_OVERVIEW | Not listed | 2 | Machine identity should be established before any scan |
 | SP08 RISK_SCORING | 21 | 8 | Build the shared library while there are still only 2–3 modules; at #21 the debt is already unmanageable |
@@ -101,6 +104,23 @@ conventions.
 ---
 
 ## Flagged subprojects ⚠️
+
+### BitLocker (critical constraint for modern machines)
+
+**If the target drive is BitLocker-encrypted, offline scanning is not possible
+without the recovery key.**  This is common on corporate Win10/11 laptops and
+increasingly on consumer Win11 devices (which enable device encryption by
+default if the machine has a TPM and a Microsoft account).
+
+BitLocker detection must run before any scan module on Win8+ machines.
+SP29 and SP15 both implement detection.  SP24 SCAN_PROFILE_OS should check
+for BitLocker as part of OS profiling.  If detected:
+- Report as CRITICAL informational finding
+- Tell the technician where the recovery key is likely stored:
+  - **Consumer Win11:** Microsoft account recovery key at account.microsoft.com
+  - **Corporate:** Active Directory / Azure AD
+  - **Self-managed:** `.bek` file or printed/written key
+- Do not attempt to scan the encrypted volume.
 
 ### SP14 ADS_DETECTION
 Reading NTFS Alternate Data Streams from Linux requires `ntfs-3g` extended
@@ -167,3 +187,18 @@ were completely absent from the ChatGPT list.  Vista introduced the EVTX binary
 format.  Security log: failed logins, privilege escalation, new accounts.
 System log: service installs, crashes.  A cleared Security log is itself a
 high-confidence indicator of cover-up.
+
+### SP29 MODERN_WINDOWS_ARTEFACTS (Priority 8b)
+Triggered by the decision to support modern Windows (10/11) as well as Vista.
+Covers artefacts that simply do not exist on Vista: Amcache.hve (primary
+execution history on SSDs where Prefetch is disabled), Shimcache (all versions),
+WMI event subscription string scanning, PowerShell PSReadLine history,
+Windows Defender exclusions (a direct malware self-protection signal), and
+Windows Timeline.  Also handles BitLocker detection for modern machines.
+
+### SP24 SCAN_PROFILE_OS (Promoted from Priority 24 → 8c)
+Originally deferred to Phase 6 on the assumption Vista was the only target.
+Promoted to Phase 2 now that the tool must also handle Win10/11 (and eventually
+macOS).  Without an OS profile layer, every module would need its own
+version-detection logic — that debt compounds quickly.  Must be implemented
+before the first non-Vista machine is tested.

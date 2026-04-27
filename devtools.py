@@ -186,7 +186,7 @@ def main() -> None:
     action = "release"            # "release" | "run_remote" | "push_file" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "docs: add subprojects/ folder with 28 spec files and ORDERING.md"
+    commit_message = "docs: modern Windows support — SP29, SP15/SP24/SP01/SP04 updates, ORDERING.md BitLocker"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely

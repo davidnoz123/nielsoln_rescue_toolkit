@@ -1,8 +1,8 @@
 # SP24 — SCAN_PROFILE_OS
 
-**Status:** 📋 Planned (future — after Windows coverage is solid)
-**Phase:** 6 — OS expansion
-**Priority:** 24
+**Status:** 📋 Planned
+**Phase:** 2 — Engineering foundations (promoted from Phase 6)
+**Priority:** 8c (implement alongside SP08–SP11; needed before any non-Vista machine is scanned)
 
 ## Goal
 
@@ -32,9 +32,26 @@ own limitations as informational findings.
    - Known limitations (reported as informational findings)
 
 3. **Windows profiles** — per-version adjustments:
-   - XP: no Prefetch v23, no EVTX (uses .evt), different registry paths
-   - Vista/7: Prefetch v23/26, EVTX, BCD
-   - 8/10/11: WMI subscriptions, AMSI, ETW artefacts
+
+   | OS | Prefetch | Event logs | BCD/UEFI | Amcache | WMI subs | Defender | BitLocker risk |
+   |---|---|---|---|---|---|---|---|
+   | XP | v17 | .evt (binary) | boot.ini | ❌ | ❌ | ❌ | None |
+   | Vista/7 | v23/26 | EVTX | BCD, BIOS | ❌ | ❌ | ❌ | Low |
+   | Win8 | v26 | EVTX | BCD, UEFI | ✅ | ⚠️ | ✅ | Medium |
+   | Win10 | v30 (may be disabled on SSD) | EVTX | BCD, UEFI, Secure Boot | ✅ | ✅ | ✅ | High |
+   | Win11 | v30 (disabled if no HDD) | EVTX | BCD, UEFI, Secure Boot required | ✅ | ✅ | ✅ | Very high |
+
+   Key per-profile differences:
+   - **XP:** no EVTX, no Amcache, no UEFI; `.evt` parsing needed for SP07
+   - **Vista/7:** primary current target; all SP01–SP16 applicable
+   - **Win8:** adds Amcache, UEFI; Defender exclusions become relevant
+   - **Win10/11:** Prefetch may be disabled on SSD; Amcache is primary execution
+     history; BitLocker high probability; UEFI Secure Boot; all SP29 artefacts
+     applicable; PSReadLine history present
+
+4. **BitLocker detection** — run before any scan module on Win8+ machines.
+   If detected, report as CRITICAL informational and halt that volume's scan.
+   See SP29 MODERN_WINDOWS_ARTEFACTS for detection method.
 
 4. **macOS limitations reported at runtime:**
    - FileVault-encrypted volumes cannot be scanned offline

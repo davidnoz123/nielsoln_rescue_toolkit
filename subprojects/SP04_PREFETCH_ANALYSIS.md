@@ -21,12 +21,27 @@ dependencies.
 
 1. **Prefetch directory** — `C:\Windows\Prefetch\*.pf`.
 
-2. **File format** — Windows Vista uses Prefetch format version 17 (MAM
-   compressed) or 23.  Parse the header to extract:
+2. **File format** — format version varies by OS.  Must support all versions:
+
+   | OS | Prefetch version | Compression |
+   |---|---|---|
+   | XP/2003 | v17 | None |
+   | Vista | v23 | None |
+   | Win7 | v23 | None |
+   | Win8/8.1 | v26 | MAM (XPress) |
+   | Win10/11 | v30 | MAM (XPress) |
+
+   Extract from each:
    - Executable name
    - Run count
-   - Last run timestamp(s)
+   - Last run timestamp(s) (up to 8 timestamps in v26/v30)
    - Referenced file list (volume paths)
+
+   **Note:** On Win10/11 with an SSD, Prefetch may be **disabled**.  Check
+   `HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\
+   PrefetchParameters\EnablePrefetcher` — value 0 means disabled.  If
+   disabled, emit an informational finding and defer to SP29 MODERN_WINDOWS_ARTEFACTS
+   (Amcache) for execution history.
 
 3. **Cross-reference** — check whether the executable referenced in each `.pf`
    file still exists on the filesystem.  A missing executable is significant.

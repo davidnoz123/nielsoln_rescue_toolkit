@@ -22,8 +22,14 @@ Detect Windows autorun and persistence mechanisms from an offline Windows filesy
 
 - IFEO (Image File Execution Options) hijacks only partially covered
 - `AppInit_DLLs`, `LSA` providers, `BootExecute`, `KnownDLLs` not yet scanned
-- WMI event subscriptions not scanned (Vista WMI repository is binary format)
+- WMI event subscriptions not scanned — Vista WMI repository is binary format;
+  Win10/11 WMI string scanning is handled in SP29 MODERN_WINDOWS_ARTEFACTS
 - Does not parse `.lnk` shortcut binary format — target paths may be unresolved
+- Win10/11-specific persistence: COM object hijacking, Defender exclusions,
+  Windows scheduled tasks with new XML fields — see SP29
+- `AppCertDLLs`, `AppInit_DLLs` in 64-bit context not verified
+- `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options`
+  full enumeration not implemented (only targeted keys checked)
 
 ## Acceptance criteria
 

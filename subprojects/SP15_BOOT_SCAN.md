@@ -7,7 +7,7 @@
 ## Goal
 
 Inspect boot-related areas for suspicious changes: MBR, VBR, BCD store,
-boot-time drivers, and EFI partition contents.
+boot-time drivers, EFI partition contents, and UEFI environment state.
 
 ## Scope
 
@@ -36,6 +36,30 @@ boot-time drivers, and EFI partition contents.
    (BOOT_START / type=0 services).  Flag any boot-start driver not in
    `C:\Windows\System32\drivers\`.
 
+6. **UEFI / Secure Boot state** (modern machines — Win8+):  
+   Detect from the rescue Linux environment:
+   - `/sys/firmware/efi/` exists → machine booted UEFI (note: this reflects
+     the *rescue* system's boot mode, not the target's; infer target mode from
+     EFI partition presence instead)
+   - **EFI partition** — look for a FAT32 partition mounted at `/boot/efi` or
+     listed in `/proc/mounts` with type `vfat`.  If found, list its contents
+     for unexpected bootloaders (`\EFI\` subdirectory listing).
+   - **Secure Boot state** — read from `\EFI\Microsoft\Boot\bootmgfw.efi`
+     presence and the BCD store's `bootems` and `ems` settings.  Cannot verify
+     whether Secure Boot is actually enforced without UEFI variable access.
+   - **Unexpected EFI entries** — any `\EFI\` subdirectory that is not
+     `Microsoft`, `BOOT`, or a known OEM vendor is suspicious.
+   - **UEFI rootkit indicators** — files in the EFI partition that are not
+     standard Windows boot files (e.g. `\EFI\Microsoft\Boot\` should contain
+     only well-known files like `bootmgfw.efi`, `bootmgr.efi`, `memtest.efi`).
+
+7. **BitLocker detection** (Win8+ — also checked in SP29):  
+   If `C:\Windows\System32\winload.exe` is accessible but the `Users\` folder
+   is not, or the hive files are missing/truncated, BitLocker may be active.
+   Also check: `HKLM\SYSTEM\CurrentControlSet\Control\BitLockerStatus`
+   and presence of `C:\$BitLocker Recovery Key*.txt`.
+   Report as an informational CRITICAL finding if detected.
+
 ## Risk scoring
 
 | Signal | Score delta |
@@ -44,6 +68,9 @@ boot-time drivers, and EFI partition contents.
 | Extra BCD boot entry | +35 |
 | `winload.exe` or `ntoskrnl.exe` missing/replaced | +60 |
 | Boot-start driver from non-system path | +55 |
+| Unexpected file in `\EFI\` partition | +45 |
+| Non-Microsoft EFI subdirectory (unknown vendor) | +30 |
+| BitLocker detected | Informational CRITICAL |
 | Standard Vista MBR hash confirmed | −10 |
 
 ## Notes
