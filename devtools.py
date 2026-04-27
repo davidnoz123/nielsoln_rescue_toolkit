@@ -65,6 +65,7 @@ UPDATE_FILES = [
     "modules/m09_thermal_health.py",
     "modules/m15_upgrade_advisor.py",
     "modules/m18_clamav_scan.py",
+    "modules/m23_logon_audit.py",
 ]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
@@ -236,10 +237,10 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
+    action = "run_module"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "refactor: dynamic module dispatch; modules/ subfolder; run/load/status commands"
+    commit_message = "feat: m23_logon_audit — Security.evtx logon/lockout/password analysis"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely
@@ -249,7 +250,7 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m06_software_inventory"
+    module_name = "m23_logon_audit"
     module_args = ["--target", "/mnt/windows"]
 
     # ---------------------------------------------------

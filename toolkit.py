@@ -799,6 +799,7 @@ _UPDATE_FILES = [
     "modules/m09_thermal_health.py",
     "modules/m15_upgrade_advisor.py",
     "modules/m18_clamav_scan.py",
+    "modules/m23_logon_audit.py",
 ]
 
 
