@@ -36,9 +36,11 @@ Operations
 import base64
 import gzip
 import hashlib
+import os
 import pathlib
 import subprocess
 import sys
+import tempfile
 
 # ---------------------------------------------------------------------------
 # Configuration — edit these before running
@@ -71,18 +73,29 @@ _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
 # Helpers
 # ---------------------------------------------------------------------------
 
+# SSH connection multiplexing — one passphrase prompt per devtools run.
+# ControlMaster=auto: first call creates the socket; subsequent calls reuse it.
+# ControlPersist=10m: master stays alive 10 minutes after the last client.
+_CM_SOCKET = os.path.join(tempfile.gettempdir(), f"ssh_cm_{HOST}_{PORT}")
+_CM_OPTS   = [
+    "-o", "ControlMaster=auto",
+    "-o", f"ControlPath={_CM_SOCKET}",
+    "-o", "ControlPersist=10m",
+]
+
+
 def _ssh_args(extra: list = None) -> list:
     """Return base SSH argument list (without command)."""
-    args = ["ssh", "-p", str(PORT), "-i", KEY, "-o", "StrictHostKeyChecking=no",
-            f"root@{HOST}"]
+    args = ["ssh", "-p", str(PORT), "-i", KEY,
+            "-o", "StrictHostKeyChecking=no"] + _CM_OPTS + [f"root@{HOST}"]
     if extra:
         args += extra
     return args
 
 
 def _scp_args(src: str, dst: str) -> list:
-    return ["scp", "-O", "-P", str(PORT), "-i", KEY, "-o", "StrictHostKeyChecking=no",
-            src, dst]
+    return (["scp", "-O", "-P", str(PORT), "-i", KEY,
+             "-o", "StrictHostKeyChecking=no"] + _CM_OPTS + [src, dst])
 
 
 def encode_script(source: str) -> str:
