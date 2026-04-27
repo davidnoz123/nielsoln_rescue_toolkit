@@ -1,0 +1,29 @@
+# Ideas Grouped by Category
+
+## Hardware health
+- BATTERY_HEALTH
+- DISK_HEALTH
+- CMOS_HEALTH
+- THERMAL_HEALTH
+- MEMORY_HEALTH
+
+## Hardware profile and upgrades
+- HARDWARE_PROFILE
+- UPGRADE_ADVISOR
+- CLONE_READY
+- SYSTEM_LIFESPAN
+
+## Software and cleanup
+- SOFTWARE_INVENTORY
+- USAGE_ANALYSIS
+- BLOAT_DETECTION
+- SERVICE_ANALYSIS
+
+## Migration and pricing
+- OFFICE_MIGRATION
+- ONLINE_LOOKUPS
+- COST_ESTIMATE
+
+## Reporting and workflow
+- SYSTEM_SUMMARY
+- ACTION_PLAN
