@@ -58,6 +58,7 @@ UPDATE_FILES = [
     "modules/m02_detect.py",
     "modules/m03_triage.py",
     "modules/m04_hardware_profile.py",
+    "modules/m05_disk_health.py",
     "modules/m18_clamav_scan.py",
 ]
 
@@ -219,7 +220,7 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
+    action = "run_module"          # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
     commit_message = "refactor: dynamic module dispatch; modules/ subfolder; run/load/status commands"
@@ -232,7 +233,7 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m04_hardware_profile"
+    module_name = "m05_disk_health"
     module_args = []
 
     # ---------------------------------------------------
