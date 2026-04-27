@@ -37,6 +37,7 @@ import base64
 import gzip
 import hashlib
 import pathlib
+import socket
 import subprocess
 import sys
 
@@ -92,6 +93,92 @@ def encode_script(source: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# SSH Relay client — passphrase-free if ssh_relay.py is running
+# ---------------------------------------------------------------------------
+
+RELAY_PORT = 19022
+RELAY_ADDR = "127.0.0.1"
+
+
+def _relay_call(op: str, **kwargs):
+    """Send one command to the SSH relay daemon.  Returns response dict or None."""
+    import json as _json
+    req = {"op": op, **kwargs}
+    try:
+        with socket.create_connection((RELAY_ADDR, RELAY_PORT), timeout=3) as sock:
+            sock.sendall((_json.dumps(req) + "\n").encode())
+            sock.shutdown(socket.SHUT_WR)
+            data = b""
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                data += chunk
+        return _json.loads(data.decode())
+    except (ConnectionRefusedError, OSError, ValueError):
+        return None
+
+
+def _relay_stream(op: str, **kwargs) -> bool:
+    """Like _relay_call but streams stdout/stderr lines to the terminal.
+
+    Returns True if the relay handled it, False if unavailable (caller should
+    fall back to direct subprocess).
+    """
+    import json as _json
+    req = {"op": op, "stream": True, **kwargs}
+    try:
+        with socket.create_connection((RELAY_ADDR, RELAY_PORT), timeout=3) as sock:
+            sock.sendall((_json.dumps(req) + "\n").encode())
+            sock.shutdown(socket.SHUT_WR)
+            buf = b""
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    if not line:
+                        continue
+                    msg = _json.loads(line)
+                    if msg.get("type") == "out":
+                        sys.stdout.write(msg["data"])
+                        sys.stdout.flush()
+                    elif msg.get("type") == "err":
+                        sys.stderr.write(msg["data"])
+                        sys.stderr.flush()
+                    elif msg.get("done"):
+                        return True
+        return True
+    except (ConnectionRefusedError, OSError, ValueError):
+        return False
+
+
+def _ssh_run(cmd: str, stdin_data: bytes = None) -> None:
+    """Run an SSH command, using the relay if available, else direct subprocess."""
+    stdin_b64 = base64.b64encode(stdin_data).decode() if stdin_data else None
+    if _relay_stream("ssh", cmd=cmd, stdin_b64=stdin_b64):
+        return
+    # Fallback — prompts for passphrase
+    kwargs = {"input": stdin_data} if stdin_data is not None else {}
+    subprocess.run(_ssh_args([cmd]), **kwargs)
+
+
+def _scp_run(local: str, remote: str) -> None:
+    """SCP a local file to the device, using the relay if available."""
+    resp = _relay_call("scp_put", local=local, remote=remote)
+    if resp is not None:
+        if resp.get("out"):
+            sys.stdout.write(resp["out"])
+        if resp.get("err"):
+            sys.stderr.write(resp["err"])
+        return
+    # Fallback
+    subprocess.run(_scp_args(local, f"root@{HOST}:{remote}"))
+
+
+# ---------------------------------------------------------------------------
 # Operations
 # ---------------------------------------------------------------------------
 
@@ -136,14 +223,14 @@ def run_remote(script_path: str) -> None:
         f"cd {USB_PATH} && "
         f"python3 bootstrap.py --no-update exec --payload {payload}"
     )
-    subprocess.run(_ssh_args([remote_cmd]))
+    _ssh_run(remote_cmd)
 
 
 def push_file(local_path: str, remote_subpath: str = "") -> None:
     """SCP *local_path* to the USB root (or a subpath below it) on the remote host."""
     dst_dir = f"{USB_PATH}/{remote_subpath}".rstrip("/")
-    dst = f"root@{HOST}:{dst_dir}/"
-    subprocess.run(_scp_args(local_path, dst))
+    remote = f"{dst_dir}/{pathlib.Path(local_path).name}"
+    _scp_run(local_path, remote)
 
 
 def push_module(name: str) -> None:
@@ -152,8 +239,8 @@ def push_module(name: str) -> None:
     Creates the remote modules/ directory if absent via SSH.
     """
     remote_modules = f"{USB_PATH}/modules"
-    subprocess.run(_ssh_args([f"mkdir -p {remote_modules}"]))
-    subprocess.run(_scp_args(f"modules/{name}.py", f"root@{HOST}:{remote_modules}/"))
+    _ssh_run(f"mkdir -p {remote_modules}")
+    _scp_run(f"modules/{name}.py", f"{remote_modules}/{name}.py")
     print(f"Pushed modules/{name}.py to device.")
 
 
@@ -181,8 +268,8 @@ def run_module(name: str, module_argv: list = None) -> None:
         f"cd {USB_PATH} && "
         f"python3 bootstrap.py --no-update run {name}{sep}{argv_str}"
     )
-    with open(local_path, "rb") as fh:
-        subprocess.run(_ssh_args([remote_cmd]), stdin=fh)
+    stdin_data = local_path.read_bytes()
+    _ssh_run(remote_cmd, stdin_data=stdin_data)
 
 
 def release(message: str) -> None:
@@ -236,7 +323,7 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
+    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status"
 
     # --- release config ---
     commit_message = "feat: m25 full channel discovery + progress logging; docs: AGENTS deploy method rule"
@@ -265,6 +352,21 @@ def main() -> None:
         run_module(module_name, module_args)
     elif action == "setup_ssh_agent":
         setup_ssh_agent()
+    elif action == "relay":
+        import runpy as _rp
+        _rp._run_module_as_main("ssh_relay")
+    elif action == "relay_status":
+        resp = _relay_call("status")
+        if resp is None:
+            print("Relay is NOT running (no response on 127.0.0.1:19022).")
+        else:
+            import datetime as _dt
+            uptime = resp.get("uptime_s", 0)
+            h, m, s = uptime // 3600, (uptime % 3600) // 60, uptime % 60
+            print(f"Relay UP  uptime={h:02d}:{m:02d}:{s:02d}  log={resp.get('log_path','?')}")
+            print()
+            for line in resp.get("recent", [])[-30:]:
+                print(line)
     else:
         print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent")
         sys.exit(1)

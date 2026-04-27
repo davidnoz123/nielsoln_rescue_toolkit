@@ -178,6 +178,10 @@ def load_system_summary() -> dict:
     d = _load("system_summary_*.json")
     return d or {}
 
+def load_os_profile() -> dict:
+    d = _load("os_profile_*.json")
+    return d or {}
+
 # ---------------------------------------------------------------------------
 # Markdown sections
 # ---------------------------------------------------------------------------
@@ -238,7 +242,35 @@ def section_hardware() -> str:
     storage  = hw.get("storage", [])
     network  = hw.get("network", [])
     gpu      = hw.get("gpu", [])
-    bios     = hw.get("bios", {})
+    bios     = hw.get("bios", {}) if isinstance(hw.get("bios"), dict) else {}
+    boot_mode = hw.get("boot_mode", "")
+
+    # CPU field names differ slightly across m04 versions
+    cpu_model   = _na(cpu.get("model"))
+    cpu_arch    = _na(cpu.get("architecture"))
+    cpu_phys    = cpu.get("physical_cores") or cpu.get("cores")
+    cpu_logical = cpu.get("logical_cores") or cpu.get("threads")
+    cores_str   = (f"{cpu_phys} physical / {cpu_logical} logical"
+                   if cpu_phys and cpu_logical else _na(None))
+
+    # RAM
+    ram_total  = _na(ram.get("total_gib"))
+    ram_type   = _na(ram.get("type"))
+    ram_speed  = _na(ram.get("speed"))
+    ram_slots_p = ram.get("slots_populated", "")
+    ram_slots_t = ram.get("slots_total", "")
+    ram_slots_str = (f"{ram_slots_p} of {ram_slots_t} slots used"
+                     if ram_slots_p not in ("", "unknown") else "")
+
+    # BIOS
+    bios_vendor  = _na(bios.get("vendor"))
+    bios_version = _na(bios.get("version"))
+    bios_date    = _na(bios.get("date"))
+    bios_str     = bios_date
+    if bios_vendor not in ("N/A", "?") or bios_version not in ("N/A", "?"):
+        bios_str = f"{bios_vendor}  v{bios_version}  ({bios_date})"
+    if boot_mode:
+        bios_str += f"  — {boot_mode}"
 
     lines = [
         "## Hardware",
@@ -249,12 +281,15 @@ def section_hardware() -> str:
         f"| Model | {_na(sys_info.get('product_name'))} {_str(sys_info.get('product_version'), '')} |",
         f"| Serial number | {_na(sys_info.get('serial_number'))} |",
         f"| Form factor | {_na(sys_info.get('form_factor') or hw.get('form_factor'))} |",
-        f"| BIOS date | {_na(bios.get('date') if isinstance(bios, dict) else None)} |",
-        f"| CPU | {_na(cpu.get('model') if isinstance(cpu, dict) else None)} |",
-        f"| CPU cores / threads | {_na(cpu.get('cores') if isinstance(cpu, dict) else None)} / {_na(cpu.get('threads') if isinstance(cpu, dict) else None)} |",
-        f"| RAM | {_na(ram.get('total_gib') if isinstance(ram, dict) else None)} GiB |",
-        f"",
+        f"| BIOS | {bios_str} |",
+        f"| CPU | {cpu_model} |",
+        f"| CPU architecture | {cpu_arch} |",
+        f"| CPU cores / threads | {cores_str} |",
+        f"| RAM | {ram_total} GiB  ({ram_type} / {ram_speed}) |",
     ]
+    if ram_slots_str:
+        lines.append(f"| RAM slots | {ram_slots_str} |")
+    lines.append("")
 
     if storage:
         lines += ["**Storage devices:**", ""]
@@ -289,6 +324,119 @@ def section_hardware() -> str:
         lines.append("")
 
     return "\n".join(lines)
+
+def section_os_profile() -> str:
+    op = load_os_profile()
+    if not op:
+        return "## Windows OS Profile\n\n_No OS profile data available. Run m26_os_profile._\n\n"
+
+    os_info = op.get("os", {})
+    drivers = op.get("drivers", [])
+    kernel_svcs = op.get("kernel_services", [])
+
+    product   = _na(os_info.get("product_name"))
+    version   = _na(os_info.get("version"))
+    build     = _na(os_info.get("build"))
+    sp        = _str(os_info.get("service_pack"), "")
+    bitness   = _na(os_info.get("os_bitness"))
+    installed = _na(os_info.get("install_date"))
+    owner     = _str(os_info.get("registered_owner"), "")
+    org       = _str(os_info.get("registered_org"), "")
+
+    # CPU bitness from hardware profile
+    hw = load_hardware()
+    cpu_arch = _na(hw.get("cpu", {}).get("architecture") if isinstance(hw.get("cpu"), dict) else None)
+
+    lines = [
+        "## Windows OS Profile",
+        "",
+        f"| Field | Value |",
+        f"|---|---|",
+        f"| OS Edition | {product} |",
+        f"| Version / Build | {version} / {build} |",
+    ]
+    if sp:
+        lines.append(f"| Service Pack | {sp} |")
+    lines += [
+        f"| OS Bitness | {bitness} |",
+        f"| CPU Architecture | {cpu_arch} |",
+        f"| Install Date | {installed} |",
+    ]
+    if owner:
+        lines.append(f"| Registered Owner | {owner} |")
+    if org:
+        lines.append(f"| Organisation | {org} |")
+    lines.append("")
+
+    return "\n".join(lines)
+
+def section_drivers() -> str:
+    op = load_os_profile()
+    if not op:
+        return ""
+
+    drivers     = op.get("drivers", [])
+    kernel_svcs = op.get("kernel_services", [])
+
+    if not drivers and not kernel_svcs:
+        return "## Drivers\n\n_No driver data available._\n\n"
+
+    lines = [
+        "## Drivers",
+        "",
+        f"**{len(drivers)} kernel driver files** found in `System32\\drivers\\`  ",
+        f"**{len(kernel_svcs)} kernel/filesystem driver services** in registry",
+        "",
+    ]
+
+    # Flag drivers with unusual characteristics
+    # (very small = likely stub; very large = unusual for a driver)
+    flagged = [d for d in drivers if d.get("size_kb", 0) > 5000]
+    if flagged:
+        lines += [
+            "**Unusually large driver files (> 5 MB):**",
+            "",
+            "| File | Size |",
+            "|---|---|",
+        ]
+        for d in flagged:
+            lines.append(f"| `{d['name']}` | {d['size_kb']:.0f} KB |")
+        lines.append("")
+
+    # Services with non-standard image paths (not \\SystemRoot\\ or \\system32\\)
+    unusual_svcs = [
+        s for s in kernel_svcs
+        if s.get("image_path") and
+        not any(x in s["image_path"].lower()
+                for x in ("\\systemroot\\", "system32", "\\windows\\", ""))
+        and s["image_path"].lower() not in ("", "n/a", "?")
+    ]
+    if unusual_svcs:
+        lines += [
+            "**Kernel services with non-standard image paths:**",
+            "",
+            "| Service | Path |",
+            "|---|---|",
+        ]
+        for s in unusual_svcs[:20]:
+            lines.append(f"| `{s['name']}` | `{s['image_path']}` |")
+        lines.append("")
+
+    # Full driver list in collapsible block
+    if drivers:
+        lines += [
+            "<details>",
+            "<summary>Full driver file list (click to expand)</summary>",
+            "",
+            "| File | Size (KB) | Modified |",
+            "|---|---|---|",
+        ]
+        for d in drivers:
+            lines.append(f"| `{d['name']}` | {d['size_kb']:.0f} | {d['modified']} |")
+        lines += ["", "</details>", ""]
+
+    return "\n".join(lines)
+
 
 def section_disk() -> str:
     disks = load_disk()
@@ -788,6 +936,115 @@ def section_footer() -> str:
         "",
     ])
 
+def section_chatgpt_context() -> str:
+    """
+    A plain-text block formatted for pasting into ChatGPT (or similar)
+    to get an independent assessment of the hardware's historical tier and value.
+    """
+    hw = load_hardware()
+    op = load_os_profile()
+    disks = load_disk()
+
+    sys_info  = hw.get("system", {}) if hw else {}
+    cpu       = hw.get("cpu", {}) if hw else {}
+    ram       = hw.get("ram", {}) if hw else {}
+    gpu_list  = hw.get("gpu", []) if hw else []
+    bios      = hw.get("bios", {}) if isinstance(hw.get("bios"), dict) else {}
+    boot_mode = hw.get("boot_mode", "") if hw else ""
+    form      = hw.get("form_factor", "") if hw else ""
+
+    os_info   = op.get("os", {}) if op else {}
+
+    # Estimate release year from BIOS date (format: MM/DD/YYYY or similar)
+    release_year = "unknown"
+    bios_date = bios.get("date", "")
+    if bios_date and len(bios_date) >= 4:
+        # Try YYYY at end or start
+        import re as _re
+        m = _re.search(r"(20\d{2}|19\d{2})", bios_date)
+        if m:
+            release_year = m.group(1)
+    # Cross-check with OS install date
+    install_date = os_info.get("install_date", "")
+    if install_date and release_year == "unknown" and len(install_date) >= 4:
+        release_year = install_date[:4]
+
+    mfr   = _str(sys_info.get("manufacturer"), "Unknown manufacturer")
+    model = _str(sys_info.get("product_name"), "Unknown model")
+    cpu_model = _str(cpu.get("model"), "unknown CPU")
+    cpu_arch  = _str(cpu.get("architecture"), "")
+    cpu_cores = cpu.get("physical_cores") or cpu.get("cores") or "?"
+    ram_gib   = _str(ram.get("total_gib"), "?")
+    ram_type  = _str(ram.get("type"), "")
+    ram_speed = _str(ram.get("speed"), "")
+
+    gpu_str = "; ".join(
+        (g.get("model") or str(g)) if isinstance(g, dict) else str(g)
+        for g in (gpu_list if isinstance(gpu_list, list) else [gpu_list])
+    ) or "unknown"
+
+    disk_parts = []
+    for d in disks:
+        size = d.get("size_gib") or d.get("size") or "?"
+        dtype = d.get("type") or d.get("media_type") or "disk"
+        dmodel = d.get("model") or ""
+        disk_parts.append(f"{size} GB {dtype}" + (f" ({dmodel})" if dmodel else ""))
+    disk_str = "; ".join(disk_parts) if disk_parts else "unknown"
+
+    os_edition = _str(os_info.get("product_name"), "Windows Vista")
+    os_bitness = _str(os_info.get("os_bitness"), "")
+    os_str     = f"{os_edition}{(' ' + os_bitness) if os_bitness else ''}"
+
+    ram_detail = ram_gib + " GiB"
+    if ram_type not in ("", "N/A", "?", "unknown"):
+        ram_detail += f"  {ram_type}"
+    if ram_speed not in ("", "N/A", "?", "unknown"):
+        ram_detail += f" @ {ram_speed}"
+
+    cpu_detail = cpu_model
+    if cpu_arch:
+        cpu_detail += f"  ({cpu_arch})"
+    if cpu_cores and cpu_cores != "?":
+        cpu_detail += f"  {cpu_cores} core(s)"
+
+    lines = [
+        "---",
+        "",
+        "## Hardware Context (paste this into ChatGPT)",
+        "",
+        "> Copy everything below this line and paste it into ChatGPT to get an",
+        "> independent assessment of this hardware's historical tier and value.",
+        "",
+        "---",
+        "",
+        "Please analyse the following hardware specifications for a laptop.",
+        "Answer these questions:",
+        "",
+        "1. What performance tier was this laptop when it was released —",
+        "   budget, mid-range, or high-end?",
+        "2. How does each component (CPU, RAM, storage, GPU) compare to what was",
+        "   typical for a laptop of this class at the time of release?",
+        "3. What tasks was this machine well-suited for when it was new?",
+        "4. Is it still usable today, and for what kinds of tasks?",
+        "5. Roughly how much would this laptop have cost new, and how does",
+        "   that reflect its value to the original owner?",
+        "",
+        f"**Estimated release year:** {release_year}",
+        f"**Manufacturer / Model:** {mfr} {model}",
+        f"**CPU:** {cpu_detail}",
+        f"**RAM:** {ram_detail}",
+        f"**Storage:** {disk_str}",
+        f"**GPU / Display adapter:** {gpu_str}",
+        f"**OS installed:** {os_str}",
+        f"**Form factor:** {form or 'laptop'}",
+        f"**BIOS / Firmware:** {bios.get('vendor', '')} {bios.get('version', '')} "
+        f"dated {bios.get('date', 'unknown')} — {boot_mode or 'Legacy BIOS'}".strip(),
+        "",
+        "---",
+        "",
+    ]
+    return "\n".join(lines)
+
 # ---------------------------------------------------------------------------
 # TSV generator
 # ---------------------------------------------------------------------------
@@ -868,6 +1125,8 @@ def main():
     md = "\n".join([
         section_header(),
         section_hardware(),
+        section_os_profile(),
+        section_drivers(),
         section_disk(),
         section_antivirus(),
         section_logon(),
@@ -877,6 +1136,7 @@ def main():
         section_thermal(),
         section_upgrade(),
         section_next_steps(),
+        section_chatgpt_context(),
         section_footer(),
     ])
 
