@@ -173,6 +173,18 @@ def _parse_nvme_health(output: str) -> dict[str, str]:
     return result
 
 
+def _find_smartctl() -> str:
+    """Return the full path to smartctl, or '' if not found."""
+    for candidate in ["/usr/sbin/smartctl", "/sbin/smartctl", "/usr/bin/smartctl"]:
+        if Path(candidate).exists():
+            return candidate
+    # Last resort: try PATH
+    rc, out = _run(["which", "smartctl"])
+    if rc == 0 and out:
+        return out.splitlines()[0].strip()
+    return ""
+
+
 def _assess_device(name: str) -> dict:
     basics = _device_basics(name)
     dev_path = f"/dev/{name}"
@@ -188,9 +200,11 @@ def _assess_device(name: str) -> dict:
         "clone_urgency": "none",
     })
 
+    smartctl = _find_smartctl()
+
     # --- Overall SMART health ---
-    rc_h, out_h = _run(["smartctl", "-H", dev_path])
-    if rc_h == -1:
+    rc_h, out_h = _run([smartctl, "-H", dev_path]) if smartctl else (-1, "")
+    if not smartctl or rc_h == -1:
         result["overall_verdict"] = "smartctl not available"
         result["recommendation"] = "Install smartmontools to assess disk health."
         return result
@@ -205,7 +219,7 @@ def _assess_device(name: str) -> dict:
         result["overall_health"] = "unknown"
 
     # --- Detailed SMART attributes ---
-    rc_a, out_a = _run(["smartctl", "-A", dev_path])
+    rc_a, out_a = _run([smartctl, "-A", dev_path])
     is_nvme = name.startswith("nvme")
 
     if is_nvme:
