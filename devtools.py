@@ -36,11 +36,9 @@ Operations
 import base64
 import gzip
 import hashlib
-import os
 import pathlib
 import subprocess
 import sys
-import tempfile
 
 # ---------------------------------------------------------------------------
 # Configuration — edit these before running
@@ -74,29 +72,18 @@ _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
 # Helpers
 # ---------------------------------------------------------------------------
 
-# SSH connection multiplexing — one passphrase prompt per devtools run.
-# ControlMaster=auto: first call creates the socket; subsequent calls reuse it.
-# ControlPersist=10m: master stays alive 10 minutes after the last client.
-_CM_SOCKET = os.path.join(tempfile.gettempdir(), f"ssh_cm_{HOST}_{PORT}")
-_CM_OPTS   = [
-    "-o", "ControlMaster=auto",
-    "-o", f"ControlPath={_CM_SOCKET}",
-    "-o", "ControlPersist=10m",
-]
-
-
 def _ssh_args(extra: list = None) -> list:
     """Return base SSH argument list (without command)."""
     args = ["ssh", "-p", str(PORT), "-i", KEY,
-            "-o", "StrictHostKeyChecking=no"] + _CM_OPTS + [f"root@{HOST}"]
+            "-o", "StrictHostKeyChecking=no", f"root@{HOST}"]
     if extra:
         args += extra
     return args
 
 
 def _scp_args(src: str, dst: str) -> list:
-    return (["scp", "-O", "-P", str(PORT), "-i", KEY,
-             "-o", "StrictHostKeyChecking=no"] + _CM_OPTS + [src, dst])
+    return ["scp", "-O", "-P", str(PORT), "-i", KEY,
+            "-o", "StrictHostKeyChecking=no", src, dst]
 
 
 def encode_script(source: str) -> str:
@@ -173,17 +160,29 @@ def push_module(name: str) -> None:
 def run_module(name: str, module_argv: list = None) -> None:
     """Push modules/<name>.py to device then run it via bootstrap run.
 
+    Streams the file over SSH stdin (cat > remote_path) so the whole
+    operation completes in ONE SSH connection — only ONE passphrase prompt.
+
     *module_argv* is a list of strings passed after ``--`` to the module.
     Example: run_module("m01_persistence_scan", ["--target", "/mnt/windows"])
     """
-    push_module(name)
+    local_path = pathlib.Path(f"modules/{name}.py")
+    remote_modules = f"{USB_PATH}/modules"
+    remote_file = f"{remote_modules}/{name}.py"
+
     argv_str = " ".join(module_argv) if module_argv else ""
     sep = " -- " if argv_str else ""
+
+    # cat reads from stdin (the local file), writes to remote_file, then runs
     remote_cmd = (
+        f"mkdir -p {remote_modules} && "
+        f"cat > {remote_file} && "
+        f"echo 'Pushed {name}.py to device.' && "
         f"cd {USB_PATH} && "
         f"python3 bootstrap.py --no-update run {name}{sep}{argv_str}"
     )
-    subprocess.run(_ssh_args([remote_cmd]))
+    with open(local_path, "rb") as fh:
+        subprocess.run(_ssh_args([remote_cmd]), stdin=fh)
 
 
 def release(message: str) -> None:
@@ -237,10 +236,10 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "run_module"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
+    action = "release"                # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "feat: m23_logon_audit — Security.evtx logon/lockout/password analysis"
+    commit_message = "feat: m23_logon_audit + robust stale-lock self-heal in toolkit"
 
     # --- run_remote config ---
     remote_script = "svc_diag.py"   # local path to the script to run remotely

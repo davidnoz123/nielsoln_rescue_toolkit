@@ -843,20 +843,49 @@ def load_module(root: Path, name: str):
     return mod
 
 
+def _pid_alive(pid: int) -> bool:
+    """Return True if *pid* is a running process (Linux/macOS only)."""
+    import os as _os
+    try:
+        _os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
 def acquire_run_lock(root: Path, command: str) -> Path:
-    """Write .lock on the USB root. Raises RuntimeError if already locked."""
+    """Write .lock on the USB root. Raises RuntimeError if already locked.
+
+    If the lock file references a PID that is no longer running the stale
+    lock is removed automatically so the caller can proceed without manual
+    intervention.
+    """
     lock_path = root / ".lock"
     if lock_path.exists():
+        stale = False
         try:
             info = json.loads(lock_path.read_text())
-            msg = (
-                f"Another operation is already running: '{info.get('command', '?')}' "
-                f"(started {info.get('started', '?')}, PID {info.get('pid', '?')}). "
-                f"If the process is dead, remove {lock_path} and retry."
-            )
+            pid = info.get("pid")
+            if pid is not None and not _pid_alive(int(pid)):
+                stale = True
+                print(
+                    f"[lock] Stale lock removed (PID {pid} is no longer running). "
+                    f"Previous command: '{info.get('command', '?')}' "
+                    f"started {info.get('started', '?')}."
+                )
+                lock_path.unlink()
+            else:
+                msg = (
+                    f"Another operation is already running: '{info.get('command', '?')}' "
+                    f"(started {info.get('started', '?')}, PID {pid}). "
+                    f"If the process is dead, remove {lock_path} and retry."
+                )
         except Exception:
-            msg = f"Lock file exists: {lock_path}. Remove it if no operation is running."
-        raise RuntimeError(msg)
+            stale = True
+            print(f"[lock] Unreadable lock file removed: {lock_path}")
+            lock_path.unlink(missing_ok=True)
+        if not stale:
+            raise RuntimeError(msg)
     import os as _os
     from datetime import datetime as _dt, timezone as _tz
     lock_path.write_text(json.dumps({
