@@ -216,14 +216,17 @@ def run_remote(script_path: str) -> None:
     The script runs inside the USB root directory with ``root`` (Path) and
     ``Path`` available as globals.  stdout/stderr stream directly to your
     terminal so the passphrase prompt works normally.
+
+    The payload is sent via stdin (not as a CLI arg) to avoid ARG_MAX limits
+    on large scripts.
     """
     code = pathlib.Path(script_path).read_text(encoding="utf-8")
     payload = encode_script(code)
     remote_cmd = (
         f"cd {USB_PATH} && "
-        f"python3 bootstrap.py --no-update exec --payload {payload}"
+        f"python3 bootstrap.py --no-update exec"
     )
-    _ssh_run(remote_cmd)
+    _ssh_run(remote_cmd, stdin_data=payload.encode("ascii"))
 
 
 def push_file(local_path: str, remote_subpath: str = "") -> None:
@@ -336,7 +339,7 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m25_event_archive"
+    module_name = "m26_os_profile"
     module_args = ["--target", "/mnt/windows"]
 
     # ---------------------------------------------------

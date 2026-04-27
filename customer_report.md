@@ -20,10 +20,11 @@
 | Model | F5GL 1.0 |
 | Serial number | NF1S8C05960013 |
 | Form factor | laptop |
-| BIOS date | 11/20/2008 |
+| BIOS | American Megatrends Inc.  v213  (11/20/2008)  — BIOS/Legacy |
 | CPU | Intel(R) Pentium(R) Dual  CPU  T3400  @ 2.16GHz |
-| CPU cores / threads | N/A / N/A |
-| RAM | 3.6 GiB |
+| CPU architecture | x86_64 |
+| CPU cores / threads | 2 physical / 2 logical |
+| RAM | 3.6 GiB  (N/A / N/A) |
 
 **Storage devices:**
 
@@ -42,6 +43,310 @@
 - enp0s10 (forcedeth)
 - wlp6s0 (ath9k)
 
+## Windows OS Profile
+
+| Field | Value |
+|---|---|
+| OS Edition | Windows Vista (TM) Home Premium |
+| Version / Build | 6.0 / 6001 |
+| OS Bitness | 32-bit |
+| CPU Architecture | x86_64 |
+| Install Date | 2008-12-16 |
+| Registered Owner | Garnet Tregonning |
+
+## Drivers
+
+**274 kernel driver files** found in `System32\drivers\`  
+**120 kernel/filesystem driver services** in registry
+
+**Unusually large driver files (> 5 MB):**
+
+| File | Size |
+|---|---|
+| `nvlddmkm.sys` | 7371 KB |
+
+<details>
+<summary>Full driver file list (click to expand)</summary>
+
+| File | Size (KB) | Modified |
+|---|---|---|
+| `1394bus.sys` | 52 | 2008-01-21 |
+| `AGP440.sys` | 55 | 2008-01-21 |
+| `AGRSM.sys` | 1176 | 2008-03-21 |
+| `AMDAGP.SYS` | 56 | 2008-01-21 |
+| `ATKACPI.sys` | 8 | 2006-12-14 |
+| `BrFiltLo.sys` | 13 | 2006-11-02 |
+| `BrFiltUp.sys` | 5 | 2006-11-02 |
+| `BrSerId.sys` | 70 | 2006-11-02 |
+| `BrSerWdm.sys` | 61 | 2006-11-02 |
+| `BrUsbMdm.sys` | 12 | 2006-11-02 |
+| `BrUsbSer.sys` | 12 | 2006-11-02 |
+| `CRFILTER.sys` | 6 | 2008-04-07 |
+| `Classpnp.sys` | 125 | 2008-01-21 |
+| `CmBatt.sys` | 14 | 2008-01-21 |
+| `Diskdump.sys` | 20 | 2008-01-21 |
+| `Dumpata.sys` | 29 | 2008-01-21 |
+| `E1G60I32.sys` | 116 | 2008-01-21 |
+| `FWPKCLNT.SYS` | 99 | 2008-01-21 |
+| `GAGP30KX.SYS` | 60 | 2008-01-21 |
+| `GEARAspiWDM.sys` | 26 | 2012-08-21 |
+| `HdAudio.sys` | 230 | 2006-11-02 |
+| `HpCISSs.sys` | 40 | 2008-01-21 |
+| `IPMIDrv.sys` | 63 | 2008-01-21 |
+| `MODEMCSA.sys` | 18 | 2008-01-21 |
+| `MegaSR.sys` | 378 | 2008-01-21 |
+| `Mraid35x.sys` | 33 | 2006-11-02 |
+| `NV_AGP.SYS` | 107 | 2008-01-21 |
+| `PEAuth.sys` | 858 | 2006-11-02 |
+| `RDPCDD.sys` | 6 | 2008-01-21 |
+| `RDPENCDD.sys` | 6 | 2008-01-21 |
+| `RNDISMP.sys` | 32 | 2008-01-21 |
+| `RTKVHDA.sys` | 2109 | 2008-08-12 |
+| `SISAGP.SYS` | 55 | 2008-01-21 |
+| `SYMEVENT.SYS` | 83 | 2018-06-23 |
+| `StMp3Rec.sys` | 37 | 2004-12-19 |
+| `Storport.sys` | 121 | 2008-01-21 |
+| `SynTP.sys` | 186 | 2007-08-17 |
+| `TUNMP.SYS` | 15 | 2008-01-21 |
+| `UAGP35.SYS` | 58 | 2008-01-21 |
+| `ULIAGPKX.SYS` | 60 | 2008-01-21 |
+| `USBCAMD.sys` | 25 | 2008-01-21 |
+| `USBCAMD2.sys` | 25 | 2008-01-21 |
+| `USBSTOR.SYS` | 54 | 2008-01-21 |
+| `VIAAGP.SYS` | 56 | 2008-01-21 |
+| `WUDFPf.sys` | 50 | 2008-01-21 |
+| `WUDFRd.sys` | 81 | 2008-01-21 |
+| `Wdf01000.sys` | 492 | 2008-01-21 |
+| `WdfLdr.sys` | 35 | 2008-01-21 |
+| `WpdUsb.sys` | 39 | 2008-01-21 |
+| `acpi.sys` | 261 | 2008-01-21 |
+| `adp94xx.sys` | 413 | 2008-01-21 |
+| `adpahci.sys` | 294 | 2008-01-21 |
+| `adpu160m.sys` | 99 | 2008-01-21 |
+| `adpu320.sys` | 146 | 2008-01-21 |
+| `afd.sys` | 267 | 2011-04-21 |
+| `aliide.sys` | 17 | 2008-01-21 |
+| `amdide.sys` | 18 | 2008-01-21 |
+| `amdk7.sys` | 40 | 2008-01-21 |
+| `amdk8.sys` | 43 | 2008-01-21 |
+| `arc.sys` | 78 | 2008-01-21 |
+| `arcsas.sys` | 78 | 2008-01-21 |
+| `asyncmac.sys` | 17 | 2008-01-21 |
+| `atapi.sys` | 21 | 2008-01-21 |
+| `ataport.sys` | 108 | 2008-01-21 |
+| `athr.sys` | 888 | 2008-04-06 |
+| `battc.sys` | 28 | 2008-01-21 |
+| `bdasup.sys` | 12 | 2008-01-21 |
+| `beep.sys` | 6 | 2008-01-21 |
+| `blbdrive.sys` | 44 | 2008-01-21 |
+| `bowser.sys` | 68 | 2011-02-22 |
+| `bridge.sys` | 92 | 2008-01-21 |
+| `bthmodem.sys` | 39 | 2006-11-02 |
+| `cdfs.sys` | 68 | 2008-01-21 |
+| `cdrom.sys` | 66 | 2008-01-21 |
+| `circlass.sys` | 34 | 2008-01-21 |
+| `cmdide.sys` | 19 | 2008-01-21 |
+| `compbatt.sys` | 20 | 2008-01-21 |
+| `crashdmp.sys` | 36 | 2008-01-21 |
+| `crcdisk.sys` | 24 | 2008-01-21 |
+| `crusoe.sys` | 40 | 2008-01-21 |
+| `dfsc.sys` | 74 | 2011-04-14 |
+| `disk.sys` | 54 | 2008-01-21 |
+| `djsvs.sys` | 70 | 2006-11-02 |
+| `drmk.sys` | 127 | 2008-01-21 |
+| `drmkaud.sys` | 6 | 2008-01-21 |
+| `dxapi.sys` | 13 | 2008-01-21 |
+| `dxg.sys` | 74 | 2008-01-21 |
+| `dxgkrnl.sys` | 610 | 2008-08-02 |
+| `ecache.sys` | 140 | 2008-01-21 |
+| `elxstor.sys` | 335 | 2008-01-21 |
+| `errdev.sys` | 6 | 2008-01-21 |
+| `exfat.sys` | 133 | 2008-01-21 |
+| `fastfat.sys` | 140 | 2008-01-21 |
+| `fdc.sys` | 24 | 2008-01-21 |
+| `fileinfo.sys` | 58 | 2008-01-21 |
+| `filetrace.sys` | 27 | 2008-01-21 |
+| `flpydisk.sys` | 20 | 2008-01-21 |
+| `fltMgr.sys` | 188 | 2008-01-21 |
+| `fs_rec.sys` | 12 | 2008-01-21 |
+| `hdaudbus.sys` | 52 | 2008-01-21 |
+| `hidbth.sys` | 28 | 2006-11-02 |
+| `hidclass.sys` | 38 | 2008-01-21 |
+| `hidir.sys` | 21 | 2006-11-02 |
+| `hidparse.sys` | 25 | 2008-01-21 |
+| `hidusb.sys` | 12 | 2008-01-21 |
+| `http.sys` | 402 | 2010-02-20 |
+| `i2omgmt.sys` | 19 | 2008-01-21 |
+| `i2omp.sys` | 30 | 2008-01-21 |
+| `i8042prt.sys` | 54 | 2008-01-21 |
+| `iaStorV.sys` | 230 | 2008-01-21 |
+| `iirsp.sys` | 41 | 2006-11-02 |
+| `intelide.sys` | 18 | 2008-01-21 |
+| `intelppm.sys` | 40 | 2008-01-21 |
+| `ipfltdrv.sys` | 46 | 2008-01-21 |
+| `ipnat.sys` | 98 | 2008-01-21 |
+| `irda.sys` | 94 | 2008-01-21 |
+| `irenum.sys` | 13 | 2008-01-21 |
+| `isapnp.sys` | 49 | 2008-01-21 |
+| `iteatapi.sys` | 35 | 2006-11-02 |
+| `iteraid.sys` | 35 | 2006-11-02 |
+| `kbdclass.sys` | 35 | 2008-01-21 |
+| `kbdhid.sys` | 16 | 2008-01-21 |
+| `kbfiltr.sys` | 16 | 2008-06-03 |
+| `ks.sys` | 146 | 2008-01-21 |
+| `ksecdd.sys` | 430 | 2009-06-15 |
+| `lltdio.sys` | 46 | 2008-01-21 |
+| `lsi_fc.sys` | 94 | 2008-01-21 |
+| `lsi_sas.sys` | 88 | 2008-01-21 |
+| `lsi_scsi.sys` | 94 | 2008-01-21 |
+| `luafv.sys` | 82 | 2008-01-21 |
+| `mcd.sys` | 18 | 2008-01-21 |
+| `megasas.sys` | 31 | 2008-01-21 |
+| `modem.sys` | 31 | 2008-01-21 |
+| `monitor.sys` | 41 | 2008-01-21 |
+| `mouclass.sys` | 34 | 2008-01-21 |
+| `mouhid.sys` | 16 | 2008-01-21 |
+| `mountmgr.sys` | 56 | 2008-01-21 |
+| `mpio.sys` | 103 | 2008-01-21 |
+| `mpsdrv.sys` | 62 | 2008-01-21 |
+| `mrxdav.sys` | 108 | 2008-01-21 |
+| `mrxsmb.sys` | 104 | 2011-04-29 |
+| `mrxsmb10.sys` | 208 | 2011-07-06 |
+| `mrxsmb20.sys` | 78 | 2011-04-29 |
+| `msahci.sys` | 28 | 2008-01-21 |
+| `msdsm.sys` | 93 | 2008-01-21 |
+| `msfs.sys` | 22 | 2008-01-21 |
+| `msisadrv.sys` | 16 | 2008-01-21 |
+| `msiscsi.sys` | 177 | 2008-01-21 |
+| `mskssrv.sys` | 8 | 2008-01-21 |
+| `mspclock.sys` | 6 | 2008-01-21 |
+| `mspqm.sys` | 5 | 2008-01-21 |
+| `msrpc.sys` | 160 | 2008-01-21 |
+| `mssmbios.sys` | 31 | 2008-01-21 |
+| `mstee.sys` | 6 | 2008-01-21 |
+| `mup.sys` | 49 | 2008-01-21 |
+| `ndis.sys` | 517 | 2008-02-08 |
+| `ndistapi.sys` | 20 | 2008-01-21 |
+| `ndisuio.sys` | 16 | 2008-01-21 |
+| `ndiswan.sys` | 118 | 2008-01-21 |
+| `ndproxy.sys` | 48 | 2008-01-21 |
+| `netbios.sys` | 35 | 2008-01-21 |
+| `netbt.sys` | 180 | 2008-01-21 |
+| `netio.sys` | 218 | 2008-01-21 |
+| `nfrd960.sys` | 44 | 2006-11-02 |
+| `npfs.sys` | 34 | 2008-01-21 |
+| `nsiproxy.sys` | 16 | 2008-01-21 |
+| `ntfs.sys` | 1057 | 2008-01-21 |
+| `ntrigdigi.sys` | 20 | 2006-11-02 |
+| `null.sys` | 4 | 2008-01-21 |
+| `nvhda32v.sys` | 43 | 2008-06-25 |
+| `nvlddmkm.sys` | 7371 | 2008-07-25 |
+| `nvmfdx32.sys` | 1026 | 2008-07-08 |
+| `nvraid.sys` | 101 | 2008-01-21 |
+| `nvsmu.sys` | 16 | 2008-07-22 |
+| `nvstor.sys` | 44 | 2008-01-21 |
+| `nwifi.sys` | 145 | 2008-05-20 |
+| `ohci1394.sys` | 60 | 2008-01-21 |
+| `pacer.sys` | 70 | 2008-04-05 |
+| `parport.sys` | 78 | 2006-11-02 |
+| `partmgr.sys` | 55 | 2008-01-21 |
+| `parvdm.sys` | 8 | 2006-11-02 |
+| `pci.sys` | 148 | 2008-01-21 |
+| `pciide.sys` | 16 | 2008-01-21 |
+| `pciidex.sys` | 44 | 2008-01-21 |
+| `pcmcia.sys` | 164 | 2006-11-02 |
+| `portcls.sys` | 164 | 2008-01-21 |
+| `processr.sys` | 40 | 2008-01-21 |
+| `ql2300.sys` | 1096 | 2008-01-21 |
+| `ql40xx.sys` | 104 | 2006-11-02 |
+| `qwavedrv.sys` | 30 | 2008-01-21 |
+| `rasacd.sys` | 12 | 2008-01-21 |
+| `rasl2tp.sys` | 74 | 2008-01-21 |
+| `raspppoe.sys` | 40 | 2008-01-21 |
+| `raspptp.sys` | 62 | 2008-01-21 |
+| `rassstp.sys` | 68 | 2008-01-21 |
+| `rdbss.sys` | 220 | 2008-01-21 |
+| `rdpdr.sys` | 243 | 2008-01-21 |
+| `rdpwd.sys` | 177 | 2008-01-21 |
+| `rmcast.sys` | 111 | 2008-05-10 |
+| `rootmdm.sys` | 8 | 2008-01-21 |
+| `rspndr.sys` | 59 | 2008-01-21 |
+| `sbp2port.sys` | 75 | 2006-11-02 |
+| `scsiport.sys` | 140 | 2008-01-21 |
+| `sdbus.sys` | 86 | 2008-01-21 |
+| `secdrv.sys` | 20 | 2006-11-02 |
+| `serenum.sys` | 18 | 2006-11-02 |
+| `serial.sys` | 82 | 2006-11-02 |
+| `sermouse.sys` | 20 | 2008-01-21 |
+| `sffdisk.sys` | 13 | 2008-01-21 |
+| `sffp_mmc.sys` | 12 | 2008-01-21 |
+| `sffp_sd.sys` | 12 | 2008-01-21 |
+| `sfloppy.sys` | 13 | 2006-11-02 |
+| `sisraid2.sys` | 40 | 2008-01-21 |
+| `sisraid4.sys` | 73 | 2008-01-21 |
+| `smb.sys` | 65 | 2008-01-21 |
+| `smclib.sys` | 17 | 2008-01-21 |
+| `smserial.sys` | 987 | 2006-11-02 |
+| `sncduvc.sys` | 28 | 2007-05-09 |
+| `snp2uvc.sys` | 1765 | 2008-04-01 |
+| `spldr.sys` | 21 | 2008-01-21 |
+| `spsys.sys` | 666 | 2008-01-21 |
+| `srv.sys` | 298 | 2011-02-18 |
+| `srv2.sys` | 143 | 2011-04-29 |
+| `srvnet.sys` | 100 | 2011-04-29 |
+| `stream.sys` | 52 | 2008-01-21 |
+| `swenum.sys` | 15 | 2008-01-21 |
+| `sym_hi.sys` | 31 | 2006-11-02 |
+| `sym_u3.sys` | 34 | 2006-11-02 |
+| `symc8xx.sys` | 35 | 2006-11-02 |
+| `tape.sys` | 24 | 2008-01-21 |
+| `tcpip.sys` | 878 | 2010-06-16 |
+| `tcpipreg.sys` | 30 | 2008-01-21 |
+| `tdi.sys` | 20 | 2008-01-21 |
+| `tdpipe.sys` | 18 | 2008-01-21 |
+| `tdtcp.sys` | 28 | 2008-01-21 |
+| `tdx.sys` | 70 | 2008-01-21 |
+| `termdd.sys` | 53 | 2008-01-21 |
+| `tssecsrv.sys` | 23 | 2008-01-21 |
+| `tunnel.sys` | 24 | 2010-02-18 |
+| `udfs.sys` | 222 | 2008-01-21 |
+| `uliahci.sys` | 233 | 2008-01-21 |
+| `ulsata.sys` | 96 | 2006-11-02 |
+| `ulsata2.sys` | 113 | 2008-01-21 |
+| `umbus.sys` | 34 | 2008-01-21 |
+| `umpass.sys` | 8 | 2008-01-21 |
+| `usb8023.sys` | 16 | 2008-01-21 |
+| `usbaapl.sys` | 44 | 2015-06-17 |
+| `usbccgp.sys` | 72 | 2008-01-21 |
+| `usbcir.sys` | 67 | 2006-11-02 |
+| `usbd.sys` | 6 | 2008-01-21 |
+| `usbehci.sys` | 38 | 2008-01-21 |
+| `usbhub.sys` | 190 | 2008-01-21 |
+| `usbohci.sys` | 19 | 2008-01-21 |
+| `usbport.sys` | 221 | 2008-01-21 |
+| `usbprint.sys` | 18 | 2008-01-21 |
+| `usbuhci.sys` | 23 | 2008-01-21 |
+| `usbvideo.sys` | 131 | 2008-01-21 |
+| `vga.sys` | 24 | 2008-01-21 |
+| `vgapnp.sys` | 26 | 2008-01-21 |
+| `viac7.sys` | 40 | 2008-01-21 |
+| `viaide.sys` | 20 | 2008-01-21 |
+| `videoprt.sys` | 108 | 2008-01-21 |
+| `volmgr.sys` | 52 | 2008-01-21 |
+| `volmgrx.sys` | 288 | 2008-01-21 |
+| `volsnap.sys` | 223 | 2008-01-21 |
+| `vsmraid.sys` | 128 | 2008-01-21 |
+| `wacompen.sys` | 20 | 2006-11-02 |
+| `wanarp.sys` | 61 | 2008-01-21 |
+| `watchdog.sys` | 32 | 2008-01-21 |
+| `wd.sys` | 22 | 2008-01-21 |
+| `wmiacpi.sys` | 11 | 2008-01-21 |
+| `wmilib.sys` | 18 | 2008-01-21 |
+| `ws2ifsl.sys` | 16 | 2008-01-21 |
+| `yk60x86.sys` | 190 | 2006-11-02 |
+
+</details>
+
 ## Disk Health
 
 ### /dev/sda — ST9250320AS
@@ -59,26 +364,6 @@
 - Command_Timeout = 1 (ID 188)
 
 **Recommendation:** Drive shows warning signs. Plan a clone soon and monitor closely.
-
-### /dev/sdb — OnlyDisk
-
-| | |
-|---|---|
-| SMART health | ? |
-| Overall verdict | ⚪ **?** |
-| Clone urgency | **none** |
-
-**Recommendation:** SMART data unavailable or inconclusive.
-
-### /dev/sdc — OnlyDisk
-
-| | |
-|---|---|
-| SMART health | ? |
-| Overall verdict | ⚪ **?** |
-| Clone urgency | **none** |
-
-**Recommendation:** SMART data unavailable or inconclusive.
 
 ## Antivirus Scan
 
@@ -103,6 +388,18 @@
 
 - No failed logon attempts found in the Security log.
 - 7184 'logon with explicit credentials' event(s) — could be a scheduled task, cached credentials, or malware.
+
+**Event log archive (incremental capture):**
+
+| Channel | Records archived | Last record | Last run |
+|---|---|---|---|
+| Application | 154,383 | 2008-11-19 11:04:22+00:00 | 20260427_093841 |
+| Media Center | 1,105 | 2010-01-18 23:04:24+00:00 | 20260427_094819 |
+| Microsoft-Windows-Kernel-WHEA | 1,565 | 2008-11-19 11:00:53.664219+00:00 | 20260427_094822 |
+| ODiag | 16 | 2009-01-09 04:37:37+00:00 | 20260427_094823 |
+| OSession | 6 | 2009-01-09 04:37:37+00:00 | 20260427_094823 |
+| Security | 89,142 | 2008-11-19 11:01:48.398941+00:00 | 20260427_085315 |
+| System | 211,190 | 2016-12-25 01:37:09+00:00 | 20260427_093107 |
 
 ## Persistence / Autorun Analysis
 
@@ -272,6 +569,39 @@
    machine date from 2016. Updated definitions may find threats that were missed.
 5. **Clean the vents and fan** — the machine is running warm and the CPU is
    throttling. A dust clean-out and fresh thermal paste will help.
+
+---
+
+## Hardware Context (paste this into ChatGPT)
+
+> Copy everything below this line and paste it into ChatGPT to get an
+> independent assessment of this hardware's historical tier and value.
+
+---
+
+Please analyse the following hardware specifications for a laptop.
+Answer these questions:
+
+1. What performance tier was this laptop when it was released —
+   budget, mid-range, or high-end?
+2. How does each component (CPU, RAM, storage, GPU) compare to what was
+   typical for a laptop of this class at the time of release?
+3. What tasks was this machine well-suited for when it was new?
+4. Is it still usable today, and for what kinds of tasks?
+5. Roughly how much would this laptop have cost new, and how does
+   that reflect its value to the original owner?
+
+**Estimated release year:** 2008
+**Manufacturer / Model:** ASUSTeK Computer Inc. F5GL
+**CPU:** Intel(R) Pentium(R) Dual  CPU  T3400  @ 2.16GHz  (x86_64)  2 core(s)
+**RAM:** 3.6 GiB
+**Storage:** 232.9 GB HDD (ST9250320AS)
+**GPU / Display adapter:** VGA compatible controller: NVIDIA Corporation MCP79 [GeForce 8200M G] (rev b1)
+**OS installed:** Windows Vista (TM) Home Premium 32-bit
+**Form factor:** laptop
+**BIOS / Firmware:** American Megatrends Inc. 213 dated 11/20/2008 — BIOS/Legacy
+
+---
 
 ---
 

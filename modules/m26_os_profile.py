@@ -90,11 +90,13 @@ class _Hive:
         if self._data[abs_off + 4: abs_off + 6] != _NK_MAGIC:
             return None
         flags        = _u16(self._data, abs_off + 6)
-        name_len     = _u16(self._data, abs_off + 0x48)
         subkey_count = _u32(self._data, abs_off + 0x18)
-        subkey_list  = _u32(self._data, abs_off + 0x1C)  # stable subkeys list
+        # 0x1C = volatile subkey count; 0x20 = stable subkey list offset
+        subkey_list  = _u32(self._data, abs_off + 0x20)
         value_count  = _u32(self._data, abs_off + 0x28)
         value_list   = _u32(self._data, abs_off + 0x2C)
+        # 0x4C = key name length (2 bytes); 0x4E = class name length; 0x50 = name
+        name_len     = _u16(self._data, abs_off + 0x4C)
         name_bytes   = self._data[abs_off + 0x50: abs_off + 0x50 + name_len]
         # ASCII flag in flags bit 5
         try:
@@ -169,7 +171,7 @@ class _Hive:
         data_len  = _u32(self._data, abs_off + 8)
         data_off  = _u32(self._data, abs_off + 0xC)
         data_type = _u32(self._data, abs_off + 0x10)
-        name_flag = _u16(self._data, abs_off + 0x16)
+        name_flag = _u16(self._data, abs_off + 0x14)  # 0x14 = flags (bit 0: ASCII name)
         name_bytes = self._data[abs_off + 0x18: abs_off + 0x18 + name_len]
         try:
             name = name_bytes.decode("ascii" if name_flag & 1 else "utf-16-le",
