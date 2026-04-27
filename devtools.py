@@ -60,6 +60,7 @@ UPDATE_FILES = [
     "modules/m04_hardware_profile.py",
     "modules/m05_disk_health.py",
     "modules/m09_thermal_health.py",
+    "modules/m15_upgrade_advisor.py",
     "modules/m18_clamav_scan.py",
 ]
 
@@ -234,7 +235,7 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m09_thermal_health"
+    module_name = "m15_upgrade_advisor"
     module_args = []
 
     # ---------------------------------------------------
