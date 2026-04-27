@@ -377,7 +377,7 @@ def main() -> None:
     action = "release"              # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status"
 
     # --- release config ---
-    commit_message = "feat: m25 full channel discovery + progress logging; docs: AGENTS deploy method rule"
+    commit_message = "feat: find_windows_target() auto-detect; m18 no longer requires --target; docs: AGENTS never guess mount path"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
@@ -387,8 +387,8 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m26_os_profile"
-    module_args = ["--target", "/mnt/windows"]
+    module_name = "m18_clamav_scan"
+    module_args = ["--target", "/mnt/windows", "--profile", "quick"]
 
     # ---------------------------------------------------
     if action == "release":

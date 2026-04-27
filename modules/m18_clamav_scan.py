@@ -20,13 +20,14 @@ DESCRIPTION = (
 def run(root: Path, argv: list) -> int:
     """Module protocol entry point — called by `bootstrap run m18_clamav_scan`."""
     import argparse
-    from toolkit import run_scan
+    from toolkit import run_scan, find_windows_target
     p = argparse.ArgumentParser(
         prog="bootstrap run m18_clamav_scan",
         description=DESCRIPTION,
     )
-    p.add_argument("--target", required=True,
-                   help="Path to mounted Windows installation (e.g. /mnt/windows)")
+    p.add_argument("--target",
+                   help="Path to mounted Windows installation. "
+                        "Auto-detected from NTFS mounts if omitted.")
     p.add_argument("--profile", choices=["quick", "thorough"], default="quick",
                    help="quick=exe/script types only (~350 MB RAM)  "
                         "thorough=all files+archives (~600 MB RAM). Default: quick")
@@ -37,9 +38,20 @@ def run(root: Path, argv: list) -> int:
     p.add_argument("--verbose", action="store_true",
                    help="Print each clamscan command line")
     args = p.parse_args(argv)
+
+    if args.target:
+        target = Path(args.target)
+    else:
+        target = find_windows_target()
+        if target is None:
+            print("ERROR: Could not auto-detect a Windows installation on any NTFS mount.")
+            print("       Pass --target explicitly, or check mounts with: findmnt -t ntfs,fuseblk")
+            return 2
+        print(f"[m18] Auto-detected Windows target: {target}")
+
     return run_scan(
         root,
-        Path(args.target),
+        target,
         profile=args.profile,
         no_swap=args.no_swap,
         resume=not args.no_resume,

@@ -413,6 +413,38 @@ def _run_clamscan_on_dir(
     return result.returncode
 
 
+def find_windows_target() -> Optional[Path]:
+    """Locate the mounted offline Windows installation at runtime.
+
+    Searches NTFS/fuseblk mounts (via ``findmnt``) and returns the first
+    mount point that contains a ``Windows/System32`` directory.  Returns
+    ``None`` if no Windows installation is found.
+
+    NEVER hard-code a path like ``/mnt/windows``.  RescueZilla uses that
+    path today, but any rescue environment can mount the disk anywhere.
+    Always call this function (or ``findmnt``) instead of guessing.
+    """
+    try:
+        result = subprocess.run(
+            ["findmnt", "-t", "ntfs,fuseblk", "--output", "TARGET", "--noheadings"],
+            capture_output=True, text=True, timeout=10,
+        )
+        candidates = [Path(p.strip()) for p in result.stdout.splitlines() if p.strip()]
+    except Exception:
+        candidates = []
+
+    # Common fallback paths in case findmnt isn't available
+    _FALLBACKS = [Path("/mnt/windows"), Path("/mnt/VistaOS"), Path("/mnt/win")]
+    for fb in _FALLBACKS:
+        if fb not in candidates and fb.is_dir():
+            candidates.append(fb)
+
+    for mount in candidates:
+        if (mount / "Windows" / "System32").is_dir():
+            return mount
+    return None
+
+
 def run_scan(
     root: Path = None,
     target: Path = None,
@@ -442,9 +474,19 @@ def run_scan(
         root = Path(file__fileSysD)  # noqa: F821
     assert root.exists() and root.is_dir(), f"root is not an existing directory: {root!r}"
 
-    if target is None or not target.exists():
+    if target is None:
+        target = find_windows_target()
+        if target is None:
+            print("ERROR: No --target given and no Windows installation found on any NTFS mount.")
+            print("       Check mounted volumes with: findmnt -t ntfs,fuseblk")
+            return 2
+        print(f"  [auto-detected Windows target: {target}]")
+
+    target = Path(target)
+    if not target.exists():
         _scan_log.error("Target does not exist: %s", target)
         print(f"ERROR: Target does not exist: {target}")
+        print("       Check mounted volumes with: findmnt -t ntfs,fuseblk")
         return 2
 
     # ---- resolve clamscan binary (staged once; cleaned up in finally below) ----

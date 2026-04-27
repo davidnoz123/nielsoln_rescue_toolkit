@@ -31,6 +31,11 @@ nielsoln-rescue-toolkit
 - Do not delete files.
 - Do not quarantine files by default.
 - Produce logs and reports.
+- **NEVER hard-code or guess the Windows mount path** (e.g. do not assume
+  `/mnt/windows`). Always resolve it at runtime: call `find_windows_target()`
+  from `toolkit.py`, or run `findmnt -t ntfs,fuseblk` on the device first.
+  The actual mount point depends on how the rescue environment mounts the disk
+  (RescueZilla uses `/mnt/windows` today, but this must never be assumed).
 
 ## Development constraints
 
