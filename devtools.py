@@ -239,7 +239,7 @@ def main() -> None:
     action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent"
 
     # --- release config ---
-    commit_message = "feat: m10/m11/m13/m17/m25 — battery, memory, clone-readiness, system summary, event archive"
+    commit_message = "perf: m25 incremental header-skip — avoid full XML decode for archived records"
 
     # --- run_remote config ---
     remote_script = "report_gen.py"  # local path to the script to run remotely

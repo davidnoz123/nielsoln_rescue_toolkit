@@ -177,8 +177,12 @@ def _sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
-def _parse_evtx(evtx_path: Path) -> list[dict]:
-    """Parse all records from *evtx_path*.  Returns list sorted by RecordId asc.
+def _parse_evtx(evtx_path: Path, after_id: int | None = None) -> list[dict]:
+    """Parse records from *evtx_path*, returning those with record_id > after_id.
+
+    When *after_id* is set, records up to and including it are skipped cheaply
+    (header read only — no XML decode).  This makes incremental runs fast.
+    Returns list sorted by RecordId asc.
 
     Each record dict:
         record_id   int
@@ -196,6 +200,16 @@ def _parse_evtx(evtx_path: Path) -> list[dict]:
     with evtx.Evtx(str(evtx_path)) as log:
         for record in log.records():
             try:
+                # Cheap header-only check: skip records we've already archived.
+                # record.record_num() reads the 8-byte EVTX record header only;
+                # record.xml() is the expensive full binary decode + serialisation.
+                if after_id is not None:
+                    try:
+                        if record.record_num() <= after_id:
+                            continue
+                    except Exception:
+                        pass  # fall through to full parse if header read fails
+
                 raw_xml = record.xml()
                 if isinstance(raw_xml, bytes):
                     raw_bytes = raw_xml
@@ -258,13 +272,17 @@ def _parse_evtx(evtx_path: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def _detect_anomalies(
-    records: list[dict],
+    new_records: list[dict],
     checkpoint: dict,
     channel: str,
     machine_id: str,
     evtx_path: Path,
 ) -> list[dict]:
-    """Return a list of anomaly dicts to prepend to the chunk."""
+    """Return a list of anomaly dicts to prepend to the chunk.
+
+    *new_records* must already be filtered to records after the last checkpoint.
+    Old records are not needed — any anomalies in them were detected on prior runs.
+    """
     anomalies = []
     now = datetime.datetime.utcnow().isoformat() + "Z"
 
@@ -278,15 +296,12 @@ def _detect_anomalies(
             "detail":     detail,
         }
 
-    if not records:
+    if not new_records:
         return anomalies
 
     last_id = checkpoint.get("last_record_id")
     last_ts = checkpoint.get("last_timestamp")
     last_sz = checkpoint.get("source_file_size")
-
-    first_id = records[0]["record_id"]
-    last_rec = records[-1]
 
     # Source file size shrank → log was replaced or cleared
     try:
@@ -303,7 +318,7 @@ def _detect_anomalies(
 
     # Check for 1102 (Security log cleared) or 104 (System log cleared)
     clear_ids = {1102, 104}
-    for rec in records:
+    for rec in new_records:
         if rec["event_id"] in clear_ids:
             anomalies.append(_anomaly(
                 "LOG_CLEARED",
@@ -314,7 +329,6 @@ def _detect_anomalies(
     # Gap since last checkpoint
     if last_id is not None:
         expected_next = last_id + 1
-        new_records = [r for r in records if r["record_id"] > last_id]
         if new_records:
             actual_next = new_records[0]["record_id"]
             gap = actual_next - expected_next
@@ -327,7 +341,6 @@ def _detect_anomalies(
 
     # Timestamp regression in new records
     if last_ts:
-        new_records = [r for r in records if r["record_id"] > (last_id or 0)]
         for rec in new_records:
             if rec["timestamp"] and rec["timestamp"] < last_ts:
                 anomalies.append(_anomaly(
@@ -390,26 +403,18 @@ def _run_channel(
     except OSError:
         current_sz = None
 
-    print(f"  [{channel}] Parsing {evtx_path} ({(current_sz or 0) // 1024} KB) ...")
+    print(f"  [{channel}] Parsing {evtx_path} ({(current_sz or 0) // 1024} KB) "
+          f"(after_id={last_id}) ...")
     try:
-        all_records = _parse_evtx(evtx_path)
+        new_records = _parse_evtx(evtx_path, after_id=last_id)
     except Exception as exc:
         result["status"] = "error"
         result["error"]  = str(exc)
         print(f"  [{channel}] ERROR parsing evtx: {exc}")
         return result
 
-    print(f"  [{channel}] {len(all_records)} total record(s) in log.")
-
-    # Filter to new records only
-    new_records = (
-        [r for r in all_records if r["record_id"] > last_id]
-        if last_id is not None
-        else all_records
-    )
-
     anomalies = _detect_anomalies(
-        all_records, checkpoint, channel, machine_id, evtx_path
+        new_records, checkpoint, channel, machine_id, evtx_path
     )
 
     result["new_events"] = len(new_records)

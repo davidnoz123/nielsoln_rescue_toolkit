@@ -143,6 +143,39 @@ the hashes printed by `bootstrap update` on RescueZilla.  All hashes must
 match exactly.  If any differ, the update did not land (stale CDN, partial
 download, or `.pyc` cache issue).
 
+## CRITICAL: Lock File Safety — NEVER Delete Blindly
+
+The USB toolkit uses a `.lock` file to prevent concurrent operations.  When a
+lock exists, it contains the command name, start timestamp, and PID of the
+owning process.
+
+**Before removing `.lock` you MUST verify the process is dead:**
+
+```bash
+# Step 1 — check if the PID is still running
+ssh ... "ps -p <PID> 2>&1"
+
+# Only if the process is NOT found in ps output:
+# Step 2 — then it is safe to remove
+ssh ... "rm -f /media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB/.lock && echo 'lock cleared'"
+```
+
+**Rules that must never be broken:**
+
+- **NEVER run `rm .lock` without first running `ps -p <PID>` over SSH.**
+  Deleting the lock while the process is alive creates two concurrent Python
+  processes writing to the same log files — data corruption and race conditions.
+- The PID is printed in the error message:
+  `Another operation is already running: '...' (PID 36425)` — extract it
+  and check it before acting.
+- If `ps -p <PID>` shows the process is alive, **wait for it to finish**
+  (poll with `get_terminal_output`) rather than killing it or deleting the lock.
+- `toolkit.py` already has `_pid_alive()` self-healing for stale locks.  Trust
+  that mechanism; only intervene manually when you have confirmed the PID is gone.
+- Inform the user before removing any lock and explain why it is safe to do so.
+
+---
+
 ## Ad-hoc Remote Python (use devtools.py run_remote)
 
 To run a diagnostic script on RescueZilla without copying a file:
