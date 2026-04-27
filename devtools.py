@@ -34,12 +34,15 @@ Operations
 """
 
 import base64
+import getpass
 import gzip
 import hashlib
+import os
 import pathlib
 import socket
 import subprocess
 import sys
+import tempfile
 
 # ---------------------------------------------------------------------------
 # Configuration — edit these before running
@@ -68,6 +71,46 @@ UPDATE_FILES = [
 ]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
+
+# ---------------------------------------------------------------------------
+# Passphrase cache — prompted once per devtools session, reused everywhere
+# ---------------------------------------------------------------------------
+
+_passphrase: str = ""
+_askpass_bat_path: str = ""
+
+
+def _write_askpass_bat(passphrase: str) -> str:
+    """Write a temp .bat that echoes the passphrase; return its path."""
+    encoded = base64.b64encode(passphrase.encode("utf-8")).decode("ascii")
+    py_snippet = (
+        f"import base64,sys;"
+        f"sys.stdout.write(base64.b64decode(b'{encoded}').decode())"
+    )
+    bat = f'@echo off\n"{_PY}" -c "{py_snippet}"\n'
+    tmp = pathlib.Path(tempfile.gettempdir()) / "nrt_devtools_askpass.bat"
+    tmp.write_text(bat, encoding="ascii")
+    return str(tmp)
+
+
+def _ensure_passphrase() -> str:
+    """Return the cached passphrase, prompting once if not yet set."""
+    global _passphrase, _askpass_bat_path
+    if not _passphrase:
+        _passphrase = getpass.getpass("SSH key passphrase: ")
+        _askpass_bat_path = _write_askpass_bat(_passphrase)
+    return _passphrase
+
+
+def _askpass_env() -> dict:
+    """Return os.environ with SSH_ASKPASS set to the cached passphrase bat."""
+    _ensure_passphrase()
+    env = os.environ.copy()
+    env["SSH_ASKPASS"]         = _askpass_bat_path
+    env["SSH_ASKPASS_REQUIRE"] = "force"
+    env.setdefault("DISPLAY", "localhost:0")
+    return env
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -112,38 +155,46 @@ def _relay_up() -> bool:
 
 
 def _ensure_relay() -> None:
-    """If the relay isn't running, launch ssh_relay.py in a new console window.
+    """If the relay isn't running, launch ssh_relay.py in the background.
 
-    The user types the passphrase once in that window.  We wait up to 60 s
-    for the relay to come up, then proceed.  All subsequent SSH/SCP calls go
-    through the relay without further prompts.
+    Prompts for the key passphrase once in the current terminal (via
+    getpass), then pipes it to the relay process via stdin so the relay
+    never needs its own console window.  All subsequent SSH/SCP calls go
+    through the relay without further prompting.
     """
     global _relay_started
     if _relay_up():
         return
 
+    pp = _ensure_passphrase()   # prompts once if not already cached
+
     relay_script = str(pathlib.Path(__file__).with_name("ssh_relay.py"))
-    print("SSH relay is not running — launching it now.")
-    print("Please enter the key passphrase in the new console window that opens.")
-    print("Waiting for relay to start (up to 60 s)...")
+    print("SSH relay is not running — launching it now ...")
 
-    # Open a new visible console window so the passphrase prompt is visible.
-    import subprocess as _sp
-    _sp.Popen(
-        ["cmd", "/c", "start", "SSH Relay",
-         _PY, relay_script],
-        creationflags=0,   # no hidden flags — window is visible
+    # Launch the relay as a background process; pipe the passphrase via stdin.
+    # The relay reads it when sys.stdin is not a TTY.
+    proc = subprocess.Popen(
+        [_PY, relay_script],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
+    try:
+        proc.stdin.write((pp + "\n").encode("utf-8"))
+        proc.stdin.close()
+    except OSError:
+        pass
 
-    deadline = __import__("time").monotonic() + 60
-    while __import__("time").monotonic() < deadline:
-        __import__("time").sleep(1)
+    import time as _t
+    deadline = _t.monotonic() + 60
+    while _t.monotonic() < deadline:
+        _t.sleep(0.5)
         if _relay_up():
             print("Relay is up — proceeding.")
             _relay_started = True
             return
 
-    print("WARNING: relay did not start within 60 s — falling back to direct SSH (will prompt for passphrase).")
+    print("WARNING: relay did not start within 60 s — falling back to direct SSH.")
 
 
 def _relay_call(op: str, **kwargs):
@@ -207,8 +258,8 @@ def _ssh_run(cmd: str, stdin_data: bytes = None) -> None:
     stdin_b64 = base64.b64encode(stdin_data).decode() if stdin_data else None
     if _relay_stream("ssh", cmd=cmd, stdin_b64=stdin_b64):
         return
-    # Fallback — prompts for passphrase
-    kwargs = {"input": stdin_data} if stdin_data is not None else {}
+    # Fallback — use cached passphrase via SSH_ASKPASS
+    kwargs = {"input": stdin_data, "env": _askpass_env()} if stdin_data is not None else {"env": _askpass_env()}
     subprocess.run(_ssh_args([cmd]), **kwargs)
 
 
@@ -222,8 +273,8 @@ def _scp_run(local: str, remote: str) -> None:
         if resp.get("err"):
             sys.stderr.write(resp["err"])
         return
-    # Fallback
-    subprocess.run(_scp_args(local, f"root@{HOST}:{remote}"))
+    # Fallback — use cached passphrase via SSH_ASKPASS
+    subprocess.run(_scp_args(local, f"root@{HOST}:{remote}"), env=_askpass_env())
 
 
 # ---------------------------------------------------------------------------
@@ -377,7 +428,7 @@ def main() -> None:
     action = "release"              # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status"
 
     # --- release config ---
-    commit_message = "feat: find_windows_target() auto-detect; m18 no longer requires --target; docs: AGENTS never guess mount path"
+    commit_message = "feat: devtools prompts passphrase once in-terminal; relay reads from stdin pipe"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

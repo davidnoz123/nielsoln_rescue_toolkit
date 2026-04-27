@@ -413,7 +413,7 @@ def _run_clamscan_on_dir(
     return result.returncode
 
 
-def find_windows_target() -> Optional[Path]:
+def find_windows_target():
     """Locate the mounted offline Windows installation at runtime.
 
     Searches NTFS/fuseblk mounts (via ``findmnt``) and returns the first

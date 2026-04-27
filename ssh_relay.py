@@ -409,7 +409,12 @@ def main():
     except OSError:
         pass  # port free, proceed
 
-    passphrase = getpass.getpass("Key passphrase: ")
+    # If stdin is a pipe (launched by devtools), read passphrase from it.
+    # If stdin is a TTY (launched manually), prompt the user.
+    if sys.stdin.isatty():
+        passphrase = getpass.getpass("Key passphrase: ")
+    else:
+        passphrase = sys.stdin.readline().rstrip("\n")
     _askpass_bat = _write_askpass_bat(passphrase)
 
     # Verify connectivity immediately
