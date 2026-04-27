@@ -147,7 +147,7 @@ one-line changes.
 ## SHA256 Checksum After Every Push (mandatory)
 
 After every `git push`, compute the **LF-normalized SHA256** of **all three
-updateable files** (`bootstrap.sh`, `bootstrap.py`, `toolkit.py`) and
+updateable files** (`bootstrap.py`, `bootstrap.sh`, `toolkit.py`) and
 **display them to the user** so they can be compared against what
 `bootstrap update` prints on RescueZilla.  Do NOT write the hash values into
 this file.
@@ -157,7 +157,7 @@ this file.
 ```powershell
 C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe -c "
 import hashlib, pathlib
-for f in ['bootstrap.sh', 'bootstrap.py', 'toolkit.py']:
+for f in ['bootstrap.py', 'bootstrap.sh', 'toolkit.py']:
     data = pathlib.Path(f).read_bytes().replace(b'\r\n', b'\n')
     print(hashlib.sha256(data).hexdigest(), ' ', f)
 "

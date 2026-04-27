@@ -80,6 +80,17 @@ def main() -> int:
     sub.add_parser("detect", help="Detect likely Windows installations under /mnt or /media")
     sub.add_parser("update", help="Pull latest toolkit from repository")
 
+    p_exec = sub.add_parser(
+        "exec",
+        help="Execute an ad-hoc Python script payload (base64+gzip encoded) on this machine.",
+    )
+    p_exec.add_argument(
+        "--payload",
+        default="",
+        metavar="B64GZ",
+        help="Base64+gzip-encoded Python source.  If omitted, read from stdin.",
+    )
+
     p_runtime = sub.add_parser(
         "runtime",
         help="Install or update the bundled Python runtime on this USB",
@@ -212,6 +223,24 @@ def main() -> int:
             no_services=args.no_services,
             no_registry=args.no_registry,
         )
+
+    if args.command == "exec":
+        import base64, gzip, traceback
+        try:
+            raw = args.payload or sys.stdin.read().strip()
+            code = gzip.decompress(base64.b64decode(raw)).decode("utf-8")
+        except Exception as exc:
+            print(f"exec: failed to decode payload: {exc}", file=sys.stderr)
+            return 1
+        globs = {"root": root, "Path": Path, "__name__": "__remote_exec__"}
+        try:
+            exec(compile(code, "<remote-exec>", "exec"), globs)  # noqa: S102
+        except SystemExit as exc:
+            return exc.code or 0
+        except Exception:
+            traceback.print_exc()
+            return 1
+        return 0
 
     if args.command == "detect":
         from toolkit import run_detect
