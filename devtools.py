@@ -512,7 +512,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add m33-m37 analysis modules (user accounts, tasks, win-update, exec history, network); add modules to UPDATE_FILES"
+    commit_message = "feat: upgrade m09 thermal_health to full thermal_analysis spec (load test, GOOD/FAIR/POOR/CRITICAL/UNKNOWN/SKIPPED verdicts, cooldown monitoring)"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

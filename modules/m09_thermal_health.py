@@ -1,13 +1,27 @@
-"""
-m09_thermal_health.py — Nielsoln Rescue Toolkit: thermal health assessment.
+"""m09_thermal_health — Nielsoln Rescue Toolkit thermal analysis.
 
-Reads live hardware temperature sensors, fan data, and CPU throttling
-indicators from /sys/class/hwmon, /sys/class/thermal, /proc/cpuinfo, and
-optionally `sensors` (lm-sensors).  No --target argument is needed.
+Phase 1 — passive thermal snapshot:
+  Reads live sensors from /sys/class/hwmon, /sys/class/thermal,
+  /proc/cpuinfo, and `sensors` (lm-sensors where available).
+
+Phase 2 — short thermal response test (optional, default enabled):
+  Applies light CPU load for --load-duration seconds (default 30),
+  monitors temperature rise, detects throttling, then monitors cooldown.
+  Stops immediately if temperature exceeds --max-temp (default 85 °C).
+
+Verdicts:
+  GOOD     — moderate idle, safe peak, quick recovery, no throttling
+  FAIR     — warm but controlled, no emergency condition
+  POOR     — rapid heat rise, high peak, slow recovery or throttling
+  CRITICAL — unsafe peak temperature or emergency stop triggered
+  UNKNOWN  — insufficient sensor data to classify
+  SKIPPED  — load test skipped (--skip-load-test or no sensors)
 
 Usage (REPL):
     import runpy ; temp = runpy._run_module_as_main("bootstrap")
     # Then: bootstrap run m09_thermal_health
+    # Or:   bootstrap run m09_thermal_health -- --skip-load-test
+    # Or:   bootstrap run m09_thermal_health -- --load-duration 20 --max-temp 80
 
 Output:
     Prints a formatted report to stdout.
@@ -20,14 +34,17 @@ import json
 import logging
 import re
 import subprocess
+import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import List, Optional
 
 _log = logging.getLogger("thermal_health")
 
 DESCRIPTION = (
-    "Thermal health: temperature sensors, fan data, CPU throttle state — "
-    "detects overheating risk and recommends maintenance actions "
+    "Thermal analysis: passive sensor snapshot + short CPU load test — "
+    "detects overheating, throttling, and cooling problems "
     "(live hardware — no --target needed)"
 )
 
@@ -43,11 +60,18 @@ _DISK_CRIT  = 55
 _GENERIC_WARN = 70
 _GENERIC_CRIT = 85
 
+# Load-test thresholds
+_LOAD_DEFAULT_DURATION_S  = 30    # seconds of CPU load
+_LOAD_DEFAULT_MAX_TEMP    = 85.0  # emergency stop °C
+_LOAD_POLL_INTERVAL_S     = 2.0   # temperature poll interval
+_LOAD_COOLDOWN_S          = 60    # how long to monitor cooldown
+_LOAD_RECOVERED_DELTA     = 5.0   # °C above idle = "recovered"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _run(cmd: list[str]) -> tuple[int, str]:
+def _run(cmd: List[str]) -> tuple:
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
         return r.returncode, (r.stdout + r.stderr).strip()
@@ -64,7 +88,7 @@ def _read(path: str | Path, default: str = "") -> str:
         return default
 
 
-def _millideg_to_c(raw: str) -> float | None:
+def _millideg_to_c(raw: str) -> Optional[float]:
     """Convert a sysfs millidegree string to °C float, or None."""
     try:
         v = int(raw)
@@ -80,7 +104,7 @@ def _millideg_to_c(raw: str) -> float | None:
 # /sys/class/hwmon sensor collection
 # ---------------------------------------------------------------------------
 
-def _collect_hwmon() -> list[dict]:
+def _collect_hwmon() -> List[dict]:
     """Read all hwmon chips — temperatures and fan RPM."""
     results = []
     hwmon_root = Path("/sys/class/hwmon")
@@ -137,7 +161,7 @@ def _collect_hwmon() -> list[dict]:
 # /sys/class/thermal zone collection
 # ---------------------------------------------------------------------------
 
-def _collect_thermal_zones() -> list[dict]:
+def _collect_thermal_zones() -> List[dict]:
     thermal_root = Path("/sys/class/thermal")
     results = []
     if not thermal_root.exists():
@@ -162,8 +186,17 @@ def _collect_thermal_zones() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# CPU throttle / frequency scaling state
+# CPU frequency / throttle helpers
 # ---------------------------------------------------------------------------
+
+def _read_cur_cpu_mhz() -> Optional[int]:
+    """Read current CPU0 frequency in MHz from sysfs."""
+    cur = _read("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "")
+    try:
+        return round(int(cur) / 1000)
+    except (ValueError, TypeError):
+        return None
+
 
 def _collect_cpu_throttle() -> dict:
     """Check cpufreq governor and any throttle flag in /proc/cpuinfo."""
@@ -200,7 +233,7 @@ def _collect_cpu_throttle() -> dict:
 # `sensors` command (lm-sensors) — best-effort supplement
 # ---------------------------------------------------------------------------
 
-def _collect_sensors_cmd() -> list[str]:
+def _collect_sensors_cmd() -> List[str]:
     """Run `sensors` and return raw output lines (empty if not available)."""
     rc, out = _run(["sensors"])
     if rc == 0 and out:
@@ -209,10 +242,29 @@ def _collect_sensors_cmd() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# CPU sensor helpers
+# ---------------------------------------------------------------------------
+
+def _is_cpu_sensor(r: dict) -> bool:
+    label = (r.get("label") or "").lower()
+    chip  = (r.get("chip")  or "").lower()
+    return any(k in label or k in chip for k in ("core", "cpu", "package", "tdie", "tctl"))
+
+
+def _peak_cpu_temp(readings: List[dict]) -> Optional[float]:
+    """Return the highest CPU-category temperature from a list of sensor readings."""
+    vals = [
+        r["value_c"] for r in readings
+        if r.get("kind") == "temperature" and _is_cpu_sensor(r)
+    ]
+    return max(vals) if vals else None
+
+
+# ---------------------------------------------------------------------------
 # Classify sensor readings into findings
 # ---------------------------------------------------------------------------
 
-def _classify_sensors(readings: list[dict]) -> list[dict]:
+def _classify_sensors(readings: List[dict]) -> List[dict]:
     """
     For each temperature reading, determine severity:
     ok / warn / critical.
@@ -264,19 +316,185 @@ def _classify_sensors(readings: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Thermal response load test
+# ---------------------------------------------------------------------------
+
+def _load_worker(stop_event: threading.Event) -> None:
+    """Burns CPU until stop_event is set.  Runs in a daemon thread."""
+    while not stop_event.is_set():
+        _ = sum(range(500_000))
+
+
+def run_load_test(
+    duration_s: int = _LOAD_DEFAULT_DURATION_S,
+    max_safe_temp: float = _LOAD_DEFAULT_MAX_TEMP,
+    poll_interval: float = _LOAD_POLL_INTERVAL_S,
+) -> dict:
+    """
+    1. Measure idle baseline (3 seconds).
+    2. Spin up load threads (one per logical CPU, capped at 8).
+    3. Poll temperature every poll_interval seconds until duration_s reached
+       or max_safe_temp exceeded.
+    4. Stop load; monitor cooldown for _LOAD_COOLDOWN_S seconds.
+    Return a dict describing the thermal response.
+    """
+    import os
+
+    # --- idle baseline ---
+    _log.info("Load test: measuring idle baseline …")
+    time.sleep(3)
+    idle_readings = _collect_hwmon() + [
+        {"kind": "temperature", "chip": tz["type"], "label": tz["zone"],
+         "value_c": tz["value_c"]}
+        for tz in _collect_thermal_zones()
+    ]
+    idle_temp = _peak_cpu_temp(idle_readings)
+    freq_before = _read_cur_cpu_mhz()
+
+    if idle_temp is None:
+        return {
+            "enabled": True,
+            "skipped_reason": "no CPU temperature sensors found",
+            "verdict": "UNKNOWN",
+        }
+
+    _log.info("Load test: idle CPU temp %.1f °C — starting %ds load …", idle_temp, duration_s)
+
+    # --- start load threads ---
+    n_threads = min(max(1, os.cpu_count() or 1), 8)
+    stop_event = threading.Event()
+    workers = [
+        threading.Thread(target=_load_worker, args=(stop_event,), daemon=True)
+        for _ in range(n_threads)
+    ]
+    for w in workers:
+        w.start()
+
+    samples: list = []
+    start_ts        = time.monotonic()
+    peak_temp       = idle_temp
+    peak_ts         = start_ts
+    emergency_stop  = False
+    emergency_reason = ""
+    freq_during_min: Optional[int] = None
+    throttling_detected = False
+
+    try:
+        while True:
+            elapsed = time.monotonic() - start_ts
+            if elapsed >= duration_s:
+                break
+            time.sleep(poll_interval)
+
+            readings = _collect_hwmon() + [
+                {"kind": "temperature", "chip": tz["type"], "label": tz["zone"],
+                 "value_c": tz["value_c"]}
+                for tz in _collect_thermal_zones()
+            ]
+            cur_temp = _peak_cpu_temp(readings)
+            cur_freq = _read_cur_cpu_mhz()
+
+            if cur_temp is not None:
+                samples.append({
+                    "elapsed_s": round(time.monotonic() - start_ts, 1),
+                    "temp_c": cur_temp,
+                    "freq_mhz": cur_freq,
+                })
+                if cur_temp > peak_temp:
+                    peak_temp = cur_temp
+                    peak_ts   = time.monotonic()
+                if cur_temp >= max_safe_temp:
+                    emergency_stop   = True
+                    emergency_reason = f"Temperature {cur_temp:.1f} °C >= safety limit {max_safe_temp:.1f} °C"
+                    _log.warning("Load test: EMERGENCY STOP — %s", emergency_reason)
+                    break
+
+            if cur_freq is not None:
+                if freq_during_min is None or cur_freq < freq_during_min:
+                    freq_during_min = cur_freq
+
+    finally:
+        stop_event.set()
+        for w in workers:
+            w.join(timeout=5)
+
+    duration_completed = round(time.monotonic() - start_ts, 1)
+    time_to_peak       = round(peak_ts - start_ts, 1)
+    temp_rise          = round(peak_temp - idle_temp, 1)
+
+    # Throttling: did freq drop >20% from before?
+    if freq_before and freq_during_min:
+        throttling_detected = freq_during_min < (freq_before * 0.80)
+
+    # --- cooldown monitoring ---
+    _log.info("Load test: cooldown monitoring for %ds …", _LOAD_COOLDOWN_S)
+    recovery_30s: Optional[float] = None
+    recovery_60s: Optional[float] = None
+    recovery_time_s: Optional[float] = None
+    freq_after: Optional[int] = None
+    cooldown_start = time.monotonic()
+
+    for _ in range(int(_LOAD_COOLDOWN_S / poll_interval)):
+        time.sleep(poll_interval)
+        elapsed_cd = time.monotonic() - cooldown_start
+        readings = _collect_hwmon() + [
+            {"kind": "temperature", "chip": tz["type"], "label": tz["zone"],
+             "value_c": tz["value_c"]}
+            for tz in _collect_thermal_zones()
+        ]
+        cur_temp = _peak_cpu_temp(readings)
+        if cur_temp is None:
+            continue
+        if elapsed_cd >= 28 and recovery_30s is None:
+            recovery_30s = cur_temp
+            freq_after   = _read_cur_cpu_mhz()
+        if elapsed_cd >= 58 and recovery_60s is None:
+            recovery_60s = cur_temp
+        if recovery_time_s is None and cur_temp <= idle_temp + _LOAD_RECOVERED_DELTA:
+            recovery_time_s = round(elapsed_cd, 1)
+
+    return {
+        "enabled":                True,
+        "duration_requested_s":   duration_s,
+        "duration_completed_s":   duration_completed,
+        "n_load_threads":         n_threads,
+        "emergency_stop":         emergency_stop,
+        "emergency_stop_reason":  emergency_reason,
+        "idle_temp_c":            round(idle_temp, 1),
+        "peak_temp_c":            round(peak_temp, 1),
+        "temp_rise_c":            temp_rise,
+        "time_to_peak_s":         time_to_peak,
+        "cpu_freq_before_mhz":    freq_before,
+        "cpu_freq_during_min_mhz": freq_during_min,
+        "cpu_freq_after_mhz":     freq_after,
+        "throttling_detected":    throttling_detected,
+        "recovery_temp_30s_c":    round(recovery_30s, 1) if recovery_30s is not None else None,
+        "recovery_temp_60s_c":    round(recovery_60s, 1) if recovery_60s is not None else None,
+        "recovery_time_s":        recovery_time_s,
+        "samples":                samples,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Overall verdict
 # ---------------------------------------------------------------------------
 
-def _derive_verdict(findings: list[dict], fans: list[dict], throttle: dict) -> tuple[str, list[str], list[str]]:
+def _derive_verdict(
+    findings: List[dict],
+    fans: List[dict],
+    throttle: dict,
+    load_test: Optional[dict] = None,
+) -> tuple:
     """
     Returns (verdict, warnings_list, recommendations_list).
-    verdict: HEALTHY | WARM | HOT | CRITICAL
+    verdict: GOOD | FAIR | POOR | CRITICAL | UNKNOWN | SKIPPED
     """
-    warnings: list[str] = []
-    recs: list[str] = []
+    warnings: List[str] = []
+    recs: List[str] = []
 
     critical_temps = [f for f in findings if f.get("severity") == "critical"]
     warn_temps     = [f for f in findings if f.get("severity") == "warn"]
+    has_sensors    = bool(findings)
 
     for f in critical_temps:
         warnings.append(
@@ -291,18 +509,53 @@ def _derive_verdict(findings: list[dict], fans: list[dict], throttle: dict) -> t
     zero_rpm_fans = [f for f in fans if f.get("rpm", 1) == 0]
     for fan in zero_rpm_fans:
         warnings.append(f"Fan '{fan['label']}' reporting 0 RPM (may be stalled or disconnected)")
-
     if not fans:
         warnings.append("No fan data available — fan monitoring may not be supported by this hardware")
 
-    # Throttle
+    # Throttle at idle
     if throttle.get("throttled"):
         cur = throttle.get("cur_mhz", "?")
         mx  = throttle.get("max_mhz", "?")
-        warnings.append(f"CPU is frequency-throttled: {cur} MHz / {mx} MHz max — possible thermal event")
+        warnings.append(f"CPU is frequency-throttled at idle: {cur} MHz / {mx} MHz max")
 
-    # Verdict
-    if critical_temps:
+    # Load test analysis
+    load_emergency   = load_test.get("emergency_stop")         if load_test else False
+    load_throttled   = load_test.get("throttling_detected")    if load_test else False
+    load_peak        = load_test.get("peak_temp_c")            if load_test else None
+    load_rise        = load_test.get("temp_rise_c")            if load_test else None
+    load_recovery    = load_test.get("recovery_time_s")        if load_test else None
+    load_enabled     = (load_test or {}).get("enabled", False)
+
+    if load_emergency:
+        warnings.append(
+            f"EMERGENCY STOP during load test: {load_test.get('emergency_stop_reason', '')} "
+            f"(peak {load_peak}°C)"
+        )
+    if load_throttled:
+        warnings.append(
+            f"CPU throttling detected during load test: "
+            f"{load_test.get('cpu_freq_during_min_mhz')} MHz min "
+            f"(was {load_test.get('cpu_freq_before_mhz')} MHz before)"
+        )
+    if load_rise is not None and load_rise > 20:
+        warnings.append(
+            f"Rapid temperature rise under load: +{load_rise}°C in "
+            f"{load_test.get('time_to_peak_s', '?')}s"
+        )
+    if load_recovery is not None and load_recovery > 45:
+        warnings.append(
+            f"Slow thermal recovery after load: {load_recovery}s to return within "
+            f"{_LOAD_RECOVERED_DELTA}°C of idle"
+        )
+
+    # --- Determine verdict ---
+    if not has_sensors:
+        verdict = "UNKNOWN"
+        recs.append("No thermal sensors detected. Install lm-sensors for better coverage.")
+        return verdict, warnings, recs
+
+    # CRITICAL: emergency stop, or critically hot sensor
+    if load_emergency or critical_temps:
         verdict = "CRITICAL"
         recs += [
             "Shut down immediately and allow the machine to cool.",
@@ -310,22 +563,39 @@ def _derive_verdict(findings: list[dict], fans: list[dict], throttle: dict) -> t
             "Inspect and reseat CPU thermal paste (replace if cracked or dry).",
             "Do not run heavy workloads until serviced.",
         ]
-    elif warn_temps or zero_rpm_fans:
-        verdict = "HOT"
+    # POOR: multiple warn indicators or severe throttling or very slow recovery
+    elif (
+        len(warn_temps) >= 2
+        or (load_throttled and load_rise is not None and load_rise > 15)
+        or (load_recovery is not None and load_recovery > 45)
+        or zero_rpm_fans
+    ):
+        verdict = "POOR"
         recs += [
             "Clean CPU heatsink and fan vents — dust buildup is likely.",
             "Avoid heavy CPU/GPU loads until machine is serviced.",
             "Consider replacing thermal paste if machine is 5+ years old.",
         ]
-    elif throttle.get("throttled"):
-        verdict = "WARM"
+    # FAIR: mild elevation, some throttling, moderate rise
+    elif (
+        warn_temps
+        or throttle.get("throttled")
+        or load_throttled
+        or (load_rise is not None and load_rise > 10)
+        or (load_recovery is not None and load_recovery > 20)
+    ):
+        verdict = "FAIR"
         recs += [
-            "CPU is throttling — system is managing heat but running below peak speed.",
+            "CPU is managing heat but running warm.",
             "Clean vents; thermal paste replacement may improve performance.",
         ]
+    # SKIPPED: load test not run, passive snapshot looks OK
+    elif not load_enabled:
+        verdict = "SKIPPED"
+        recs.append("Passive sensors OK at idle. Run without --skip-load-test for full assessment.")
     else:
-        verdict = "HEALTHY"
-        recs.append("No thermal concerns detected at idle.")
+        verdict = "GOOD"
+        recs.append("No thermal concerns detected. Cooling appears healthy.")
 
     return verdict, warnings, recs
 
@@ -335,38 +605,45 @@ def _derive_verdict(findings: list[dict], fans: list[dict], throttle: dict) -> t
 # ---------------------------------------------------------------------------
 
 _VERDICT_ICON = {
+    "GOOD":     "OK ",
+    "FAIR":     "~~ ",
+    "POOR":     "!! ",
+    "CRITICAL": "!!!",
+    "UNKNOWN":  "?  ",
+    "SKIPPED":  "-- ",
+    # Legacy names kept for backward compatibility
     "HEALTHY":  "OK ",
     "WARM":     "~~ ",
     "HOT":      "!! ",
-    "CRITICAL": "!!!",
 }
 
 
 def _fmt_report(
     verdict: str,
-    temp_findings: list[dict],
-    fan_readings: list[dict],
+    temp_findings: List[dict],
+    fan_readings: List[dict],
     throttle: dict,
-    warnings: list[str],
-    recs: list[str],
-    sensors_lines: list[str],
+    warnings: List[str],
+    recs: List[str],
+    sensors_lines: List[str],
+    load_test: Optional[dict] = None,
 ) -> str:
     icon = _VERDICT_ICON.get(verdict, "?  ")
     lines = [
-        "=" * 58,
-        "  THERMAL HEALTH ASSESSMENT",
-        "=" * 58,
+        "=" * 62,
+        "  THERMAL ANALYSIS",
+        "=" * 62,
         f"  [{icon}] Overall verdict: {verdict}",
         "",
     ]
 
     # Temperatures
     if temp_findings:
-        lines.append("  TEMPERATURES:")
+        lines.append("  IDLE TEMPERATURES:")
         for f in sorted(temp_findings, key=lambda x: -x["value_c"]):
             flag = {"critical": " <-- CRITICAL", "warn": " <-- elevated", "ok": ""}.get(f["severity"], "")
             chip_label = f"{f['chip']} / {f['label']}" if f.get("chip") else f.get("label", "?")
-            lines.append(f"    {chip_label:<38} {f['value_c']:>5.1f}°C{flag}")
+            lines.append(f"    {chip_label:<40} {f['value_c']:>5.1f}°C{flag}")
     else:
         lines.append("  No temperature sensors detected.")
     lines.append("")
@@ -378,25 +655,52 @@ def _fmt_report(
             rpm = fan.get("rpm", "?")
             chip_label = f"{fan['chip']} / {fan['label']}" if fan.get("chip") else fan.get("label", "?")
             flag = "  <-- STALLED?" if rpm == 0 else ""
-            lines.append(f"    {chip_label:<38} {rpm:>6} RPM{flag}")
+            lines.append(f"    {chip_label:<40} {rpm:>6} RPM{flag}")
     else:
         lines.append("  No fan sensors detected.")
     lines.append("")
 
     # CPU throttle
-    lines.append("  CPU FREQUENCY STATE:")
+    lines.append("  CPU FREQUENCY (IDLE):")
     if "cur_mhz" in throttle and "max_mhz" in throttle:
         gov = throttle.get("governor", "unknown")
         thr = " (THROTTLED)" if throttle.get("throttled") else ""
-        lines.append(f"    Governor: {gov}")
-        lines.append(f"    {throttle['cur_mhz']} MHz  /  {throttle['max_mhz']} MHz max{thr}")
+        lines.append(f"    Governor : {gov}")
+        lines.append(f"    Frequency: {throttle['cur_mhz']} MHz  /  {throttle['max_mhz']} MHz max{thr}")
     else:
         lines.append(f"    Governor: {throttle.get('governor', 'unavailable')}")
     if "cpuinfo_mhz_min" in throttle:
         lines.append(
-            f"    /proc/cpuinfo MHz range: {throttle['cpuinfo_mhz_min']} – {throttle['cpuinfo_mhz_max']}"
+            f"    /proc/cpuinfo: {throttle['cpuinfo_mhz_min']} – {throttle['cpuinfo_mhz_max']} MHz"
         )
     lines.append("")
+
+    # Load test summary
+    if load_test and load_test.get("enabled"):
+        lt = load_test
+        if lt.get("skipped_reason"):
+            lines.append(f"  LOAD TEST: skipped — {lt['skipped_reason']}")
+        else:
+            lines.append("  THERMAL RESPONSE TEST:")
+            lines.append(f"    Duration   : {lt.get('duration_completed_s', '?')}s "
+                         f"(requested {lt.get('duration_requested_s', '?')}s)")
+            lines.append(f"    Idle temp  : {lt.get('idle_temp_c', '?')}°C")
+            lines.append(f"    Peak temp  : {lt.get('peak_temp_c', '?')}°C  "
+                         f"(+{lt.get('temp_rise_c', '?')}°C in {lt.get('time_to_peak_s', '?')}s)")
+            lines.append(f"    Freq before: {lt.get('cpu_freq_before_mhz', '?')} MHz  "
+                         f"during min: {lt.get('cpu_freq_during_min_mhz', '?')} MHz")
+            lines.append(f"    Throttling : {'YES' if lt.get('throttling_detected') else 'no'}")
+            if lt.get('recovery_temp_30s_c') is not None:
+                lines.append(f"    Recovery 30s: {lt['recovery_temp_30s_c']}°C  "
+                             f"60s: {lt.get('recovery_temp_60s_c', '?')}°C")
+            if lt.get('recovery_time_s') is not None:
+                lines.append(f"    Recovered to idle+{_LOAD_RECOVERED_DELTA}°C in {lt['recovery_time_s']}s")
+            if lt.get('emergency_stop'):
+                lines.append(f"    !! EMERGENCY STOP: {lt.get('emergency_stop_reason', '')}")
+        lines.append("")
+    elif load_test and not load_test.get("enabled"):
+        lines.append("  LOAD TEST: skipped (--skip-load-test)")
+        lines.append("")
 
     # Warnings
     if warnings:
@@ -411,15 +715,15 @@ def _fmt_report(
         lines.append(f"    > {r}")
     lines.append("")
 
-    # Raw `sensors` output (if available and useful)
+    # Raw `sensors` output
     if sensors_lines:
-        lines += ["  RAW `sensors` OUTPUT:", "  ----------------------"]
+        lines += ["  RAW `sensors` OUTPUT:", "  " + "-" * 22]
         lines += [f"    {ln}" for ln in sensors_lines[:40]]
         if len(sensors_lines) > 40:
             lines.append(f"    ... ({len(sensors_lines) - 40} more lines)")
         lines.append("")
 
-    lines.append("=" * 58)
+    lines.append("=" * 62)
     return "\n".join(lines)
 
 
@@ -438,12 +742,24 @@ def run(root: Path, argv: list) -> int:
         "--json-only", action="store_true",
         help="Suppress formatted report; only write JSON log"
     )
+    parser.add_argument(
+        "--skip-load-test", action="store_true",
+        help="Skip the CPU load test; passive snapshot only"
+    )
+    parser.add_argument(
+        "--load-duration", type=int, default=_LOAD_DEFAULT_DURATION_S, metavar="SEC",
+        help=f"CPU load test duration in seconds (default {_LOAD_DEFAULT_DURATION_S})"
+    )
+    parser.add_argument(
+        "--max-temp", type=float, default=_LOAD_DEFAULT_MAX_TEMP, metavar="DEGC",
+        help=f"Emergency stop temperature in °C (default {_LOAD_DEFAULT_MAX_TEMP})"
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     _log.info("Collecting thermal data …")
 
-    # --- Collect ---
+    # --- Phase 1: passive snapshot ---
     hwmon_readings  = _collect_hwmon()
     thermal_zones   = _collect_thermal_zones()
     throttle        = _collect_cpu_throttle()
@@ -452,16 +768,15 @@ def run(root: Path, argv: list) -> int:
     # Merge temperature sources (prefer hwmon; use thermal zones as fallback)
     all_readings = hwmon_readings + [
         {
-            "source": tz["source"],
-            "chip":   tz["type"],
-            "label":  tz["zone"],
-            "kind":   "temperature",
+            "source":  tz["source"],
+            "chip":    tz["type"],
+            "label":   tz["zone"],
+            "kind":    "temperature",
             "value_c": tz["value_c"],
-            "crit_c": None,
-            "max_c":  None,
+            "crit_c":  None,
+            "max_c":   None,
         }
         for tz in thermal_zones
-        # Only include thermal zones not already covered by hwmon
         if not any(
             abs(r["value_c"] - tz["value_c"]) < 2
             for r in hwmon_readings
@@ -472,11 +787,35 @@ def run(root: Path, argv: list) -> int:
     temp_findings = _classify_sensors(all_readings)
     fan_readings  = [r for r in hwmon_readings if r.get("kind") == "fan"]
 
-    verdict, warnings, recs = _derive_verdict(temp_findings, fan_readings, throttle)
+    # --- Phase 2: thermal response test ---
+    if args.skip_load_test:
+        load_test: Optional[dict] = {"enabled": False}
+        _log.info("Load test skipped (--skip-load-test).")
+    elif not temp_findings:
+        load_test = {
+            "enabled": True,
+            "skipped_reason": "no CPU temperature sensors found",
+            "verdict": "UNKNOWN",
+        }
+        _log.warning("Load test skipped — no temperature sensors detected.")
+    else:
+        _log.info(
+            "Starting thermal response test (%ds, max temp %.1f°C) …",
+            args.load_duration, args.max_temp,
+        )
+        load_test = run_load_test(
+            duration_s=args.load_duration,
+            max_safe_temp=args.max_temp,
+        )
+
+    verdict, warnings, recs = _derive_verdict(temp_findings, fan_readings, throttle, load_test)
 
     # --- Report ---
     if not args.json_only:
-        print(_fmt_report(verdict, temp_findings, fan_readings, throttle, warnings, recs, sensors_lines))
+        print(_fmt_report(
+            verdict, temp_findings, fan_readings, throttle,
+            warnings, recs, sensors_lines, load_test,
+        ))
 
     # --- JSON log ---
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -485,18 +824,19 @@ def run(root: Path, argv: list) -> int:
     log_path = log_dir / f"thermal_health_{timestamp}.json"
 
     report = {
-        "timestamp": timestamp,
-        "verdict": verdict,
-        "warnings": warnings,
-        "recommendations": recs,
-        "temperatures": temp_findings,
-        "fans": fan_readings,
-        "thermal_zones": thermal_zones,
-        "cpu_throttle": throttle,
-        "sensors_available": bool(sensors_lines),
+        "timestamp":          timestamp,
+        "verdict":            verdict,
+        "warnings":           warnings,
+        "recommendations":    recs,
+        "temperatures":       temp_findings,
+        "fans":               fan_readings,
+        "thermal_zones":      thermal_zones,
+        "cpu_throttle":       throttle,
+        "sensors_available":  bool(sensors_lines),
+        "thermal_response_test": load_test,
     }
     log_path.write_text(json.dumps(report, indent=2))
     _log.info("Report written to %s", log_path)
 
-    # Exit 1 if HOT or CRITICAL
-    return 1 if verdict in ("HOT", "CRITICAL") else 0
+    # Exit 1 if POOR or CRITICAL (non-zero = needs attention)
+    return 1 if verdict in ("POOR", "CRITICAL", "HOT") else 0
