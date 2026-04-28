@@ -183,9 +183,35 @@ def _upgrade(logs_dir: Path) -> Optional[dict]:
 
 
 def _clamav(logs_dir: Path) -> Optional[dict]:
+    # Prefer the new structured JSON log from m18 enhanced assessment
+    p = _latest(logs_dir, "clamav_scan_*.json")
+    if p:
+        d = _read_json(p)
+        if d:
+            infected_list = d.get("infected_files") or []
+            infected = len(infected_list)
+            status = d.get("scan_status", "?")
+            verdict = "INFECTED" if infected > 0 else status.upper()
+            # Worst definition age across main/daily
+            defs = d.get("definitions") or {}
+            worst_age = max(
+                (defs.get(k, {}).get("age_days") or 0)
+                for k in ("main", "daily")
+            )
+            return {
+                "log":               p.name,
+                "verdict":           verdict,
+                "infected":          infected,
+                "scanned":           None,
+                "confidence":        (d.get("scan_confidence") or {}).get("level"),
+                "coverage_estimate": (d.get("coverage") or {}).get("overall_estimate"),
+                "definitions_age":   worst_age or None,
+                "recommendations":   (d.get("recommendations") or [])[:2],
+            }
+
+    # Fallback: old scan_report_*.txt or clamav_*.log
     p = _latest(logs_dir, "scan_report_*.txt")
     if not p:
-        # fall back to raw log
         p = _latest(logs_dir, "clamav_*.log")
     if not p:
         return None
@@ -200,10 +226,14 @@ def _clamav(logs_dir: Path) -> Optional[dict]:
         scanned = int(m2.group(1))
     verdict = "CLEAN" if infected == 0 else f"{infected} INFECTED"
     return {
-        "log": p.name,
-        "verdict":  verdict,
-        "infected": infected,
-        "scanned":  scanned,
+        "log":               p.name,
+        "verdict":           verdict,
+        "infected":          infected,
+        "scanned":           scanned,
+        "confidence":        None,
+        "coverage_estimate": None,
+        "definitions_age":   None,
+        "recommendations":   [],
     }
 
 
@@ -328,7 +358,18 @@ def _print_report(data: dict, target: str) -> None:
     _section("ANTIVIRUS (ClamAV)")
     if av:
         print(_bar("Result:", av["verdict"]))
-        print(_bar("Files scanned:", str(av["scanned"])))
+        if av.get("scanned") is not None:
+            print(_bar("Files scanned:", str(av["scanned"])))
+        if av.get("confidence"):
+            print(_bar("Confidence:", av["confidence"].upper()))
+        if av.get("coverage_estimate"):
+            print(_bar("Coverage:", av["coverage_estimate"].upper()))
+        if av.get("definitions_age") is not None:
+            age = av["definitions_age"]
+            warn = "  ← UPDATE SOON" if age > 30 else ""
+            print(_bar("Def. age (days):", f"{age}{warn}"))
+        for rec in (av.get("recommendations") or [])[:2]:
+            print(f"  → {rec[:65]}")
     else:
         print("  (no ClamAV scan log found — run m18)")
 

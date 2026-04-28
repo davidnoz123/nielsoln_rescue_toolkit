@@ -464,7 +464,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add m27 device_manager, m28 cmos_health, m29 storage_usage, m30 disk_integrity; update report_gen and DATA_INVENTORY"
+    commit_message = "feat: enhance m18 ClamAV scan with comprehensive evidence-based assessment; add schema, update m17 and _index"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

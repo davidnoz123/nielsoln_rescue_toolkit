@@ -80,6 +80,11 @@
       "schema": "system_integrity.schema.json",
       "log_glob": "logs/system_integrity_*.json",
       "format": "JSON"
+    },
+    "m18_clamav_scan": {
+      "schema": "clamav_scan.schema.json",
+      "log_glob": "logs/clamav_scan_*.json",
+      "format": "JSON"
     }
   }
 }

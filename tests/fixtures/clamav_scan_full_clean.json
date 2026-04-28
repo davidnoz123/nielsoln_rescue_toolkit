@@ -1,0 +1,162 @@
+{
+  "generated": "2024-12-10T14:30:00+00:00",
+  "target": "/mnt/windows",
+  "profile": "quick",
+  "scan_status": "clean",
+  "infected_files": [],
+  "definitions": {
+    "main": {
+      "file": "main.cvd",
+      "version": "62",
+      "build_time": "2024-12-05T14:54:00+00:00",
+      "sig_count": 8715603,
+      "age_days": 5,
+      "parse_error": null
+    },
+    "daily": {
+      "file": "daily.cld",
+      "version": "27397",
+      "build_time": "2024-12-09T10:00:00+00:00",
+      "sig_count": 2104337,
+      "age_days": 1,
+      "parse_error": null
+    },
+    "bytecode": {
+      "file": "bytecode.cvd",
+      "version": "334",
+      "build_time": "2024-11-20T09:00:00+00:00",
+      "sig_count": 75,
+      "age_days": 20,
+      "parse_error": null
+    }
+  },
+  "scan_scope": {
+    "paths_scanned": [
+      "/mnt/windows/Windows/System32",
+      "/mnt/windows/Windows/SysWOW64",
+      "/mnt/windows/Windows/Temp",
+      "/mnt/windows/Windows",
+      "/mnt/windows/Users",
+      "/mnt/windows/ProgramData",
+      "/mnt/windows/Program Files",
+      "/mnt/windows/Program Files (x86)",
+      "/mnt/windows"
+    ],
+    "paths_skipped": [],
+    "directories_scanned": 9,
+    "files_scanned": 42318,
+    "total_bytes_scanned": 3104857600,
+    "recursion_enabled": true,
+    "archives_scanned": false,
+    "max_file_size": "20M",
+    "max_scan_size": "50M",
+    "include_system_directories": true,
+    "estimate_note": "File/byte counts are estimates; exact totals unavailable due to clamscan --infected flag"
+  },
+  "scan_execution": {
+    "scan_start_time": "2024-12-10T14:00:00+00:00",
+    "scan_end_time": "2024-12-10T14:30:00+00:00",
+    "duration_seconds": 1800.0,
+    "infected_count": 0,
+    "errors_encountered": 3,
+    "files_skipped_due_to_errors": 3,
+    "permission_denied_paths": [
+      "/mnt/windows/Windows/System32/config/SYSTEM",
+      "/mnt/windows/Windows/System32/config/SAM",
+      "/mnt/windows/Windows/System32/config/SECURITY"
+    ],
+    "oom_killed": false,
+    "analyze_only": false,
+    "scan_status": "clean"
+  },
+  "coverage": {
+    "system32_scanned": true,
+    "syswow64_scanned": true,
+    "windows_temp_scanned": true,
+    "users_scanned": true,
+    "appdata_scanned": true,
+    "program_files_scanned": true,
+    "program_files_x86_scanned": true,
+    "programdata_scanned": true,
+    "dirs_not_scanned": [],
+    "overall_estimate": "high"
+  },
+  "scan_gaps": {
+    "skipped_files_count": 3,
+    "skipped_paths": [
+      "/mnt/windows/Windows/System32/config/SYSTEM",
+      "/mnt/windows/Windows/System32/config/SAM",
+      "/mnt/windows/Windows/System32/config/SECURITY"
+    ],
+    "size_limited_files": [],
+    "error_paths": [],
+    "permission_denied": [
+      "/mnt/windows/Windows/System32/config/SYSTEM",
+      "/mnt/windows/Windows/System32/config/SAM",
+      "/mnt/windows/Windows/System32/config/SECURITY"
+    ],
+    "dirs_not_scanned": [],
+    "archives_skipped": "All archives not scanned",
+    "archives_skipped_flag": true,
+    "max_file_size": "20M",
+    "max_scan_size": "50M"
+  },
+  "file_type_limitations": [
+    "Only executable and script types scanned: .exe .dll .sys .bat .cmd .ps1 .vbs .js .jse .wsf .scr .pif .com .cpl .msi .hta .lnk",
+    "Archive files (.zip .rar .7z .cab .tar etc.) are NOT unpacked and scanned",
+    "PDF documents are NOT scanned",
+    "Office documents (.doc .xls .ppt .docx etc.) are NOT scanned",
+    "Macro-enabled documents are NOT scanned",
+    "Data files and custom formats are NOT scanned"
+  ],
+  "heuristic_limitations": [
+    "Zero-day malware (unknown to ClamAV database) CANNOT be detected",
+    "Custom or targeted malware not matching any known signature CANNOT be detected",
+    "Fileless malware (executing in memory with no on-disk presence) CANNOT be detected",
+    "Behaviour-based threats (require runtime execution to manifest) CANNOT be detected",
+    "Rootkits that hide files from the filesystem at the OS level CANNOT be detected",
+    "Polymorphic or metamorphic malware with sufficient obfuscation may evade detection",
+    "Encrypted payloads that have not yet been decrypted on disk CANNOT be scanned",
+    "ClamAV is a general-purpose scanner — detection rates for Windows malware vary; a clean result is not a guarantee of no infection"
+  ],
+  "cross_module_correlation": {
+    "persistence_log": null,
+    "persistence_suspicious": 0,
+    "service_analysis_log": null,
+    "service_suspicious": 0,
+    "device_manager_log": null,
+    "device_problem_count": 0,
+    "system_integrity_log": null,
+    "system_integrity_verdict": null,
+    "cross_module_flags": [],
+    "unexplained_signals": []
+  },
+  "scan_confidence": {
+    "level": "high",
+    "score": 5,
+    "max_score": 6,
+    "reasons": [
+      "Quick profile only scans executables/scripts — archive-based malware not scanned"
+    ]
+  },
+  "miss_analysis": {
+    "coverage_gaps": [
+      "Archive files not unpacked — malware delivered inside .zip/.rar/.cab not detected",
+      "3 path(s) inaccessible (permission denied)"
+    ],
+    "file_type_limitations": [
+      "Only executable and script types scanned: .exe .dll .sys .bat .cmd .ps1 .vbs .js .jse .wsf .scr .pif .com .cpl .msi .hta .lnk",
+      "Archive files (.zip .rar .7z .cab .tar etc.) are NOT unpacked and scanned"
+    ],
+    "heuristic_limitations": [
+      "Zero-day malware (unknown to ClamAV database) CANNOT be detected"
+    ],
+    "cross_module_flags": [],
+    "unexplained_signals": [],
+    "confidence_adjustment": "unchanged"
+  },
+  "recommendations": [
+    "Run a thorough scan for complete coverage: bootstrap run m18_clamav_scan -- --target <path> --profile thorough",
+    "No significant issues detected — maintain up-to-date definitions and run thorough scans periodically"
+  ]
+}
