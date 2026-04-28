@@ -23,7 +23,7 @@
           "status":     { "type": "string", "examples": ["ok", "error", "no_new_events"] },
           "new_events": { "type": "integer" },
           "anomalies":  { "type": "integer" },
-          "chunk_file": { "type": "string", "description": "Relative path to JSONL chunk file, if any" }
+          "chunk_file": { "type": ["string", "null"], "description": "Relative path to JSONL chunk file, or null if no events were collected" }
         }
       }
     }

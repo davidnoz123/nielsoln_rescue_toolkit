@@ -20,8 +20,8 @@
       "required": ["method", "dirty"],
       "properties": {
         "method":   { "type": "string", "examples": ["ntfsinfo", "python-ntfs", "hexdump"] },
-        "dirty":    { "type": "boolean" },
-        "error":    { "type": "string" },
+        "dirty":    { "type": ["boolean", "null"] },
+        "error":    { "type": ["string", "null"] },
         "note":     { "type": "string" },
         "raw_byte": { "type": "string" }
       }
