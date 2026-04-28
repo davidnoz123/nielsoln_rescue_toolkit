@@ -74,6 +74,9 @@ UPDATE_FILES = [
     "modules/m36_execution_history.py",
     "modules/m37_network_analysis.py",
     "modules/m38_browser_activity.py",
+    "modules/m39_driver_store_analysis.py",
+    "modules/m44_performance_diagnosis.py",
+    "modules/m46_recent_change_analysis.py",
 ]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
@@ -513,7 +516,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add m38_browser_activity (Chrome/Edge/Firefox/IE, domain summary, downloads, extensions, cred indicators)"
+    commit_message = "feat: add m39 driver_store, m44 performance_diagnosis, m46 recent_change_analysis"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
