@@ -896,7 +896,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add run_all, device_label, organize_device_logs, fetch_and_validate to devtools"
+    commit_message = "docs: add housekeeping rule to AGENTS.md, archive old helper scripts to old/"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

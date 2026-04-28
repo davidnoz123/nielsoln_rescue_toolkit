@@ -45,6 +45,26 @@ nielsoln-rescue-toolkit
 - Keep `bootstrap.sh` minimal.
 - Put as much logic as practical into Python.
 
+## Housekeeping — never delete, always archive to `old/`
+
+When cleaning up the repository, **never delete files**.  Move them to `old/`
+and stop tracking them in git instead:
+
+```bash
+# Move and untrack in one step:
+git rm --cached <file-or-dir>
+Move-Item <file-or-dir> old\
+```
+
+This applies to:
+- Ad-hoc session Python scripts (`run_*.py`, `wait_*.py`, `_*.py`) once their
+  logic has been absorbed into `devtools.py`.
+- Stale planning/design markdown docs once the work they describe is complete.
+- Any other file that is no longer part of the active codebase.
+
+The `old/` folder is gitignored (`old/` in `.gitignore`), so archived files
+never re-appear in `git status`.
+
 ## Self-healing USB principle
 
 The toolkit must be self-healing: a USB stick containing only the three source
