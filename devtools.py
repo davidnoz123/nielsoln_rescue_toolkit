@@ -482,7 +482,7 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report"
+    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
     commit_message = "feat: add m27 device_manager, m28 cmos_health, m29 storage_usage, m30 disk_integrity; update report_gen and DATA_INVENTORY"
@@ -537,8 +537,13 @@ def main() -> None:
         print("Downloaded customer_report.md")
         _scp_get(f"{USB_PATH}/logon_events.tsv", "logon_events.tsv")
         print("Downloaded logon_events.tsv")
-    else:
-        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent, fetch_report")
+    elif action == "ssh_test":
+        out = _ssh_run("echo 'session_secrets test OK'; hostname; uptime")
+        print(out)
+    elif action not in ("release", "run_remote", "push_file", "push_module",
+                        "run_module", "setup_ssh_agent", "fetch_report",
+                        "relay", "relay_status", "ssh_test"):
+        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent, fetch_report, ssh_test")
         sys.exit(1)
 
 
