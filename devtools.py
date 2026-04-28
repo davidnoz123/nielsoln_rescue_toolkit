@@ -48,7 +48,7 @@ import tempfile
 # Configuration — edit these before running
 # ---------------------------------------------------------------------------
 
-HOST        = "192.168.1.67"
+HOST        = "192.168.20.4"
 PORT        = 22
 KEY         = r"C:\Users\david\.ssh\id_ed25519"
 USB_PATH    = "/media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB"
@@ -514,15 +514,114 @@ def release(message: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Bootstrap lock helpers (serial module orchestration)
+# ---------------------------------------------------------------------------
+
+USB_LOCK = f"{USB_PATH}/.lock"
+
+
+def _lock_info():
+    """Return (locked:bool, pid:int|None, cmd:str|None) from the device lock file."""
+    import io as _io, contextlib as _cl, json as _json
+    buf = _io.StringIO()
+    with _cl.redirect_stdout(buf):
+        _ssh_run(f"cat {USB_LOCK} 2>/dev/null || echo NOLOCK")
+    out = buf.getvalue().strip()
+    if "NOLOCK" in out or not out:
+        return False, None, None
+    for line in reversed(out.splitlines()):
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                d = _json.loads(line)
+                return True, d.get("pid"), d.get("command")
+            except Exception:
+                pass
+    return True, None, None
+
+
+def _pid_alive(pid: int) -> bool:
+    """Return True if pid is alive on the device."""
+    import io as _io, contextlib as _cl
+    buf = _io.StringIO()
+    with _cl.redirect_stdout(buf):
+        _ssh_run(f"ps -p {pid} -o pid= 2>/dev/null || true")
+    return str(pid) in buf.getvalue()
+
+
+def wait_for_lock_clear(label: str = "", poll_secs: int = 15) -> None:
+    """Block until the bootstrap lock is gone (or the owning PID is dead)."""
+    import time as _time
+    print(f"  [wait] Waiting for bootstrap lock to clear{' (' + label + ')' if label else ''}...")
+    while True:
+        locked, lock_pid, lock_cmd = _lock_info()
+        if not locked:
+            print("  [wait] Lock clear.")
+            return
+        if lock_pid and not _pid_alive(lock_pid):
+            print(f"  [wait] PID {lock_pid} is dead — removing stale lock...")
+            _ssh_run(f"rm -f {USB_LOCK}")
+            _time.sleep(1)
+            return
+        print(f"  [wait] {_time.strftime('%H:%M:%S')}  locked by '{lock_cmd}' (PID {lock_pid})")
+        _time.sleep(poll_secs)
+
+
+def run_module_serial(name: str, args: list = None) -> None:
+    """Wait for lock, push + run a module, then wait for it to finish."""
+    import time as _time
+    sep = "=" * 60
+    print(f"\n{sep}\n  {name}\n{sep}")
+    wait_for_lock_clear(name)
+    try:
+        run_module(name, args or [])
+    except Exception as exc:
+        print(f"  [run_module] relay error (module may still be running): {exc}")
+    _time.sleep(3)  # brief pause for bootstrap to acquire the lock
+    wait_for_lock_clear(name)
+    print(f"DONE: {name}")
+
+
+# ---------------------------------------------------------------------------
+# Log fetch helper
+# ---------------------------------------------------------------------------
+
+def fetch_logs(local_dir: str = "logs") -> int:
+    """SCP all logs from USB to local_dir.  Returns count of newly fetched files."""
+    import pathlib as _pl
+    dest = _pl.Path(local_dir)
+    dest.mkdir(exist_ok=True)
+    listing_buf = []
+
+    import io as _io, contextlib as _cl
+    buf = _io.StringIO()
+    with _cl.redirect_stdout(buf):
+        _ssh_run(f"ls {USB_PATH}/logs/*.json {USB_PATH}/logs/*.jsonl 2>/dev/null || true")
+    remote_names = [_pl.Path(f.strip()).name for f in buf.getvalue().splitlines() if f.strip()]
+
+    fetched = 0
+    for fname in sorted(remote_names):
+        local = dest / fname
+        if local.exists():
+            print(f"  CACHED  {fname}")
+        else:
+            print(f"  FETCH   {fname} ...")
+            _scp_get(f"{USB_PATH}/logs/{fname}", str(local))
+            fetched += 1
+    print(f"\nFetched {fetched} new file(s), {len(remote_names) - fetched} already cached")
+    return fetched
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
+    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "fetch_logs" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add m40-m43 m45 m47: time_integrity file_anomalies registry_health backup_analysis trust_score module_conflict"
+    commit_message = "chore: repo cleanup — untrack logs/ad-hoc scripts, add bad_sector_scan schema, absorb run_serial+fetch_logs into devtools"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
@@ -546,6 +645,10 @@ def main() -> None:
         push_module(module_name)
     elif action == "run_module":
         run_module(module_name, module_args)
+    elif action == "run_module_serial":
+        run_module_serial(module_name, module_args)
+    elif action == "fetch_logs":
+        fetch_logs()
     elif action == "setup_ssh_agent":
         setup_ssh_agent()
     elif action == "relay":
@@ -578,9 +681,10 @@ def main() -> None:
         out = _ssh_run("echo 'session_secrets test OK'; hostname; uptime")
         print(out)
     elif action not in ("release", "run_remote", "push_file", "push_module",
-                        "run_module", "setup_ssh_agent", "fetch_report",
+                        "run_module", "run_module_serial", "fetch_logs",
+                        "setup_ssh_agent", "fetch_report",
                         "relay", "relay_status", "ssh_test"):
-        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent, fetch_report, ssh_test")
+        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, run_module_serial, fetch_logs, setup_ssh_agent, fetch_report, ssh_test")
         sys.exit(1)
 
 

@@ -31,7 +31,8 @@
     "m09_thermal_health": {
       "schema": "thermal_health.schema.json",
       "log_glob": "logs/thermal_health_*.json",
-      "format": "JSON"
+      "format": "JSON",
+      "notes": "Schema title: THERMAL_ANALYSIS. Adds idle_snapshot and thermal_response_test blocks (idle/peak/recovery temps, time-to-peak, freq before/during/after, throttling, emergency_stop, confidence)."
     },
     "m15_upgrade_advisor": {
       "schema": "upgrade_advisor.schema.json",
@@ -41,7 +42,8 @@
     "m17_system_summary": {
       "schema": "system_summary.schema.json",
       "log_glob": "logs/system_summary_*.json",
-      "format": "JSON"
+      "format": "JSON",
+      "notes": "sections object now includes: hardware, disk, thermal_analysis, clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager, cmos_health, storage_usage, disk_integrity, bad_sector_scan."
     },
     "m23_logon_audit": {
       "schema": "logon_audit.schema.json",
@@ -59,7 +61,8 @@
     "m27_device_manager": {
       "schema": "device_manager.schema.json",
       "log_glob": "logs/device_manager_*.json",
-      "format": "JSON"
+      "format": "JSON",
+      "notes": "Schema title: DEVICE_MANAGER_FULL_STATUS. Adds service binding, driver files, compatible IDs, filter chains, decoded config flags/problem codes, present/disabled flags, System.evtx driver event correlation."
     },
     "m28_cmos_health": {
       "schema": "cmos_health.schema.json",
@@ -75,6 +78,12 @@
       "schema": "disk_integrity.schema.json",
       "log_glob": "logs/disk_integrity_*.json",
       "format": "JSON"
+    },
+    "bad_sector_scan": {
+      "schema": "bad_sector_scan.schema.json",
+      "log_glob": "logs/bad_sector_scan_*.json",
+      "format": "JSON",
+      "notes": "Schema title: BAD_SECTOR_SCAN. Read-only bad-sector/slow-read test. Module TBD (no mNN assigned yet). Fields: scan_mode, block_size_bytes, sectors_attempted/read_ok/failed/slow, bad_ranges, slow_read_ranges, scan_status (completed/interrupted/error/skipped), clone_recommended, ddrescue_command."
     },
     "m31_system_integrity_audit": {
       "schema": "system_integrity.schema.json",

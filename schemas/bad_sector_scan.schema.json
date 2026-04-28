@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bad_sector_scan.schema.json",
+  "title": "BAD_SECTOR_SCAN",
+  "description": "Read-only bad-sector and slow-read test written by the bad-sector scan module. Log glob: logs/bad_sector_scan_*.json",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["generated", "target", "device", "scan_status", "verdict"],
+  "properties": {
+    "report_type": {
+      "type": "string",
+      "enum": ["BAD_SECTOR_SCAN"],
+      "description": "Report type discriminator."
+    },
+    "generated": {
+      "type": "string",
+      "description": "ISO-8601 timestamp when this report was generated"
+    },
+    "target": {
+      "type": "string",
+      "description": "Mounted Windows path passed as --target"
+    },
+    "device": {
+      "type": ["string", "null"],
+      "description": "Block device scanned (e.g. /dev/sda2)"
+    },
+    "scan_mode": {
+      "type": "string",
+      "enum": ["sequential", "random", "targeted"],
+      "description": "How sectors were chosen for reading"
+    },
+    "block_size_bytes": {
+      "type": "integer",
+      "description": "Read block size used during the scan"
+    },
+    "sectors_attempted": {
+      "type": "integer",
+      "description": "Total number of sectors (or blocks) that were attempted"
+    },
+    "sectors_read_ok": {
+      "type": "integer",
+      "description": "Sectors that returned without read error"
+    },
+    "sectors_failed": {
+      "type": "integer",
+      "description": "Sectors that produced a read error (I/O error, EIO)"
+    },
+    "sectors_slow": {
+      "type": "integer",
+      "description": "Sectors that read successfully but exceeded the slow-read threshold"
+    },
+    "slow_read_threshold_ms": {
+      "type": "number",
+      "description": "Milliseconds per block above which a read is classified as slow"
+    },
+    "bad_ranges": {
+      "type": "array",
+      "description": "Contiguous ranges of sectors that could not be read",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "lba_start":     { "type": "integer", "description": "Logical Block Address of range start" },
+          "lba_end":       { "type": "integer", "description": "Logical Block Address of range end (inclusive)" },
+          "sector_count":  { "type": "integer" },
+          "first_seen":    { "type": "string", "description": "ISO-8601 timestamp of first error in this range" },
+          "error_code":    { "type": ["string", "null"] },
+          "context":       { "type": ["string", "null"], "description": "File or filesystem metadata near this range if resolvable" }
+        }
+      }
+    },
+    "slow_read_ranges": {
+      "type": "array",
+      "description": "Contiguous ranges of sectors with slow (but successful) reads",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "lba_start":      { "type": "integer" },
+          "lba_end":        { "type": "integer" },
+          "sector_count":   { "type": "integer" },
+          "avg_latency_ms": { "type": "number" },
+          "max_latency_ms": { "type": "number" }
+        }
+      }
+    },
+    "scan_status": {
+      "type": "string",
+      "enum": ["completed", "interrupted", "error", "skipped"],
+      "description": "Whether the scan finished normally or was interrupted / errored"
+    },
+    "interrupted_reason": {
+      "type": ["string", "null"],
+      "description": "If scan_status is interrupted or error, the cause"
+    },
+    "duration_seconds": {
+      "type": ["number", "null"]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["HEALTHY", "MARGINAL", "FAILING", "CRITICAL", "UNKNOWN"],
+      "description": "Overall health verdict based on error counts and slow-read frequency"
+    },
+    "smart_correlation": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Cross-reference with SMART data from disk_health log if available",
+      "properties": {
+        "disk_health_log":         { "type": ["string", "null"] },
+        "reallocated_sectors":     { "type": ["integer", "null"] },
+        "pending_sectors":         { "type": ["integer", "null"] },
+        "uncorrectable_sectors":   { "type": ["integer", "null"] },
+        "smart_verdict":           { "type": ["string", "null"] }
+      }
+    },
+    "clone_recommended": {
+      "type": "boolean",
+      "description": "True if bad-sector count or severity suggests cloning before further use"
+    },
+    "ddrescue_command": {
+      "type": ["string", "null"],
+      "description": "Suggested ddrescue command line for safe cloning if clone_recommended is true"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

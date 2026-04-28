@@ -76,10 +76,14 @@
               "type": "object",
               "additionalProperties": true,
               "properties": {
-                "log":      { "type": "string" },
-                "verdict":  { "type": "string" },
-                "infected": { "type": "integer" },
-                "scanned":  { "type": "integer" }
+                "log":               { "type": "string" },
+                "verdict":           { "type": "string" },
+                "infected":          { "type": "integer" },
+                "scanned":           { "type": ["integer", "null"] },
+                "confidence":        { "type": ["string", "null"] },
+                "coverage_estimate": { "type": ["string", "null"] },
+                "definitions_age":   { "type": ["integer", "null"] },
+                "recommendations":   { "type": "array", "items": { "type": "string" } }
               }
             }
           ]
@@ -157,6 +161,161 @@
                 "log":            { "type": "string" },
                 "recommendation": { "type": "string" },
                 "count":          { "type": "integer" }
+              }
+            }
+          ]
+        },
+        "system_integrity": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":                    { "type": "string" },
+                "verdict":                { "type": "string" },
+                "confidence":             { "type": "string" },
+                "scan_status":            { "type": "string" },
+                "files_checked":          { "type": "integer" },
+                "anomalous_files":        { "type": "integer" },
+                "missing_files":          { "type": "integer" },
+                "windows_version_hint":   { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "execution_surface": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":              { "type": "string" },
+                "services_analysed":{ "type": "integer" },
+                "critical_count":   { "type": "integer" },
+                "high_count":       { "type": "integer" },
+                "risk_distribution":{ "type": "object", "additionalProperties": { "type": "integer" } }
+              }
+            }
+          ]
+        },
+        "clamav_confidence": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Enhanced ClamAV confidence and miss-analysis summary",
+              "properties": {
+                "log":             { "type": "string" },
+                "scan_status":     { "type": "string" },
+                "infected_count":  { "type": "integer" },
+                "confidence_level":{ "type": "string" },
+                "confidence_score":{ "type": "integer" },
+                "coverage_estimate":{ "type": "string" },
+                "miss_analysis_flags":{ "type": "array", "items": { "type": "string" } },
+                "unexplained_signals":{ "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
+        },
+        "device_manager": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":           { "type": "string" },
+                "total":         { "type": "integer" },
+                "flagged_count": { "type": "integer" },
+                "driver_events": { "type": "integer", "description": "Count of System.evtx driver/device events correlated" }
+              }
+            }
+          ]
+        },
+        "cmos_health": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":    { "type": "string" },
+                "verdict":{ "type": "string" },
+                "warnings":{ "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
+        },
+        "storage_usage": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":           { "type": "string" },
+                "total_gb":      { "type": ["number", "null"] },
+                "used_gb":       { "type": ["number", "null"] },
+                "free_gb":       { "type": ["number", "null"] },
+                "percent_used":  { "type": ["number", "null"] },
+                "verdict":       { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "disk_integrity": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":              { "type": "string" },
+                "verdict":          { "type": "string" },
+                "dirty_bit":        { "type": ["boolean", "null"] },
+                "total_disk_errors":{ "type": "integer" },
+                "total_chkdsk_runs":{ "type": "integer" }
+              }
+            }
+          ]
+        },
+        "bad_sector_scan": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":               { "type": "string" },
+                "verdict":           { "type": "string" },
+                "sectors_failed":    { "type": "integer" },
+                "sectors_slow":      { "type": "integer" },
+                "clone_recommended": { "type": "boolean" }
+              }
+            }
+          ]
+        },
+        "thermal_analysis": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Summary from THERMAL_ANALYSIS including response test results",
+              "properties": {
+                "log":                { "type": "string" },
+                "verdict":            { "type": "string" },
+                "warnings":           { "type": "array", "items": { "type": "string" } },
+                "hottest_c":          { "type": ["number", "null"] },
+                "idle_temp_c":        { "type": ["number", "null"] },
+                "peak_temp_c":        { "type": ["number", "null"] },
+                "temp_rise_c":        { "type": ["number", "null"] },
+                "throttling_detected":{ "type": ["boolean", "null"] },
+                "emergency_stop":     { "type": ["boolean", "null"] },
+                "response_test_performed": { "type": ["boolean", "null"] }
               }
             }
           ]

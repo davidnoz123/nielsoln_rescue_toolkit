@@ -282,7 +282,7 @@ def _collect_file_evidence(path: Path) -> dict:
 def _check_file_anomalies(evidence: dict, win_relpath: str, category: str) -> List[str]:
     """Return list of anomaly tags for a file's collected evidence.
 
-    win_relpath: e.g. 'System32/ntdll.dll' (relative to Windows\)
+    win_relpath: e.g. 'System32/ntdll.dll' (relative to Windows/)
     """
     anomalies: List[str] = []
     if not evidence.get("exists"):

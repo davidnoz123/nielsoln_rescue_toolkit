@@ -8,3 +8,23 @@ old/
 runtimes/
 clamav/
 _tools/
+cache/
+
+# Runtime outputs — machine-specific, not source
+logs/
+logon_events.tsv
+clock_ref.json
+customer_report.md
+toolkit.log
+
+# Ad-hoc diagnostic scripts — local use only, never commit
+_*.py
+
+# Local dev helper scripts — not part of the toolkit
+run_*.py
+wait_*.py
+fetch_and_validate.py
+
+# Archives / temp
+*.zip
+.pytest_cache/

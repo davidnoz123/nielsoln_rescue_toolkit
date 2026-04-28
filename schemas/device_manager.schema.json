@@ -1,16 +1,37 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "device_manager.schema.json",
-  "title": "m27 device_manager",
-  "description": "Device Manager inventory from offline registry written by m27_device_manager. Log glob: logs/device_manager_*.json",
+  "title": "DEVICE_MANAGER_FULL_STATUS",
+  "description": "Device Manager full-status inventory from offline registry written by m27_device_manager. Log glob: logs/device_manager_*.json",
   "type": "object",
   "required": ["target", "timestamp", "total", "flagged_count", "devices"],
   "additionalProperties": true,
   "properties": {
+    "report_type": {
+      "type": "string",
+      "enum": ["DEVICE_MANAGER_FULL_STATUS"],
+      "description": "Report type discriminator. Present in v2+ logs."
+    },
     "target":        { "type": "string" },
     "timestamp":     { "type": "string" },
     "total":         { "type": "integer" },
     "flagged_count": { "type": "integer" },
+    "driver_events": {
+      "type": "array",
+      "description": "Driver/device events correlated from System.evtx (Event IDs 7000–7045, 219, 411 etc.)",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "event_id":    { "type": "integer" },
+          "time":        { "type": "string" },
+          "provider":    { "type": "string" },
+          "device_id":   { "type": ["string", "null"], "description": "Correlated device instance ID if matched" },
+          "description": { "type": "string" },
+          "data":        { "type": "object", "additionalProperties": true }
+        }
+      }
+    },
     "devices": {
       "type": "array",
       "items": {
@@ -25,12 +46,76 @@
           "class_guid":      { "type": "string" },
           "manufacturer":    { "type": "string" },
           "hardware_ids":    { "type": "array", "items": { "type": "string" } },
+          "compatible_ids":  { "type": "array", "items": { "type": "string" }, "description": "CompatibleIDs from Enum\\<bus>\\<device> registry key" },
           "driver_version":  { "type": "string" },
           "driver_provider": { "type": "string" },
           "driver_date":     { "type": "string" },
-          "problem_code":    {},
-          "problem_desc":    { "type": ["string", "null"] },
+          "driver_key":      { "type": ["string", "null"], "description": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\<driverKey> reference" },
+          "inf_name":        { "type": ["string", "null"], "description": "INF filename used to install the device (from InfName value)" },
+          "service_binding": {
+            "type": ["object", "null"],
+            "additionalProperties": true,
+            "description": "Service registry entry correlated from driver_key",
+            "properties": {
+              "service_name":  { "type": "string" },
+              "image_path":    { "type": ["string", "null"] },
+              "start_type":    { "type": ["integer", "null"] },
+              "start_type_str":{ "type": ["string", "null"] },
+              "object_name":   { "type": ["string", "null"] },
+              "error_control": { "type": ["integer", "null"] }
+            }
+          },
+          "upper_filters":   { "type": "array", "items": { "type": "string" }, "description": "UpperFilters driver stack entries" },
+          "lower_filters":   { "type": "array", "items": { "type": "string" }, "description": "LowerFilters driver stack entries" },
           "config_flags":    {},
+          "config_flags_decoded": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Human-readable decode of ConfigFlags bitmask (e.g. CONFIGFLAG_REMOVED, CONFIGFLAG_FAILEDINSTALL)"
+          },
+          "problem_code":    {},
+          "problem_code_decoded": {
+            "type": ["string", "null"],
+            "description": "Human-readable decode of CM_PROB_* error code (e.g. CM_PROB_FAILED_START, CM_PROB_DISABLED)"
+          },
+          "problem_desc":    { "type": ["string", "null"] },
+          "present":         { "type": ["boolean", "null"], "description": "True if device is currently present (SPDRP_PHYSICAL_DEVICE_OBJECT_NAME or DeviceDesc present)" },
+          "disabled":        { "type": ["boolean", "null"], "description": "True if device is explicitly disabled (problem_code 22 = CM_PROB_DISABLED)" },
+          "driver_files": {
+            "type": "array",
+            "description": "Driver binary files associated with this device (from service ImagePath + INF CopyFiles)",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "path":          { "type": "string" },
+                "exists":        { "type": ["boolean", "null"] },
+                "size_bytes":    { "type": ["integer", "null"] },
+                "sha256":        { "type": ["string", "null"] },
+                "version":       { "type": ["string", "null"] },
+                "publisher":     { "type": ["string", "null"] },
+                "signed":        { "type": ["boolean", "null"] }
+              }
+            }
+          },
+          "file_evidence": {
+            "type": "array",
+            "description": "Integrity/anomaly evidence from cross-referencing driver files with system_integrity findings",
+            "items": { "type": "string" }
+          },
+          "evtx_events": {
+            "type": "array",
+            "description": "System.evtx events correlated to this specific device instance",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "event_id":    { "type": "integer" },
+                "time":        { "type": "string" },
+                "description": { "type": "string" }
+              }
+            }
+          },
           "flagged":         { "type": "boolean" }
         }
       }

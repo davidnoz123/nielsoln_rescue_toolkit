@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "thermal_health.schema.json",
-  "title": "m09 thermal_health",
-  "description": "Thermal sensor data written by m09_thermal_health. Log glob: logs/thermal_health_*.json",
+  "title": "THERMAL_ANALYSIS",
+  "description": "Thermal sensor data and short thermal-response test written by m09_thermal_health. Log glob: logs/thermal_health_*.json",
   "type": "object",
   "required": ["timestamp", "verdict", "warnings", "recommendations", "temperatures", "fans", "thermal_zones", "sensors_available"],
   "additionalProperties": true,
@@ -70,6 +70,65 @@
         "throttled":       { "type": "boolean" },
         "cpuinfo_mhz_min": { "type": "integer" },
         "cpuinfo_mhz_max": { "type": "integer" }
+      }
+    },
+    "report_type": {
+      "type": "string",
+      "enum": ["THERMAL_ANALYSIS"],
+      "description": "Report type discriminator. Present in v2+ logs."
+    },
+    "idle_snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Passive thermal snapshot taken at idle (no load applied)",
+      "properties": {
+        "timestamp":        { "type": "string" },
+        "duration_seconds": { "type": "number" },
+        "idle_temp_c": {
+          "type": ["number", "null"],
+          "description": "CPU/package temperature at idle (°C)"
+        },
+        "hottest_sensor_c": { "type": ["number", "null"] },
+        "hottest_sensor_label": { "type": ["string", "null"] },
+        "cpu_freq_mhz":     { "type": ["integer", "null"], "description": "CPU frequency observed during idle snapshot" },
+        "throttling_detected": { "type": ["boolean", "null"] }
+      }
+    },
+    "thermal_response_test": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Short thermal response test: brief CPU load applied; measures heat rise, throttle response, and recovery",
+      "properties": {
+        "performed":            { "type": "boolean", "description": "Whether the test was actually run (may be skipped if sensors unavailable or emergency stop triggered)" },
+        "skipped_reason":       { "type": ["string", "null"], "description": "Reason test was skipped, if applicable" },
+        "load_duration_seconds":{ "type": "number" },
+        "idle_temp_c":          { "type": ["number", "null"], "description": "Temperature immediately before load was applied (°C)" },
+        "peak_temp_c":          { "type": ["number", "null"], "description": "Maximum temperature observed during load (°C)" },
+        "temp_rise_c":          { "type": ["number", "null"], "description": "peak_temp_c − idle_temp_c (°C)" },
+        "time_to_peak_seconds": { "type": ["number", "null"], "description": "Seconds from load start to peak temperature" },
+        "recovery_temp_c":      { "type": ["number", "null"], "description": "Temperature after a recovery wait period (°C)" },
+        "recovery_time_seconds":{ "type": ["number", "null"], "description": "Seconds from load end until temperature fell below idle + 5 °C (or recovery_temp_c was sampled)" },
+        "cpu_freq_before_mhz":  { "type": ["integer", "null"], "description": "CPU frequency immediately before load" },
+        "cpu_freq_during_mhz":  { "type": ["integer", "null"], "description": "CPU frequency at peak load (throttling evidence)" },
+        "cpu_freq_after_mhz":   { "type": ["integer", "null"], "description": "CPU frequency after recovery" },
+        "throttling_detected":  { "type": ["boolean", "null"], "description": "True if cpu_freq_during < cpu_freq_before by more than threshold" },
+        "emergency_stop":       { "type": ["boolean", "null"], "description": "True if test was aborted because temperature exceeded emergency threshold" },
+        "emergency_stop_temp_c":{ "type": ["number", "null"] },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low", "unknown"],
+          "description": "Confidence in thermal response data quality"
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Caveats on test accuracy (e.g. live OS interference, short duration, single-core load only)"
+        },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Thermal-response-specific follow-up actions (e.g. clean heatsink, reapply thermal paste)"
+        }
       }
     }
   }
