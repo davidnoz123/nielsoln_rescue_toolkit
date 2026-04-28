@@ -48,7 +48,7 @@ import tempfile
 # Configuration — edit these before running
 # ---------------------------------------------------------------------------
 
-HOST        = "192.168.1.67"
+HOST        = "192.168.20.4"
 PORT        = 22
 KEY         = r"C:\Users\david\.ssh\id_ed25519"
 USB_PATH    = "/media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB"
@@ -277,6 +277,20 @@ def _scp_run(local: str, remote: str) -> None:
     subprocess.run(_scp_args(local, f"root@{HOST}:{remote}"), env=_askpass_env())
 
 
+def _scp_get(remote: str, local: str) -> None:
+    """SCP a file FROM the device to a local path."""
+    _ensure_relay()
+    resp = _relay_call("scp_get", remote=remote, local=local)
+    if resp is not None:
+        if resp.get("out"):
+            sys.stdout.write(resp["out"])
+        if resp.get("err"):
+            sys.stderr.write(resp["err"])
+        return
+    # Fallback — use cached passphrase via SSH_ASKPASS
+    subprocess.run(_scp_args(f"root@{HOST}:{remote}", local), env=_askpass_env())
+
+
 # ---------------------------------------------------------------------------
 # Operations
 # ---------------------------------------------------------------------------
@@ -425,10 +439,10 @@ def release(message: str) -> None:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"              # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status"
+    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report"
 
     # --- release config ---
-    commit_message = "feat: devtools prompts passphrase once in-terminal; relay reads from stdin pipe"
+    commit_message = "feat: add m27 device_manager, m28 cmos_health, m29 storage_usage, m30 disk_integrity; update report_gen and DATA_INVENTORY"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
@@ -469,8 +483,19 @@ def main() -> None:
             print()
             for line in resp.get("recent", [])[-30:]:
                 print(line)
+    elif action == "fetch_report":
+        # 1. Push the latest report_gen.py to the device
+        _scp_run("report_gen.py", f"{USB_PATH}/report_gen.py")
+        print("Pushed report_gen.py")
+        # 2. Run it on the device
+        _ssh_run(f"cd {USB_PATH} && python3 report_gen.py")
+        # 3. Pull the outputs back
+        _scp_get(f"{USB_PATH}/customer_report.md", "customer_report.md")
+        print("Downloaded customer_report.md")
+        _scp_get(f"{USB_PATH}/logon_events.tsv", "logon_events.tsv")
+        print("Downloaded logon_events.tsv")
     else:
-        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent")
+        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, setup_ssh_agent, fetch_report")
         sys.exit(1)
 
 

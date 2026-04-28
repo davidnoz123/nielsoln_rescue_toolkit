@@ -182,6 +182,22 @@ def load_os_profile() -> dict:
     d = _load("os_profile_*.json")
     return d or {}
 
+def load_storage_usage() -> dict:
+    d = _load("storage_usage_*.json")
+    return d or {}
+
+def load_cmos_health() -> dict:
+    d = _load("cmos_health_*.json")
+    return d or {}
+
+def load_device_manager() -> dict:
+    d = _load("device_manager_*.json")
+    return d or {}
+
+def load_disk_integrity() -> dict:
+    d = _load("disk_integrity_*.json")
+    return d or {}
+
 # ---------------------------------------------------------------------------
 # Markdown sections
 # ---------------------------------------------------------------------------
@@ -892,6 +908,209 @@ def section_upgrade() -> str:
 
     return "\n".join(lines)
 
+def section_device_manager() -> str:
+    dm = load_device_manager()
+    if not dm:
+        return "## Device Manager\n\n_No device manager data available. Run m27_device_manager._\n\n"
+
+    summary  = dm.get("summary", {})
+    total    = _int_or(summary.get("total_devices"))
+    flagged  = summary.get("flagged_devices") or []
+    by_class = summary.get("by_class") or {}
+
+    lines = [
+        "## Device Manager",
+        "",
+        f"| | |",
+        f"|---|---|",
+        f"| Total devices | {total} |",
+        f"| Flagged (problem code) | {len(flagged)} |",
+        "",
+    ]
+
+    if flagged:
+        lines += [
+            "**Devices with problem codes:**",
+            "",
+            "| Device | Class | Problem | Hardware ID |",
+            "|---|---|---|---|",
+        ]
+        for d in flagged[:30]:
+            lines.append(
+                f"| {_na(d.get('description') or d.get('device_desc'))} "
+                f"| {_na(d.get('class'))} "
+                f"| {_na(d.get('problem_code') or d.get('problem'))} "
+                f"| {_na((d.get('hardware_ids') or [''])[0] if isinstance(d.get('hardware_ids'), list) else d.get('hardware_id'))} |"
+            )
+        lines.append("")
+    else:
+        lines += ["> No devices with problem codes detected.", ""]
+
+    if by_class:
+        lines += [
+            "**Device class summary:**",
+            "",
+            "| Class | Count |",
+            "|---|---|",
+        ]
+        for cls, cnt in sorted(by_class.items(), key=lambda x: -x[1]):
+            lines.append(f"| {cls} | {cnt} |")
+        lines.append("")
+
+    return "\n".join(lines)
+
+def section_cmos_health() -> str:
+    cm = load_cmos_health()
+    if not cm:
+        return "## CMOS / Clock Health\n\n_No CMOS health data available. Run m28_cmos_health._\n\n"
+
+    verdict      = _str(cm.get("verdict"), "UNKNOWN")
+    delta_s      = cm.get("clock_delta_seconds")
+    delta_str    = f"{delta_s:+.1f} s" if isinstance(delta_s, (int, float)) else _na(delta_s)
+    time_changes = _int_or(cm.get("time_change_count"))
+    dirty_shuts  = _int_or(cm.get("dirty_shutdown_count"))
+    unexp_shuts  = _int_or(cm.get("unexpected_shutdown_count"))
+    notes        = cm.get("notes") or []
+
+    lines = [
+        "## CMOS / Clock Health",
+        "",
+        f"| | |",
+        f"|---|---|",
+        f"| Verdict | {_badge(verdict)} |",
+        f"| RTC clock delta vs UTC | {delta_str} |",
+        f"| Time-change events (Evt 37) | {time_changes} |",
+        f"| Dirty shutdown events (Evt 41) | {dirty_shuts} |",
+        f"| Unexpected shutdown events (Evt 6008) | {unexp_shuts} |",
+        "",
+    ]
+
+    if notes:
+        lines += ["**Notes:**", ""]
+        for n in notes:
+            lines.append(f"- {n}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+def section_storage_usage() -> str:
+    su = load_storage_usage()
+    if not su:
+        return "## Storage Usage\n\n_No storage usage data available. Run m29_storage_usage._\n\n"
+
+    verdict   = _str(su.get("verdict"), "UNKNOWN")
+    partition = su.get("partition") or {}
+    top_dirs  = su.get("top_dirs") or []
+    temp_dirs = su.get("temp_dirs") or []
+    temp_total_mb = _int_or(su.get("temp_total_mb"))
+
+    total_gb = partition.get("total_gb")
+    used_gb  = partition.get("used_gb")
+    free_gb  = partition.get("free_gb")
+    pct_used = partition.get("pct_used")
+
+    lines = [
+        "## Storage Usage",
+        "",
+        f"| | |",
+        f"|---|---|",
+        f"| Verdict | {_badge(verdict)} |",
+    ]
+    if total_gb is not None:
+        lines.append(f"| Total | {total_gb:.1f} GB |")
+    if used_gb is not None:
+        lines.append(f"| Used | {used_gb:.1f} GB ({pct_used:.0f}%) |" if pct_used is not None else f"| Used | {used_gb:.1f} GB |")
+    if free_gb is not None:
+        lines.append(f"| Free | {free_gb:.1f} GB |")
+    if temp_total_mb:
+        lines.append(f"| Temp / cache total | {temp_total_mb:,} MB |")
+    lines.append("")
+
+    if top_dirs:
+        lines += [
+            "**Largest top-level directories:**",
+            "",
+            "| Directory | Size |",
+            "|---|---|",
+        ]
+        for d in top_dirs[:15]:
+            lines.append(f"| `{_na(d.get('path') or d.get('name'))}` | {_na(d.get('size_mb') or d.get('size'))} MB |")
+        lines.append("")
+
+    if temp_dirs:
+        lines += [
+            "**Temp / cache directories:**",
+            "",
+            "| Directory | Size |",
+            "|---|---|",
+        ]
+        for d in temp_dirs:
+            lines.append(f"| `{_na(d.get('path') or d.get('name'))}` | {_na(d.get('size_mb') or d.get('size'))} MB |")
+        lines.append("")
+
+    return "\n".join(lines)
+
+def section_disk_integrity() -> str:
+    di = load_disk_integrity()
+    if not di:
+        return "## Disk Integrity\n\n_No disk integrity data available. Run m30_disk_integrity._\n\n"
+
+    verdict      = _str(di.get("verdict"), "UNKNOWN")
+    dirty_bit    = di.get("dirty_bit")
+    disk_errors  = _int_or(di.get("disk_error_count"))
+    chkdsk_count = _int_or(di.get("chkdsk_count"))
+    notes        = di.get("notes") or []
+    error_events = di.get("disk_error_events") or []
+    chkdsk_events = di.get("chkdsk_events") or []
+
+    dirty_str = "Yes" if dirty_bit is True else ("No" if dirty_bit is False else "Unknown")
+
+    lines = [
+        "## Disk Integrity",
+        "",
+        f"| | |",
+        f"|---|---|",
+        f"| Verdict | {_badge(verdict)} |",
+        f"| NTFS dirty bit set | {dirty_str} |",
+        f"| Disk I/O error events | {disk_errors} |",
+        f"| CHKDSK run events | {chkdsk_count} |",
+        "",
+    ]
+
+    if notes:
+        lines += ["**Notes:**", ""]
+        for n in notes:
+            lines.append(f"- {n}")
+        lines.append("")
+
+    if error_events:
+        lines += [
+            "**Recent disk error events (up to 20):**",
+            "",
+            "| Timestamp | Event ID | Source | Message |",
+            "|---|---|---|---|",
+        ]
+        for e in error_events[:20]:
+            lines.append(
+                f"| {_na(e.get('timestamp'))} | {_na(e.get('event_id'))} "
+                f"| {_na(e.get('source') or e.get('provider'))} "
+                f"| {_na(e.get('message') or e.get('description'))} |"
+            )
+        lines.append("")
+
+    if chkdsk_events:
+        lines += [
+            "**CHKDSK history (up to 10):**",
+            "",
+            "| Timestamp | Message |",
+            "|---|---|",
+        ]
+        for e in chkdsk_events[:10]:
+            lines.append(f"| {_na(e.get('timestamp'))} | {_na(e.get('message') or e.get('description'))} |")
+        lines.append("")
+
+    return "\n".join(lines)
+
 def section_next_steps() -> str:
     disks   = load_disk()
     urgency = "OK"
@@ -1145,6 +1364,10 @@ def main():
         section_software(),
         section_thermal(),
         section_upgrade(),
+        section_device_manager(),
+        section_cmos_health(),
+        section_storage_usage(),
+        section_disk_integrity(),
         section_next_steps(),
         section_chatgpt_context(),
         section_footer(),

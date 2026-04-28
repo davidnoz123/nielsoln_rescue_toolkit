@@ -1,7 +1,8 @@
+﻿---REPORT_START---
 # Laptop Diagnostic Report
 
 **Prepared by:** Nielsoln Rescue Toolkit  
-**Date:** 27 April 2026  
+**Date:** 20 November 2008  
 **Machine:** ASUSTeK Computer Inc. F5GL 1.0
 **Serial number:** NF1S8C05960013  
 **BIOS date:** 11/20/2008  
@@ -10,7 +11,7 @@
 
 ## Overall Assessment
 
-> ⚪ **REVIEW RECOMMENDED**
+> ΓÜ¬ **REVIEW RECOMMENDED**
 
 ## Hardware
 
@@ -20,7 +21,7 @@
 | Model | F5GL 1.0 |
 | Serial number | NF1S8C05960013 |
 | Form factor | laptop |
-| BIOS | American Megatrends Inc.  v213  (11/20/2008)  — BIOS/Legacy |
+| BIOS | American Megatrends Inc.  v213  (11/20/2008)  ΓÇö BIOS/Legacy |
 | CPU | Intel(R) Pentium(R) Dual  CPU  T3400  @ 2.16GHz |
 | CPU architecture | x86_64 |
 | CPU cores / threads | 2 physical / 2 logical |
@@ -349,12 +350,12 @@
 
 ## Disk Health
 
-### /dev/sda — ST9250320AS
+### /dev/sda ΓÇö ST9250320AS
 
 | | |
 |---|---|
 | SMART health | PASSED |
-| Overall verdict | 🟡 **CAUTION** |
+| Overall verdict | ≡ƒƒí **CAUTION** |
 | Clone urgency | **soon** |
 | Power On Hours | 2227 |
 
@@ -369,25 +370,27 @@
 
 | | |
 |---|---|
-| Result | 🟢 **CLEAN** |
+| Result | ≡ƒƒó **CLEAN** |
 | Threats found | 0 |
 | Files scanned | 0 |
 
-## Windows Security — Logon Audit
+## Windows Security ΓÇö Logon Audit
 
 | | |
 |---|---|
-| Verdict | 🟢 **CLEAN** |
+| Verdict | ≡ƒƒó **CLEAN** |
 | Failed logon attempts | 0 |
 | Account lockouts | 0 |
 | Password change events | 0 |
 | Explicit credential logons | 7184 |
 | Account management events | 0 |
 
+> **Audit policy caveat:** Windows Vista Home editions disable Failure auditing for Logon events by default.  A count of zero failed logons does **not** prove that no failed attempts occurred ΓÇö they may simply not have been recorded by the OS.
+
 **Notes:**
 
-- No failed logon attempts found in the Security log.
-- 7184 'logon with explicit credentials' event(s) — could be a scheduled task, cached credentials, or malware.
+- No failed logon attempts found in the Security log.  NOTE: Windows Vista Home editions disable Failure auditing for Logon events by default ΓÇö this means failed logon attempts may have occurred but were never written to the Security log.  Absence of 4625 events does NOT guarantee the password was never guessed.
+- 7184 'logon with explicit credentials' event(s) ΓÇö could be a scheduled task, cached credentials, or malware.
 
 **Event log archive (incremental capture):**
 
@@ -415,7 +418,7 @@
 
 | | |
 |---|---|
-| Verdict | 🟡 **SUSPICIOUS** |
+| Verdict | ≡ƒƒí **SUSPICIOUS** |
 | Total registered | 441 |
 | Auto-start (non-driver) | 75 |
 | Third-party | 0 |
@@ -533,7 +536,7 @@
 | Security Update for Microsoft .NET Framework 4 Client Profile (KB2446708) | 1 | Microsoft Corporation | N/A |
 | Security Update for Microsoft .NET Framework 4 Client Profile (KB2478663) | 1 | Microsoft Corporation | N/A |
 | Security Update for Microsoft .NET Framework 4 Client Profile (KB2518870) | 1 | Microsoft Corporation | N/A |
-| Skype™ 7.0 | 7.0.102 | Skype Technologies S.A. | 20150703 |
+| SkypeΓäó 7.0 | 7.0.102 | Skype Technologies S.A. | 20150703 |
 | Spelling Dictionaries Support For Adobe Reader 8 | 8.0.0 | Adobe Systems | 20090407 |
 | Synaptics Pointing Device Driver | 10.0.12.0 | Synaptics | N/A |
 | Update for Microsoft .NET Framework 3.5 SP1 (KB963707) | 1 | Microsoft Corporation | N/A |
@@ -548,26 +551,98 @@
 
 | | |
 |---|---|
-| Verdict | ⚪ **WARM** |
+| Verdict | ΓÜ¬ **WARM** |
 
 **Notes:**
 
-- No fan data available — fan monitoring may not be supported by this hardware
-- CPU is frequency-throttled: 1015 MHz / 2167 MHz max — possible thermal event
+- No fan data available ΓÇö fan monitoring may not be supported by this hardware
+- CPU is frequency-throttled: 1015 MHz / 2167 MHz max ΓÇö possible thermal event
 
 ## Upgrade Recommendation
 
+## Device Manager
+
+| | |
+|---|---|
+| Total devices | 0 |
+| Flagged (problem code) | 0 |
+
+> No devices with problem codes detected.
+
+## CMOS / Clock Health
+
+| | |
+|---|---|
+| Verdict | ≡ƒƒó **HEALTHY** |
+| RTC clock delta vs UTC | N/A |
+| Time-change events (Evt 37) | 0 |
+| Dirty shutdown events (Evt 41) | 0 |
+| Unexpected shutdown events (Evt 6008) | 0 |
+
+## Storage Usage
+
+| | |
+|---|---|
+| Verdict | ≡ƒƒí **WARNING** |
+| Total | 116.4 GB |
+| Used | 107.9 GB |
+| Free | 8.6 GB |
+
+**Largest top-level directories:**
+
+| Directory | Size |
+|---|---|
+| `Users` | 60022.4 MB |
+| `Users/Garnet Tregonning` | 58380.9 MB |
+| `Windows` | 25080.6 MB |
+| `System Volume Information` | 18485.3 MB |
+| `Windows/winsxs` | 12101.1 MB |
+| `$RECYCLE.BIN` | 5677.0 MB |
+| `Program Files` | 3775.0 MB |
+| `Windows/SoftwareDistribution` | 3577.5 MB |
+| `Windows/System32` | 3259.3 MB |
+| `Windows/Installer` | 2743.9 MB |
+| `ProgramData` | 1934.7 MB |
+| `Users/Public` | 1640.1 MB |
+| `Windows/assembly` | 821.9 MB |
+| `Program Files/Common Files` | 651.2 MB |
+| `Program Files/Google` | 564.4 MB |
+
+**Temp / cache directories:**
+
+| Directory | Size |
+|---|---|
+| `Windows/Temp` | 206.4 MB |
+| `Windows/SoftwareDistribution/Download` | 3255.5 MB |
+| `Windows/Prefetch` | 39.9 MB |
+| `Users/Default/AppData/Local/Temp` | N/A MB |
+| `Users/Default User/AppData/Local/Temp` | N/A MB |
+| `Users/Garnet Tregonning/AppData/Local/Temp` | 6540.5 MB |
+| `Users/Default/AppData/Local/Microsoft/Windows/Temporary Internet Files` | N/A MB |
+| `Users/Default User/AppData/Local/Microsoft/Windows/Temporary Internet Files` | N/A MB |
+| `Users/Garnet Tregonning/AppData/Local/Microsoft/Windows/Temporary Internet Files` | 13.7 MB |
+| `Users/Garnet Tregonning/AppData/LocalLow/Temp` | N/A MB |
+
+## Disk Integrity
+
+| | |
+|---|---|
+| Verdict | ≡ƒƒó **OK** |
+| NTFS dirty bit set | Unknown |
+| Disk I/O error events | 0 |
+| CHKDSK run events | 0 |
+
 ## Recommended Next Steps
 
-1. **Back up your data soon** — the hard drive has early warning signs of wear.
-2. **Replace the hard drive with an SSD** — this will dramatically improve speed,
+1. **Back up your data soon** ΓÇö the hard drive has early warning signs of wear.
+2. **Replace the hard drive with an SSD** ΓÇö this will dramatically improve speed,
    reliability, and battery life. The machine will feel like new.
-3. **Upgrade the operating system** — Windows Vista is no longer supported and
+3. **Upgrade the operating system** ΓÇö Windows Vista is no longer supported and
    receives no security updates. Consider Windows 10/11 or a lightweight Linux
    distribution.
-4. **Run a full ClamAV scan** with updated definitions — the definitions on this
+4. **Run a full ClamAV scan** with updated definitions ΓÇö the definitions on this
    machine date from 2016. Updated definitions may find threats that were missed.
-5. **Clean the vents and fan** — the machine is running warm and the CPU is
+5. **Clean the vents and fan** ΓÇö the machine is running warm and the CPU is
    throttling. A dust clean-out and fresh thermal paste will help.
 
 ---
@@ -582,7 +657,7 @@
 Please analyse the following hardware specifications for a laptop.
 Answer these questions:
 
-1. What performance tier was this laptop when it was released —
+1. What performance tier was this laptop when it was released ΓÇö
    budget, mid-range, or high-end?
 2. How does each component (CPU, RAM, storage, GPU) compare to what was
    typical for a laptop of this class at the time of release?
@@ -599,11 +674,13 @@ Answer these questions:
 **GPU / Display adapter:** VGA compatible controller: NVIDIA Corporation MCP79 [GeForce 8200M G] (rev b1)
 **OS installed:** Windows Vista (TM) Home Premium 32-bit
 **Form factor:** laptop
-**BIOS / Firmware:** American Megatrends Inc. 213 dated 11/20/2008 — BIOS/Legacy
+**BIOS / Firmware:** American Megatrends Inc. 213 dated 11/20/2008 ΓÇö BIOS/Legacy
 
 ---
 
 ---
 
 _This report was generated automatically by the Nielsoln Rescue Toolkit_  
-_Report date: 27 April 2026_
+_Report date: 20 November 2008_
+
+---REPORT_END---
