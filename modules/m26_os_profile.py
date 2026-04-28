@@ -277,7 +277,7 @@ def _q(hive: "_Hive | None", key_path: str, value_name: str,
 
 
 def collect_os_info(target: Path) -> dict:
-    """Read OS details from the SOFTWARE hive."""
+    """Read OS details from the SOFTWARE and SYSTEM hives."""
     sw = _open_hive(target, "Windows/System32/config/SOFTWARE")
 
     key = "Microsoft\\Windows NT\\CurrentVersion"
@@ -301,6 +301,17 @@ def collect_os_info(target: Path) -> dict:
     syswow64 = (target / "Windows" / "SysWOW64").exists()
     os_bitness = "64-bit" if syswow64 else "32-bit"
 
+    # Computer name from SYSTEM hive
+    computer_name = ""
+    sys_hive = _open_hive(target, "Windows/System32/config/SYSTEM")
+    if sys_hive is not None:
+        for ccs in ("CurrentControlSet", "ControlSet001", "ControlSet002"):
+            cn = _q(sys_hive, f"{ccs}\\Control\\ComputerName\\ComputerName",
+                    "ComputerName", "")
+            if cn and str(cn) not in ("", "unknown"):
+                computer_name = str(cn)
+                break
+
     return {
         "product_name":   str(product_name),
         "version":        str(version),
@@ -310,6 +321,7 @@ def collect_os_info(target: Path) -> dict:
         "registered_org": str(org),
         "install_date":   install_date,
         "os_bitness":     os_bitness,
+        "computer_name":  computer_name,
     }
 
 

@@ -640,7 +640,8 @@ _MFR_ABBREV = [
 def _read_device_info(logs_dir: str = "logs") -> dict:
     """Scan a local logs directory and extract device identity fields.
 
-    Returns a dict with keys: manufacturer, model, serial, os_name.
+    Returns a dict with keys: manufacturer, model, serial, os_name,
+    registered_owner, computer_name.
     Any key may be absent if the source log was not found.
     """
     import pathlib as _pl, json as _json
@@ -662,7 +663,7 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
         except Exception:
             pass
 
-    # os_profile → OS name / version
+    # os_profile → OS name / version / owner / computer name
     os_files = sorted(base.glob("os_profile_*.json"), reverse=True)
     if os_files:
         try:
@@ -678,11 +679,18 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
                               "32-bit", "64-bit", "Windows"):
                     product = product.replace(token, "").strip()
                 # Strip trademark/registered symbols
-                product = product.replace("™", "").replace("®", "").strip()
+                product = product.replace("™", "").replace("®", "")
+                product = product.replace("(TM)", "").replace("(R)", "").strip()
                 info["os_name"] = product.strip()
             elif version and version not in ("unknown", ""):
                 major_minor = ".".join(version.split(".")[:2])
                 info["os_name"] = _NT_VERSION_MAP.get(major_minor, f"NT{major_minor}")
+            owner = os_block.get("registered_owner", "")
+            if owner and owner not in ("unknown", ""):
+                info["registered_owner"] = owner
+            cn = os_block.get("computer_name", "")
+            if cn and cn not in ("unknown", ""):
+                info["computer_name"] = cn
         except Exception:
             pass
 
@@ -692,12 +700,13 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
 def device_label(logs_dir: str = "logs") -> str:
     """Generate a filesystem-safe label for a device based on its local logs.
 
-    Format: {Mfr}_{Model}__{OS}__{YYYYMMDD}_{serial_suffix}
-    Example: ASUS_F5GL__Vista__20260428_960013
+    Format: {Mfr}_{Model}__{Owner}__{PCName}__{OS}__{serial_suffix}
+    Example: ASUS_F5GL__GarnetTregonning__GARNET-PC__Vista__960013
 
+    Owner and PCName are omitted if not available.
     Falls back gracefully to whatever fields are available.
     """
-    import re as _re, datetime as _dt
+    import re as _re
     info = _read_device_info(logs_dir)
 
     def slug(s: str) -> str:
@@ -715,13 +724,19 @@ def device_label(logs_dir: str = "logs") -> str:
     serial = info.get("serial", "")
     serial_suffix = serial[-6:] if len(serial) >= 6 else serial
 
-    date_str = _dt.date.today().strftime("%Y%m%d")
+    # Owner: "Garnet Tregonning" → "GarnetTregonning" (no separators between words)
+    owner_raw = info.get("registered_owner", "")
+    owner_str = _re.sub(r"[^A-Za-z0-9]", "", owner_raw)  # strip all non-alphanumeric
 
-    hw_part = f"{mfr}_{model}"
-    mid     = f"__{os_str}" if os_str else ""
-    suffix  = f"_{serial_suffix}" if serial_suffix else ""
+    pc_name = slug(info.get("computer_name", ""))
 
-    return f"{hw_part}{mid}__{date_str}{suffix}"
+    hw_part     = f"{mfr}_{model}"
+    owner_part  = f"__{owner_str}" if owner_str else ""
+    pc_part     = f"__{pc_name}" if pc_name else ""
+    os_part     = f"__{os_str}" if os_str else ""
+    serial_part = f"__{serial_suffix}" if serial_suffix else ""
+
+    return f"{hw_part}{owner_part}{pc_part}{os_part}{serial_part}"
 
 
 def organize_device_logs(logs_dir: str = "logs") -> str:
