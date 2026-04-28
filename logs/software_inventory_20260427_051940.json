@@ -1,0 +1,949 @@
+{
+  "timestamp": "20260427_051940",
+  "target": "/mnt/windows",
+  "summary": {
+    "total": 71,
+    "flagged": 35,
+    "suspicious": 1,
+    "bloat": 5,
+    "legacy": 31,
+    "by_category": {
+      "Media": 5,
+      "Other": 29,
+      "Vendor Tool": 8,
+      "Browser": 3,
+      "OS Component": 15,
+      "Security": 2,
+      "Driver": 4,
+      "Productivity": 3,
+      "Office": 2
+    }
+  },
+  "entries": [
+    {
+      "name": "Adobe Flash Player 10 ActiveX",
+      "version": "10.0.22.87",
+      "publisher": "Adobe Systems Incorporated",
+      "install_date": null,
+      "install_year": null,
+      "category": "Media",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Adobe Flash Player ActiveX"
+    },
+    {
+      "name": "Adobe Flash Player 10 Plugin",
+      "version": "10.1.53.64",
+      "publisher": "Adobe Systems Incorporated",
+      "install_date": null,
+      "install_year": null,
+      "category": "Media",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 6144,
+      "uninstall_key": "Adobe Flash Player Plugin"
+    },
+    {
+      "name": "Adobe Shockwave Player 11.5",
+      "version": "11.5",
+      "publisher": "Adobe Systems, Inc.",
+      "install_date": null,
+      "install_year": null,
+      "category": "Media",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Adobe Shockwave Player"
+    },
+    {
+      "name": "Agere Systems HDA Modem",
+      "version": null,
+      "publisher": "Agere Systems",
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Agere Systems Soft Modem"
+    },
+    {
+      "name": "Asus_Camera_ScreenSaver",
+      "version": "2.0.0007",
+      "publisher": "ASUS",
+      "install_date": "2008/12/16",
+      "install_year": null,
+      "category": "Vendor Tool",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Asus_Camera_ScreenSaver"
+    },
+    {
+      "name": "Glary Utilities 2.29.0.1032",
+      "version": "2.29.0.1032",
+      "publisher": "Glarysoft Ltd",
+      "install_date": "20101028",
+      "install_year": 2010,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Glary Utilities_is1"
+    },
+    {
+      "name": "Google Chrome",
+      "version": "49.0.2623.112",
+      "publisher": "Google Inc.",
+      "install_date": "20100216",
+      "install_year": 2010,
+      "category": "Browser",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Google Chrome"
+    },
+    {
+      "name": "Google Desktop",
+      "version": "5.9.1005.12335",
+      "publisher": "Google",
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Google Desktop"
+    },
+    {
+      "name": "CyberLink Power2Go",
+      "version": "6.0.1924",
+      "publisher": "CyberLink Corp.",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "bloat",
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 124772,
+      "uninstall_key": "InstallShield_{40BF1E83-20EB-11D8-97C5-0009C5020658}"
+    },
+    {
+      "name": "iPod for Windows 2005-10-12",
+      "version": "4.3.0",
+      "publisher": "Apple Computer, Inc.",
+      "install_date": "20090109",
+      "install_year": 2009,
+      "category": "OS Component",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 66864,
+      "uninstall_key": "InstallShield_{D9F4A9F8-92C5-4289-9D04-F0F8F02D580A}"
+    },
+    {
+      "name": "McAfee Security Scan Plus",
+      "version": "3.11.266.3",
+      "publisher": "McAfee, Inc.",
+      "install_date": null,
+      "install_year": null,
+      "category": "Security",
+      "flags": [
+        "bloat"
+      ],
+      "scope": "HKLM",
+      "size_kb": 10500,
+      "uninstall_key": "McAfee Security Scan"
+    },
+    {
+      "name": "Microsoft .NET Framework 3.5 SP1",
+      "version": null,
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "Microsoft .NET Framework 3.5 SP1"
+    },
+    {
+      "name": "Microsoft .NET Framework 4 Client Profile",
+      "version": "4.0.30319",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 39732,
+      "uninstall_key": "Microsoft .NET Framework 4 Client Profile"
+    },
+    {
+      "name": "Norton 360",
+      "version": "22.15.5.40",
+      "publisher": "Symantec Corporation",
+      "install_date": "20211223",
+      "install_year": 2021,
+      "category": "Security",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "NGC"
+    },
+    {
+      "name": "NVIDIA Drivers",
+      "version": null,
+      "publisher": null,
+      "install_date": null,
+      "install_year": null,
+      "category": "Driver",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "NVIDIA Drivers"
+    },
+    {
+      "name": "PokerStars.net",
+      "version": null,
+      "publisher": "PokerStars.net",
+      "install_date": "Fri Jun 18 13:56:19 2010",
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "PokerStars.net"
+    },
+    {
+      "name": "Synaptics Pointing Device Driver",
+      "version": "10.0.12.0",
+      "publisher": "Synaptics",
+      "install_date": null,
+      "install_year": null,
+      "category": "Driver",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "SynTPDeinstKey"
+    },
+    {
+      "name": "USB 2.0 1.3M UVC WebCam",
+      "version": null,
+      "publisher": null,
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "USB 2.0 1.3M UVC WebCam"
+    },
+    {
+      "name": "Multimedia Card Reader",
+      "version": "1.01.0000.00",
+      "publisher": null,
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 152,
+      "uninstall_key": "USB Mass Storage Filter Driver"
+    },
+    {
+      "name": "ASUS Splendid Video Enhancement Technology",
+      "version": "1.02.0021",
+      "publisher": "ASUS",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 25617,
+      "uninstall_key": "{0969AF05-4FF6-4C00-9406-43599238DE0D}"
+    },
+    {
+      "name": "LightScribe System Software  1.14.17.1",
+      "version": "1.14.17.1",
+      "publisher": "LightScribe",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 21538,
+      "uninstall_key": "{0E7DBD52-B097-4F2B-A7C7-F105B0D20FDB}"
+    },
+    {
+      "name": "ATK Media",
+      "version": null,
+      "publisher": null,
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{139B0FFA-187E-4BA1-BCA6-6B56B2B6AB8C}"
+    },
+    {
+      "name": "ASUS LifeFrame3",
+      "version": "3.0.8",
+      "publisher": "ASUS",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 28382,
+      "uninstall_key": "{1DBD1F12-ED93-49C0-A7CC-56CBDE488158}"
+    },
+    {
+      "name": "Google Toolbar for Internet Explorer",
+      "version": "7.5.8231.2252",
+      "publisher": "Google Inc.",
+      "install_date": null,
+      "install_year": null,
+      "category": "Browser",
+      "flags": [
+        "suspicious",
+        "bloat"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{2318C2B1-4965-11d4-9B18-009027A5CD4F}"
+    },
+    {
+      "name": "Skype\u2122 7.0",
+      "version": "7.0.102",
+      "publisher": "Skype Technologies S.A.",
+      "install_date": "20150703",
+      "install_year": 2015,
+      "category": "Productivity",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 48863,
+      "uninstall_key": "{24991BA0-F0EE-44AD-9CC8-5EC50AECF6B7}"
+    },
+    {
+      "name": "Java(TM) 6 Update 14",
+      "version": "6.0.140",
+      "publisher": "Sun Microsystems, Inc.",
+      "install_date": "20090801",
+      "install_year": 2009,
+      "category": "OS Component",
+      "flags": [
+        "legacy-publisher",
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 97228,
+      "uninstall_key": "{26A24AE4-039D-4CA4-87B4-2F83216014FF}"
+    },
+    {
+      "name": "Atheros Client Installation Program",
+      "version": "7.0",
+      "publisher": "Atheros",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{28006915-2739-4EBE-B5E8-49B25D32EB33}"
+    },
+    {
+      "name": "Express Gate",
+      "version": "0.8.6.0",
+      "publisher": "devicevm",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 656536,
+      "uninstall_key": "{2862A3C1-0CD9-4D8B-A28C-8C337D4DD5EB}"
+    },
+    {
+      "name": "Bing Bar",
+      "version": "7.3.132.0",
+      "publisher": "Microsoft Corporation",
+      "install_date": "20140503",
+      "install_year": 2014,
+      "category": "Other",
+      "flags": [
+        "bloat"
+      ],
+      "scope": "HKLM",
+      "size_kb": 787,
+      "uninstall_key": "{3365E735-48A6-4194-9988-CE59AC5AE503}"
+    },
+    {
+      "name": "ATK Hotkey",
+      "version": "1.00.0034",
+      "publisher": "ATK",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{3912D529-02BC-4CA8-B5ED-0D0C20EB6003}"
+    },
+    {
+      "name": "Security Update for Microsoft .NET Framework 4 Client Profile (KB2446708)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{3C3901C5-3455-3E0A-A214-0B093A5070A6}.KB2446708"
+    },
+    {
+      "name": "Security Update for Microsoft .NET Framework 4 Client Profile (KB2478663)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{3C3901C5-3455-3E0A-A214-0B093A5070A6}.KB2478663"
+    },
+    {
+      "name": "Security Update for Microsoft .NET Framework 4 Client Profile (KB2518870)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{3C3901C5-3455-3E0A-A214-0B093A5070A6}.KB2518870"
+    },
+    {
+      "name": "Cisco EAP-FAST Module",
+      "version": "2.1.6",
+      "publisher": "Cisco Systems, Inc.",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 1068,
+      "uninstall_key": "{415B2719-AD3A-4944-B404-C472DB6085B3}"
+    },
+    {
+      "name": "ASUS InstantFun",
+      "version": "1.0.0015",
+      "publisher": "ASUS",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 14963,
+      "uninstall_key": "{57B15AD4-8C9D-4164-82BB-E33D8644E757}"
+    },
+    {
+      "name": "ATKOSD2",
+      "version": "6.64.1.8",
+      "publisher": "ATK",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{5C1DB4ED-E9B4-402D-BB14-D75D97D6C1A6}"
+    },
+    {
+      "name": "NB Probe",
+      "version": null,
+      "publisher": null,
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{6324A1EF-CEF4-43E3-8BCD-9EF3F67317FD}"
+    },
+    {
+      "name": "ASUS SmartLogon",
+      "version": "1.0.0005",
+      "publisher": "ASUS",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 10962,
+      "uninstall_key": "{64452561-169F-4A36-A2FF-B5E118EC65F5}"
+    },
+    {
+      "name": "Cisco PEAP Module",
+      "version": "1.0.13",
+      "publisher": "Cisco Systems, Inc.",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 868,
+      "uninstall_key": "{669C7BD8-DAA2-49B6-966C-F1E2AAE6B17E}"
+    },
+    {
+      "name": "Microsoft Visual C++ 2005 Redistributable",
+      "version": "8.0.61001",
+      "publisher": "Microsoft Corporation",
+      "install_date": "20110615",
+      "install_year": 2011,
+      "category": "OS Component",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 294,
+      "uninstall_key": "{710f4c1c-cc18-4c49-8cbf-51240c89a1a2}"
+    },
+    {
+      "name": "Microsoft Visual C++ 2005 ATL Update kb973923 - x86 8.0.50727.4053",
+      "version": "8.0.50727.4053",
+      "publisher": "Microsoft Corporation",
+      "install_date": "20090730",
+      "install_year": 2009,
+      "category": "OS Component",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 251,
+      "uninstall_key": "{770657D0-A123-3C07-8E44-1C83EC895118}"
+    },
+    {
+      "name": "Bonjour",
+      "version": "3.0.0.10",
+      "publisher": "Apple Inc.",
+      "install_date": "20111021",
+      "install_year": 2011,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 938,
+      "uninstall_key": "{79155F2B-9895-49D7-8612-D92580E0DE5B}"
+    },
+    {
+      "name": "iCloud",
+      "version": "2.1.3.25",
+      "publisher": "Apple Inc.",
+      "install_date": "20141106",
+      "install_year": 2014,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 115146,
+      "uninstall_key": "{79BD66B2-4DAE-4C3B-B08E-DC72E507C163}"
+    },
+    {
+      "name": "Cisco LEAP Module",
+      "version": "1.0.12",
+      "publisher": "Cisco Systems, Inc.",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 1068,
+      "uninstall_key": "{83770D14-21B9-44B3-8689-F7B523F94560}"
+    },
+    {
+      "name": "Wireless Console 2",
+      "version": "2.0.10",
+      "publisher": "ATK",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{83F73CB1-7705-49D1-9852-84D839CA2A45}"
+    },
+    {
+      "name": "iTunes",
+      "version": "12.1.3.6",
+      "publisher": "Apple Inc.",
+      "install_date": "20161225",
+      "install_year": 2016,
+      "category": "Media",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 226653,
+      "uninstall_key": "{868B9974-4F23-494D-B6BC-4FAB92B2755D}"
+    },
+    {
+      "name": "Compatibility Pack for the 2007 Office system",
+      "version": "12.0.6612.1000",
+      "publisher": "Microsoft Corporation",
+      "install_date": "20161013",
+      "install_year": 2016,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 1054239,
+      "uninstall_key": "{90120000-0020-0409-0000-0000000FF1CE}"
+    },
+    {
+      "name": "Microsoft Office File Validation Add-In",
+      "version": "14.0.5130.5003",
+      "publisher": "Microsoft Corporation",
+      "install_date": "20200629",
+      "install_year": 2020,
+      "category": "Office",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 14396,
+      "uninstall_key": "{90140000-2005-0000-0000-0000000FF1CE}"
+    },
+    {
+      "name": "Microsoft Office Standard Edition 2003",
+      "version": "11.0.8173.0",
+      "publisher": "Microsoft Corporation",
+      "install_date": "20170619",
+      "install_year": 2017,
+      "category": "Office",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 1261348,
+      "uninstall_key": "{91120409-6000-11D3-8CFE-0150048383C9}"
+    },
+    {
+      "name": "MobileMe Control Panel",
+      "version": "3.1.8.0",
+      "publisher": "Apple Inc.",
+      "install_date": "20111124",
+      "install_year": 2011,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 13222,
+      "uninstall_key": "{926BD0E8-24A3-41D2-AF9B-340F1A37ED12}"
+    },
+    {
+      "name": "WinZip Driver Updater",
+      "version": "1.0.648.16469",
+      "publisher": "WinZip Computing, S.L. (WinZip Computing)",
+      "install_date": "20150201",
+      "install_year": 2015,
+      "category": "Driver",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{9854A5C4-5BE5-46E2-A989-352DD8B37E20}_is1"
+    },
+    {
+      "name": "ASUS Power4Gear eXtreme",
+      "version": "1.0.19",
+      "publisher": "ASUS",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 7312,
+      "uninstall_key": "{9B6239BF-4E85-4590-8D72-51E30DB1A9AA}"
+    },
+    {
+      "name": "iPodRip",
+      "version": "1.0.1.11",
+      "publisher": "Happy Hour Code, LLC.",
+      "install_date": "20090702",
+      "install_year": 2009,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 2904,
+      "uninstall_key": "{A1FB07C6-0A63-4384-B1AC-B62546F2E6D8}"
+    },
+    {
+      "name": "Dolby Control Center",
+      "version": "2.0.0706",
+      "publisher": "Dolby",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 77734,
+      "uninstall_key": "{A23E5590-6799-437B-9723-2627BA800B6F}"
+    },
+    {
+      "name": "Apple Mobile Device Support",
+      "version": "9.0.0.26",
+      "publisher": "Apple Inc.",
+      "install_date": "20161225",
+      "install_year": 2016,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 23068,
+      "uninstall_key": "{A75CA58D-DB9C-4D14-9428-E0C7B0F623DC}"
+    },
+    {
+      "name": "Adobe Reader X (10.1.16)",
+      "version": "10.1.16",
+      "publisher": "Adobe Systems Incorporated",
+      "install_date": "20151014",
+      "install_year": 2015,
+      "category": "Productivity",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 118735,
+      "uninstall_key": "{AC76BA86-7AD7-1033-7B44-AA1000000001}"
+    },
+    {
+      "name": "Spelling Dictionaries Support For Adobe Reader 8",
+      "version": "8.0.0",
+      "publisher": "Adobe Systems",
+      "install_date": "20090407",
+      "install_year": 2009,
+      "category": "Productivity",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 33322,
+      "uninstall_key": "{AC76BA86-7AD7-5464-3428-800000000003}"
+    },
+    {
+      "name": "Apple Application Support (32-bit)",
+      "version": "3.1.3",
+      "publisher": "Apple Inc.",
+      "install_date": "20161225",
+      "install_year": 2016,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 97719,
+      "uninstall_key": "{AFA1153A-F547-409B-B837-3A0D6C5A3FEC}"
+    },
+    {
+      "name": "CyberLink LabelPrint",
+      "version": "2.0.2908",
+      "publisher": "CyberLink Corp.",
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [
+        "bloat"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{C59C179C-668D-49A9-B6EA-0121CCFC1243}"
+    },
+    {
+      "name": "Safari",
+      "version": "5.34.57.2",
+      "publisher": "Apple Inc.",
+      "install_date": "20120603",
+      "install_year": 2012,
+      "category": "Browser",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 106758,
+      "uninstall_key": "{C779648B-410E-4BBA-B75B-5815BCEFE71D}"
+    },
+    {
+      "name": "Security Update for Microsoft .NET Framework 3.5 SP1 (KB2416473)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{CE2CDD62-0124-36CA-84D3-9F4DCF5C5BD9}.KB2416473"
+    },
+    {
+      "name": "Hotfix for Microsoft .NET Framework 3.5 SP1 (KB953595)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{CE2CDD62-0124-36CA-84D3-9F4DCF5C5BD9}.KB953595"
+    },
+    {
+      "name": "Hotfix for Microsoft .NET Framework 3.5 SP1 (KB958484)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{CE2CDD62-0124-36CA-84D3-9F4DCF5C5BD9}.KB958484"
+    },
+    {
+      "name": "Update for Microsoft .NET Framework 3.5 SP1 (KB963707)",
+      "version": "1",
+      "publisher": "Microsoft Corporation",
+      "install_date": null,
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{CE2CDD62-0124-36CA-84D3-9F4DCF5C5BD9}.KB963707"
+    },
+    {
+      "name": "ATK Generic Function Service",
+      "version": "1.00.0008",
+      "publisher": "ATK",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Other",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{D3D54F3E-C5C3-443D-978F-87A72E5616E8}"
+    },
+    {
+      "name": "WinFlash",
+      "version": null,
+      "publisher": null,
+      "install_date": null,
+      "install_year": null,
+      "category": "Other",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{DE10AB76-4756-4913-BE25-55D1C1051F9A}"
+    },
+    {
+      "name": "ASUS Live Update",
+      "version": "2.5.6",
+      "publisher": "ASUS",
+      "install_date": "12-16-2008",
+      "install_year": null,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{E657B243-9AD4-4ECC-BE81-4CCF8D667FD0}"
+    },
+    {
+      "name": "ASUS Virtual Camera",
+      "version": "1.0.09",
+      "publisher": "asus",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Vendor Tool",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": 2780,
+      "uninstall_key": "{EC8BD21F-0CA0-4BBF-97D9-4A52B30041A1}"
+    },
+    {
+      "name": "Realtek High Definition Audio Driver",
+      "version": "6.0.1.5683",
+      "publisher": "Realtek Semiconductor Corp.",
+      "install_date": "20081216",
+      "install_year": 2008,
+      "category": "Driver",
+      "flags": [
+        "legacy-install-date"
+      ],
+      "scope": "HKLM",
+      "size_kb": null,
+      "uninstall_key": "{F132AF7F-7BCA-4EDE-8A7C-958108FE7DBC}"
+    },
+    {
+      "name": "QuickTime 7",
+      "version": "7.79.80.95",
+      "publisher": "Apple Inc.",
+      "install_date": "20200707",
+      "install_year": 2020,
+      "category": "Media",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 70865,
+      "uninstall_key": "{FF59BD75-466A-4D5A-AD23-AAD87C5FD44C}"
+    },
+    {
+      "name": "Apple Software Update",
+      "version": "2.1.4.131",
+      "publisher": "Apple Inc.",
+      "install_date": "20161225",
+      "install_year": 2016,
+      "category": "OS Component",
+      "flags": [],
+      "scope": "HKLM",
+      "size_kb": 2456,
+      "uninstall_key": "{FFD1F7F1-1AC9-4BC4-A908-0686D635ABAF}"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "timestamp": "20260427_051409",
+  "recommendations": [
+    {
+      "category": "Storage upgrade (HDD \u2192 SSD)",
+      "benefit": "high",
+      "urgency": "soon",
+      "evidence": [
+        "Primary disk: ST9250320AS (HDD)",
+        "SMART verdict: CAUTION"
+      ],
+      "recommendation": "HDD shows wear indicators. Replace with SSD: the machine will boot 3\u20135\u00d7 faster, run cooler, and be far more reliable.  Clone before the drive fails further.",
+      "confidence": "high"
+    },
+    {
+      "category": "Operating system upgrade",
+      "benefit": "high",
+      "urgency": "soon",
+      "evidence": [
+        "BIOS year: 2008",
+        "CPU: Intel(R) Pentium(R) Dual  CPU  T3400  @ 2.16GHz",
+        "RAM: 3.6 GiB",
+        "Note: full OS compatibility check requires booted Windows environment"
+      ],
+      "recommendation": "Machine is running a pre-2012 BIOS \u2014 likely Windows Vista/7/8, all now end-of-life and receiving no security updates. Upgrade to Windows 10 LTSC or Linux Mint for continued safe use. Windows 11 is unlikely to be supported on this hardware (no TPM 2.0, older CPU).",
+      "confidence": "medium"
+    },
+    {
+      "category": "Thermal service (clean + thermal paste)",
+      "benefit": "medium",
+      "urgency": "when_budget_allows",
+      "evidence": [
+        "No fan data available \u2014 fan monitoring may not be supported by this hardware",
+        "CPU is frequency-throttled: 1015 MHz / 2167 MHz max \u2014 possible thermal event",
+        "CPU throttled: 1015 MHz / 2167 MHz",
+        "Machine age: ~18 years (BIOS 2008)"
+      ],
+      "recommendation": "Machine is warm at idle. A heatsink clean and fresh thermal paste would reduce temperatures, extend lifespan, and remove throttling.",
+      "confidence": "high"
+    },
+    {
+      "category": "Battery replacement",
+      "benefit": "medium",
+      "urgency": "when_budget_allows",
+      "evidence": [
+        "Machine age: ~18 years"
+      ],
+      "recommendation": "Battery data unavailable, but machine is 8+ years old. Original battery is likely significantly degraded \u2014 test runtime and advise replacement if short.",
+      "confidence": "low"
+    },
+    {
+      "category": "RAM upgrade",
+      "benefit": "low",
+      "urgency": "optional",
+      "evidence": [
+        "Installed RAM: 3.6 GiB"
+      ],
+      "recommendation": "3.6 GiB RAM is at or near the board maximum. No RAM upgrade possible on this hardware.",
+      "confidence": "medium"
+    },
+    {
+      "category": "Replace vs repair decision",
+      "benefit": "informational",
+      "urgency": "informational",
+      "evidence": [
+        "Machine age: ~18 years",
+        "RAM: 3.6 GiB"
+      ],
+      "recommendation": "Machine is ~18 years old. Even with upgrades, longevity is limited. If the primary goal is reliable daily use, a modern refurbished laptop (NZ$300\u2013600) would be more cost-effective than investing in multiple upgrades.",
+      "confidence": "medium"
+    }
+  ],
+  "sources": {
+    "hardware_profile": true,
+    "disk_health": true,
+    "thermal_health": true
+  }
+}

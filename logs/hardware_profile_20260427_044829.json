@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-04-27T04:48:29.438780+00:00",
+  "system": {
+    "manufacturer": "ASUSTeK Computer Inc.",
+    "product_name": "F5GL",
+    "product_version": "1.0",
+    "serial_number": "NF1S8C05960013",
+    "chassis_type": "10"
+  },
+  "form_factor": "laptop",
+  "boot_mode": "BIOS/Legacy",
+  "bios": {
+    "vendor": "American Megatrends Inc.",
+    "version": "213",
+    "date": "11/20/2008"
+  },
+  "cpu": {
+    "model": "Intel(R) Pentium(R) Dual  CPU  T3400  @ 2.16GHz",
+    "architecture": "x86_64",
+    "physical_cores": 2,
+    "logical_cores": 2,
+    "sockets": 1
+  },
+  "ram": {
+    "total_mib": 3662,
+    "total_gib": 3.6,
+    "type": "unknown",
+    "speed": "unknown",
+    "slots_populated": "unknown",
+    "slots_total": "unknown"
+  },
+  "storage": [
+    {
+      "device": "/dev/sda",
+      "model": "ST9250320AS",
+      "type": "HDD",
+      "size_gib": 232.9,
+      "smart_health": "unknown"
+    },
+    {
+      "device": "/dev/sdb",
+      "model": "OnlyDisk",
+      "type": "HDD",
+      "size_gib": 29.0,
+      "smart_health": "unknown"
+    },
+    {
+      "device": "/dev/sdc",
+      "model": "OnlyDisk",
+      "type": "HDD",
+      "size_gib": 29.0,
+      "smart_health": "unknown"
+    }
+  ],
+  "gpu": [
+    "VGA compatible controller: NVIDIA Corporation MCP79 [GeForce 8200M G] (rev b1)"
+  ],
+  "network": [
+    "enp0s10 (forcedeth)",
+    "wlp6s0 (ath9k)"
+  ]
+}

@@ -1,0 +1,371 @@
+{
+  "machine_id": "400f9961397657cc",
+  "run_time": "20260427_095558",
+  "target": "/mnt/windows",
+  "channels": [
+    "Application",
+    "DFS Replication",
+    "HardwareEvents",
+    "Internet Explorer",
+    "Key Management Service",
+    "Media Center",
+    "Microsoft-Windows-Bits-Client/Operational",
+    "Microsoft-Windows-CodeIntegrity/Operational",
+    "Microsoft-Windows-Diagnosis-DPS/Operational",
+    "Microsoft-Windows-Diagnostics-Networking/Operational",
+    "Microsoft-Windows-Diagnostics-Performance/Operational",
+    "Microsoft-Windows-DiskDiagnosticDataCollector/Operational",
+    "Microsoft-Windows-DriverFrameworks-UserMode/Operational",
+    "Microsoft-Windows-Forwarding/Operational",
+    "Microsoft-Windows-GroupPolicy/Operational",
+    "Microsoft-Windows-International/Operational",
+    "Microsoft-Windows-Kernel-WHEA",
+    "Microsoft-Windows-LanguagePackSetup/Operational",
+    "Microsoft-Windows-MUI/Operational",
+    "Microsoft-Windows-NetworkAccessProtection/Operational",
+    "Microsoft-Windows-PowerShell/Operational",
+    "Microsoft-Windows-ReadyBoost/Operational",
+    "Microsoft-Windows-ReliabilityAnalysisComponent/Metrics",
+    "Microsoft-Windows-ReliabilityAnalysisComponent/Operational",
+    "Microsoft-Windows-Resource-Exhaustion-Detector/Operational",
+    "Microsoft-Windows-Resource-Exhaustion-Resolver/Operational",
+    "Microsoft-Windows-Resource-Leak-Diagnostic/Operational",
+    "Microsoft-Windows-RestartManager/Operational",
+    "Microsoft-Windows-TaskScheduler/Operational",
+    "Microsoft-Windows-UAC/Operational",
+    "Microsoft-Windows-UAC-FileVirtualization/Operational",
+    "Microsoft-Windows-WLAN-AutoConfig/Operational",
+    "Microsoft-Windows-WinRM/Operational",
+    "Microsoft-Windows-WindowsUpdateClient/Operational",
+    "ODiag",
+    "OSession",
+    "Security",
+    "Setup",
+    "System",
+    "Windows PowerShell"
+  ],
+  "total_new_events": 0,
+  "total_anomalies": 0,
+  "results": [
+    {
+      "channel": "Application",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "DFS Replication",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "HardwareEvents",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Internet Explorer",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Key Management Service",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Media Center",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Microsoft-Windows-Bits-Client/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Bits-Client/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-CodeIntegrity/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-CodeIntegrity/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Diagnosis-DPS/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Diagnosis-DPS/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Diagnostics-Networking/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Diagnostics-Networking/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Diagnostics-Performance/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Diagnostics-Performance/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-DiskDiagnosticDataCollector/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-DiskDiagnosticDataCollector/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-DriverFrameworks-UserMode/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-DriverFrameworks-UserMode/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Forwarding/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Forwarding/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-GroupPolicy/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-GroupPolicy/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-International/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-International/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Kernel-WHEA",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Microsoft-Windows-LanguagePackSetup/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-LanguagePackSetup/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-MUI/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-MUI/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-NetworkAccessProtection/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-NetworkAccessProtection/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-PowerShell/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-PowerShell/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-ReadyBoost/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-ReadyBoost/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-ReliabilityAnalysisComponent/Metrics",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-ReliabilityAnalysisComponent/Metrics.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-ReliabilityAnalysisComponent/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-ReliabilityAnalysisComponent/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Resource-Exhaustion-Detector/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Resource-Exhaustion-Detector/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Resource-Exhaustion-Resolver/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Resource-Exhaustion-Resolver/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-Resource-Leak-Diagnostic/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-Resource-Leak-Diagnostic/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-RestartManager/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-RestartManager/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-TaskScheduler/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-TaskScheduler/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-UAC/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-UAC/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-UAC-FileVirtualization/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-UAC-FileVirtualization/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-WLAN-AutoConfig/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-WLAN-AutoConfig/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-WinRM/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-WinRM/Operational.evtx"
+    },
+    {
+      "channel": "Microsoft-Windows-WindowsUpdateClient/Operational",
+      "status": "missing",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": "Not found: /mnt/windows/Windows/System32/winevt/Logs/Microsoft-Windows-WindowsUpdateClient/Operational.evtx"
+    },
+    {
+      "channel": "ODiag",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "OSession",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Security",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Setup",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "System",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    },
+    {
+      "channel": "Windows PowerShell",
+      "status": "ok",
+      "new_events": 0,
+      "anomalies": 0,
+      "chunk_file": null,
+      "error": null
+    }
+  ]
+}

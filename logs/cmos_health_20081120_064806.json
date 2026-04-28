@@ -1,0 +1,23 @@
+{
+  "target": "/mnt/windows",
+  "timestamp": "2008-11-20T06:48:06.293844+00:00",
+  "verdict": "LIKELY_DEAD",
+  "clock_delta": {
+    "method": "sysfs_rtc",
+    "hw_time_utc": "2008-11-20T06:48:05+00:00",
+    "sys_time_utc": "2008-11-20T06:48:06.084709+00:00",
+    "delta_sec": -1,
+    "delta_abs_sec": 1,
+    "frozen_in_past": true,
+    "frozen_year": 2008
+  },
+  "events": {
+    "available": true,
+    "time_change_events": [],
+    "unexpected_shutdowns": [],
+    "dirty_shutdowns": [],
+    "time_change_count": 0,
+    "unexpected_shut_count": 0,
+    "dirty_shut_count": 0
+  }
+}

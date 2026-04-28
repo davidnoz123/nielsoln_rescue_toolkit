@@ -1,0 +1,90 @@
+{
+  "generated": "2026-04-27T07:30:07.406175+00:00",
+  "target": "/mnt/windows",
+  "sections": {
+    "hardware": {
+      "log": "hardware_profile_20260427_044829.json",
+      "machine": "F5GL",
+      "cpu": "?  ?c / ?t",
+      "ram_gb": 0,
+      "disks": [
+        "ST9250320AS ? GB",
+        "OnlyDisk ? GB",
+        "OnlyDisk ? GB"
+      ],
+      "bios_date": "11/20/2008"
+    },
+    "disk": {
+      "log": "disk_health_20260427_045304.json",
+      "drives": [
+        {
+          "model": "ST9250320AS",
+          "verdict": "?",
+          "flags": []
+        },
+        {
+          "model": "OnlyDisk",
+          "verdict": "?",
+          "flags": []
+        },
+        {
+          "model": "OnlyDisk",
+          "verdict": "?",
+          "flags": []
+        }
+      ]
+    },
+    "thermal": {
+      "log": "thermal_health_20260427_050032.json",
+      "verdict": "WARM",
+      "warnings": [
+        "No fan data available \u2014 fan monitoring may not be supported by this hardware",
+        "CPU is frequency-throttled: 1015 MHz / 2167 MHz max \u2014 possible thermal event"
+      ],
+      "hottest_c": null
+    },
+    "clamav": {
+      "log": "scan_report_quick_20260427_040756.txt",
+      "verdict": "CLEAN",
+      "infected": 0,
+      "scanned": 0
+    },
+    "logon": {
+      "log": "logon_audit_20260427_063510.json",
+      "verdict": "CLEAN",
+      "failed_logons": 0,
+      "lockouts": 0,
+      "pw_changes": 0,
+      "explicit_creds": 7184
+    },
+    "persistence": {
+      "log": "persist_20260427_044408.jsonl",
+      "total": 239,
+      "suspicious": 0
+    },
+    "services": {
+      "log": "service_analysis_20260427_070951.json",
+      "verdict": "SUSPICIOUS",
+      "total": 441,
+      "suspicious": 3,
+      "deleted": 113,
+      "third_party": 0,
+      "auto_start": 75
+    },
+    "software": {
+      "log": "software_inventory_20260427_051940.json",
+      "total": 71,
+      "flags": {
+        "legacy-install-date": 31,
+        "bloat": 5,
+        "suspicious": 1,
+        "legacy-publisher": 1
+      }
+    },
+    "upgrade": {
+      "log": "upgrade_advisor_20260427_051409.json",
+      "recommendation": "HDD shows wear indicators. Replace with SSD: the machine will boot 3\u20135\u00d7 faster, run cooler, and be far more reliable.  Clone before the drive fails further.",
+      "count": 6
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "timestamp": "20260427_050032",
+  "verdict": "WARM",
+  "warnings": [
+    "No fan data available \u2014 fan monitoring may not be supported by this hardware",
+    "CPU is frequency-throttled: 1015 MHz / 2167 MHz max \u2014 possible thermal event"
+  ],
+  "recommendations": [
+    "CPU is throttling \u2014 system is managing heat but running below peak speed.",
+    "Clean vents; thermal paste replacement may improve performance."
+  ],
+  "temperatures": [
+    {
+      "source": "hwmon",
+      "chip": "acpitz",
+      "label": "temp1",
+      "kind": "temperature",
+      "value_c": 59.0,
+      "crit_c": null,
+      "max_c": null,
+      "category": "Sensor",
+      "severity": "ok",
+      "warn_threshold": 70,
+      "crit_threshold": 85
+    },
+    {
+      "source": "hwmon",
+      "chip": "coretemp",
+      "label": "Core 0",
+      "kind": "temperature",
+      "value_c": 54.0,
+      "crit_c": 100.0,
+      "max_c": null,
+      "category": "CPU",
+      "severity": "ok",
+      "warn_threshold": 75,
+      "crit_threshold": 90
+    },
+    {
+      "source": "hwmon",
+      "chip": "coretemp",
+      "label": "Core 1",
+      "kind": "temperature",
+      "value_c": 55.0,
+      "crit_c": 100.0,
+      "max_c": null,
+      "category": "CPU",
+      "severity": "ok",
+      "warn_threshold": 75,
+      "crit_threshold": 90
+    }
+  ],
+  "fans": [],
+  "thermal_zones": [
+    {
+      "source": "thermal_zone",
+      "zone": "thermal_zone0",
+      "type": "acpitz",
+      "value_c": 59.0,
+      "policy": "step_wise"
+    }
+  ],
+  "cpu_throttle": {
+    "governor": "schedutil",
+    "cur_mhz": 1015,
+    "max_mhz": 2167,
+    "throttled": true,
+    "cpuinfo_mhz_min": 1015,
+    "cpuinfo_mhz_max": 1667
+  },
+  "sensors_available": false
+}

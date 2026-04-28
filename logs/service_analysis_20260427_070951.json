@@ -1,0 +1,6016 @@
+{
+  "generated": "2026-04-27T07:09:51.179302+00:00",
+  "target": "/mnt/windows",
+  "hive": "/mnt/windows/Windows/System32/config/SYSTEM",
+  "summary": {
+    "verdict": "SUSPICIOUS",
+    "total": 441,
+    "suspicious_count": 3,
+    "third_party_count": 0,
+    "deleted_count": 113,
+    "auto_start_services": 75
+  },
+  "services": [
+    {
+      "name": ".NET CLR Data",
+      "display_name": ".NET CLR Data",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": ".NET CLR Networking",
+      "display_name": ".NET CLR Networking",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": ".NET CLR Networking 4.0.0.0",
+      "display_name": ".NET CLR Networking 4.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": ".NET Data Provider for Oracle",
+      "display_name": ".NET Data Provider for Oracle",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": ".NET Data Provider for SqlServer",
+      "display_name": ".NET Data Provider for SqlServer",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": ".NETFramework",
+      "display_name": ".NETFramework",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ACPI",
+      "display_name": "Microsoft ACPI Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\acpi.sys",
+      "resolved_path": "system32\\drivers\\acpi.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AdobeARMservice",
+      "display_name": "Adobe Acrobat Update Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Common Files\\Adobe\\ARM\\1.0\\armsvc.exe\"",
+      "resolved_path": "C:\\Program Files\\Common Files\\Adobe\\ARM\\1.0\\armsvc.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "adp94xx",
+      "display_name": "adp94xx",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\adp94xx.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\adp94xx.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "adpahci",
+      "display_name": "adpahci",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\adpahci.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\adpahci.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "adpu160m",
+      "display_name": "adpu160m",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\adpu160m.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\adpu160m.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "adpu320",
+      "display_name": "adpu320",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\adpu320.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\adpu320.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "adsi",
+      "display_name": "adsi",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AeLookupSvc",
+      "display_name": "@%SystemRoot%\\system32\\aelupsvc.dll,-1",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AFD",
+      "display_name": "Ancilliary Function Driver for Winsock",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\afd.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\afd.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AgereModemAudio",
+      "display_name": "Agere Modem Call Progress Audio",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "C:\\Windows\\system32\\agrsmsvc.exe",
+      "resolved_path": "C:\\Windows\\system32\\agrsmsvc.exe",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AgereSoftModem",
+      "display_name": "Agere Systems Soft Modem",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\AGRSM.sys",
+      "resolved_path": "system32\\DRIVERS\\AGRSM.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "agp440",
+      "display_name": "Intel AGP Bus Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\agp440.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\agp440.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "aic78xx",
+      "display_name": "aic78xx",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\djsvs.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\djsvs.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ALG",
+      "display_name": "@%SystemRoot%\\system32\\Alg.exe,-112",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\alg.exe",
+      "resolved_path": "%SystemRoot%\\System32\\alg.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "aliide",
+      "display_name": "aliide",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\aliide.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\aliide.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "amdagp",
+      "display_name": "AMD AGP Bus Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\amdagp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\amdagp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "amdide",
+      "display_name": "amdide",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\amdide.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\amdide.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AmdK7",
+      "display_name": "AMD K7 Processor Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\amdk7.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\amdk7.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AmdK8",
+      "display_name": "AMD K8 Processor Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\amdk8.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\amdk8.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Appinfo",
+      "display_name": "@%systemroot%\\system32\\appinfo.dll,-100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Apple Mobile Device",
+      "display_name": "Apple Mobile Device",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Common Files\\Apple\\Mobile Device Support\\AppleMobileDeviceService.exe\"",
+      "resolved_path": "C:\\Program Files\\Common Files\\Apple\\Mobile Device Support\\AppleMobileDeviceService.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "arc",
+      "display_name": "arc",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\arc.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\arc.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "arcsas",
+      "display_name": "arcsas",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\arcsas.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\arcsas.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ASLDRService",
+      "display_name": "ASLDR Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "C:\\Program Files\\ATK Hotkey\\ASLDRSrv.exe",
+      "resolved_path": "C:\\Program",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "SUSPICIOUS",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ASMMAP",
+      "display_name": "ASMMAP",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\ATKGFNEX\\ASMMAP.sys",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AsyncMac",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32000",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\asyncmac.sys",
+      "resolved_path": "system32\\DRIVERS\\asyncmac.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "atapi",
+      "display_name": "IDE Channel",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\atapi.sys",
+      "resolved_path": "system32\\drivers\\atapi.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "athr",
+      "display_name": "Atheros Extensible Wireless LAN device driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\athr.sys",
+      "resolved_path": "system32\\DRIVERS\\athr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ATKGFNEXSrv",
+      "display_name": "ATKGFNEX Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "C:\\Program Files\\ATKGFNEX\\GFNEXSrv.exe",
+      "resolved_path": "C:\\Program",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "SUSPICIOUS",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "AudioEndpointBuilder",
+      "display_name": "@%SystemRoot%\\system32\\audiosrv.dll,-204",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Audiosrv",
+      "display_name": "@%SystemRoot%\\system32\\audiosrv.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BattC",
+      "display_name": "BattC",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BBSvc",
+      "display_name": "BingBar Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Microsoft\\BingBar\\7.3.132.0\\BBSvc.exe\"",
+      "resolved_path": "C:\\Program Files\\Microsoft\\BingBar\\7.3.132.0\\BBSvc.exe",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BBUpdate",
+      "display_name": "BBUpdate",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Microsoft\\BingBar\\7.3.132.0\\SeaPort.exe\"",
+      "resolved_path": "C:\\Program Files\\Microsoft\\BingBar\\7.3.132.0\\SeaPort.exe",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Beep",
+      "display_name": "Beep",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BFE",
+      "display_name": "@%SystemRoot%\\system32\\bfe.dll,-1001",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k LocalServiceNoNetwork",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BHDrvx86",
+      "display_name": "BHDrvx86",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\Norton 360\\NortonData\\22.6.0.142\\Definitions\\BASHDefs\\20160125.001\\BHDrvx86.sys",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BITS",
+      "display_name": "@%SystemRoot%\\system32\\qmgr.dll,-1000",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "blbdrive",
+      "display_name": "blbdrive",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\blbdrive.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\blbdrive.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Bonjour Service",
+      "display_name": "Bonjour Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Bonjour\\mDNSResponder.exe\"",
+      "resolved_path": "C:\\Program Files\\Bonjour\\mDNSResponder.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "bowser",
+      "display_name": "Bowser",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\bowser.sys",
+      "resolved_path": "system32\\DRIVERS\\bowser.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BrFiltLo",
+      "display_name": "Brother USB Mass-Storage Lower Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\brfiltlo.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\brfiltlo.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BrFiltUp",
+      "display_name": "Brother USB Mass-Storage Upper Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\brfiltup.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\brfiltup.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Browser",
+      "display_name": "@%systemroot%\\system32\\browser.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Brserid",
+      "display_name": "Brother MFC Serial Port Interface Driver (WDM)",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\brserid.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\brserid.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BrSerWdm",
+      "display_name": "Brother WDM Serial driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\brserwdm.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\brserwdm.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BrUsbMdm",
+      "display_name": "Brother MFC USB Fax Only Modem",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\brusbmdm.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\brusbmdm.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BrUsbSer",
+      "display_name": "Brother MFC USB Serial WDM Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\brusbser.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\brusbser.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "BTHMODEM",
+      "display_name": "Bluetooth Serial Communications Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\bthmodem.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\bthmodem.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ccSet_NGC",
+      "display_name": "NGC Settings Manager",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\NGC\\160F050.028\\ccSetx86.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\NGC\\160F050.028\\ccSetx86.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "cdfs",
+      "display_name": "CD/DVD File System Reader",
+      "start": "DISABLED",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\cdfs.sys",
+      "resolved_path": "system32\\DRIVERS\\cdfs.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "cdrom",
+      "display_name": "CD-ROM Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\cdrom.sys",
+      "resolved_path": "system32\\DRIVERS\\cdrom.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "CertPropSvc",
+      "display_name": "@%SystemRoot%\\System32\\certprop.dll,-11",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "circlass",
+      "display_name": "Consumer IR Devices",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\circlass.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\circlass.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "CLFS",
+      "display_name": "Common Log (CLFS)",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\CLFS.sys",
+      "resolved_path": "System32\\CLFS.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "clr_optimization_v2.0.50727_32",
+      "display_name": "Microsoft .NET Framework NGEN v2.0.50727_X86",
+      "start": "DISABLED",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\Microsoft.NET\\Framework\\v2.0.50727\\mscorsvw.exe",
+      "resolved_path": "%systemroot%\\Microsoft.NET\\Framework\\v2.0.50727\\mscorsvw.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "clr_optimization_v4.0.30319_32",
+      "display_name": "Microsoft .NET Framework NGEN v4.0.30319_X86",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\mscorsvw.exe",
+      "resolved_path": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\mscorsvw.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "CmBatt",
+      "display_name": "Microsoft ACPI Control Method Battery Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\CmBatt.sys",
+      "resolved_path": "system32\\DRIVERS\\CmBatt.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "cmdide",
+      "display_name": "cmdide",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\cmdide.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\cmdide.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Compbatt",
+      "display_name": "Microsoft Composite Battery Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\compbatt.sys",
+      "resolved_path": "system32\\DRIVERS\\compbatt.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "COMSysApp",
+      "display_name": "@comres.dll,-947",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\dllhost.exe /Processid:{02D4B3F1-FD88-11D1-960D-00805FC79235}",
+      "resolved_path": "%SystemRoot%\\system32\\dllhost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "crcdisk",
+      "display_name": "Crcdisk Filter Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\crcdisk.sys",
+      "resolved_path": "system32\\drivers\\crcdisk.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "CRFILTER",
+      "display_name": "USB Mass Storage Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\CRFILTER.sys",
+      "resolved_path": "system32\\DRIVERS\\CRFILTER.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Crusoe",
+      "display_name": "Transmeta Crusoe Processor Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\crusoe.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\crusoe.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "crypt32",
+      "display_name": "crypt32",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "CryptSvc",
+      "display_name": "@%SystemRoot%\\system32\\cryptsvc.dll,-1001",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "DCLocator",
+      "display_name": "DCLocator",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "DcomLaunch",
+      "display_name": "@oleres.dll,-5012",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k DcomLaunch",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "DfsC",
+      "display_name": "@%systemroot%\\system32\\drivers\\dfsc.sys,-101",
+      "start": "SYSTEM",
+      "type": "FS_DRIVER",
+      "image_path": "System32\\Drivers\\dfsc.sys",
+      "resolved_path": "System32\\Drivers\\dfsc.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "DFSR",
+      "display_name": "@dfsrres.dll,-101",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\DFSR.exe",
+      "resolved_path": "%SystemRoot%\\system32\\DFSR.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Dhcp",
+      "display_name": "@%SystemRoot%\\system32\\dhcpcsvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "disk",
+      "display_name": "Disk Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\disk.sys",
+      "resolved_path": "system32\\drivers\\disk.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Dnscache",
+      "display_name": "@%SystemRoot%\\System32\\dnsapi.dll,-101",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "dot3svc",
+      "display_name": "@%systemroot%\\system32\\dot3svc.dll,-1102",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "DPS",
+      "display_name": "@%systemroot%\\system32\\dps.dll,-500",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNoNetwork",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "drmkaud",
+      "display_name": "Microsoft Kernel DRM Audio Descrambler",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\drmkaud.sys",
+      "resolved_path": "system32\\drivers\\drmkaud.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "DXGKrnl",
+      "display_name": "LDDM Graphics Subsystem",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\System32\\drivers\\dxgkrnl.sys",
+      "resolved_path": "\\SystemRoot\\System32\\drivers\\dxgkrnl.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "E1G60",
+      "display_name": "Intel(R) PRO/1000 NDIS 6 Adapter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\E1G60I32.sys",
+      "resolved_path": "system32\\DRIVERS\\E1G60I32.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "EapHost",
+      "display_name": "@%systemroot%\\system32\\eapsvc.dll,-1",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Ecache",
+      "display_name": "ReadyBoost Caching Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\ecache.sys",
+      "resolved_path": "System32\\drivers\\ecache.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "eeCtrl",
+      "display_name": "Symantec Eraser Control driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\Common Files\\Symantec Shared\\EENGINE\\eeCtrl.sys",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ehRecvr",
+      "display_name": "@%SystemRoot%\\ehome\\ehrecvr.exe,-101",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\ehome\\ehRecvr.exe",
+      "resolved_path": "%systemroot%\\ehome\\ehRecvr.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\networkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ehSched",
+      "display_name": "@%SystemRoot%\\ehome\\ehsched.exe,-101",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\ehome\\ehsched.exe",
+      "resolved_path": "%systemroot%\\ehome\\ehsched.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\networkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ehstart",
+      "display_name": "@%SystemRoot%\\ehome\\ehstart.dll,-101",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%windir%\\system32\\svchost.exe -k LocalServiceNoNetwork",
+      "resolved_path": "%windir%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "elxstor",
+      "display_name": "elxstor",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\elxstor.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\elxstor.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "EmdCache",
+      "display_name": "EmdCache",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "EMDMgmt",
+      "display_name": "@%SystemRoot%\\system32\\emdmgmt.dll,-1000",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ErrDev",
+      "display_name": "Microsoft Hardware Error Device Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\errdev.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\errdev.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ESENT",
+      "display_name": "ESENT",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Eventlog",
+      "display_name": "@%SystemRoot%\\system32\\wevtsvc.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "EventSystem",
+      "display_name": "@comres.dll,-2450",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "exfat",
+      "display_name": "exFAT File System Driver",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "fastfat",
+      "display_name": "FAT12/16/32 File System Driver",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "fdc",
+      "display_name": "Floppy Disk Controller Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\fdc.sys",
+      "resolved_path": "system32\\DRIVERS\\fdc.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "fdPHost",
+      "display_name": "@%systemroot%\\system32\\fdPHost.dll,-100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "FDResPub",
+      "display_name": "@%systemroot%\\system32\\fdrespub.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "FileInfo",
+      "display_name": "File Information FS MiniFilter",
+      "start": "BOOT",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\drivers\\fileinfo.sys",
+      "resolved_path": "system32\\drivers\\fileinfo.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Filetrace",
+      "display_name": "FileTrace",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\drivers\\filetrace.sys",
+      "resolved_path": "system32\\drivers\\filetrace.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "flpydisk",
+      "display_name": "Floppy Disk Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\flpydisk.sys",
+      "resolved_path": "system32\\DRIVERS\\flpydisk.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "FltMgr",
+      "display_name": "FltMgr",
+      "start": "BOOT",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\drivers\\fltmgr.sys",
+      "resolved_path": "system32\\drivers\\fltmgr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "FontCache3.0.0.0",
+      "display_name": "@%SystemRoot%\\system32\\PresentationHost.exe,-3309",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\Microsoft.Net\\Framework\\v3.0\\WPF\\PresentationFontCache.exe",
+      "resolved_path": "%systemroot%\\Microsoft.Net\\Framework\\v3.0\\WPF\\PresentationFontCache.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Fs_Rec",
+      "display_name": "Fs_Rec",
+      "start": "SYSTEM",
+      "type": "RECOGNIZER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "gagp30kx",
+      "display_name": "Microsoft Generic AGPv3.0 Filter for K8 Processor Platforms",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\gagp30kx.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\gagp30kx.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "GEARAspiWDM",
+      "display_name": "GEAR ASPI Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\Drivers\\GEARAspiWDM.sys",
+      "resolved_path": "System32\\Drivers\\GEARAspiWDM.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ghaio",
+      "display_name": "ghaio",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\ASUS\\NB Probe\\SPM\\ghaio.sys",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "GoogleDesktopManager-051210-111108",
+      "display_name": "Google Desktop Manager 5.9.1005.12335",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Google\\Google Desktop Search\\GoogleDesktop.exe\"",
+      "resolved_path": "C:\\Program Files\\Google\\Google Desktop Search\\GoogleDesktop.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "gpsvc",
+      "display_name": "@gpapi.dll,-112",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "gupdate",
+      "display_name": "Google Update Service (gupdate)",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Google\\Update\\GoogleUpdate.exe\" /svc",
+      "resolved_path": "C:\\Program Files\\Google\\Update\\GoogleUpdate.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "gupdatem",
+      "display_name": "Google Update Service (gupdatem)",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Google\\Update\\GoogleUpdate.exe\" /medsvc",
+      "resolved_path": "C:\\Program Files\\Google\\Update\\GoogleUpdate.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "gusvc",
+      "display_name": "Google Software Updater",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Google\\Common\\Google Updater\\GoogleUpdaterService.exe\"",
+      "resolved_path": "C:\\Program Files\\Google\\Common\\Google Updater\\GoogleUpdaterService.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HdAudAddService",
+      "display_name": "Microsoft 1.1 UAA Function Driver for High Definition Audio Service",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\HdAudio.sys",
+      "resolved_path": "system32\\drivers\\HdAudio.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HDAudBus",
+      "display_name": "Microsoft UAA Bus Driver for High Definition Audio",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\HDAudBus.sys",
+      "resolved_path": "system32\\DRIVERS\\HDAudBus.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HidBth",
+      "display_name": "Microsoft Bluetooth HID Miniport",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\hidbth.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\hidbth.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HidIr",
+      "display_name": "Microsoft Infrared HID Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\hidir.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\hidir.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "hidserv",
+      "display_name": "@%SystemRoot%\\System32\\hidserv.dll,-101",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HidUsb",
+      "display_name": "Microsoft HID Class Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\hidusb.sys",
+      "resolved_path": "system32\\DRIVERS\\hidusb.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "hkmsvc",
+      "display_name": "@%SystemRoot%\\system32\\kmsvc.dll,-6",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HpCISSs",
+      "display_name": "HpCISSs",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\hpcisss.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\hpcisss.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "HTTP",
+      "display_name": "HTTP",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\HTTP.sys",
+      "resolved_path": "system32\\drivers\\HTTP.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "i2omp",
+      "display_name": "i2omp",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\i2omp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\i2omp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "i8042prt",
+      "display_name": "i8042 Keyboard and PS/2 Mouse Port Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\i8042prt.sys",
+      "resolved_path": "system32\\DRIVERS\\i8042prt.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iaStorV",
+      "display_name": "Intel RAID Controller Vista",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\iastorv.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\iastorv.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IDriverT",
+      "display_name": "InstallDriver Table Manager",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Common Files\\InstallShield\\Driver\\11\\Intel 32\\IDriverT.exe\"",
+      "resolved_path": "C:\\Program Files\\Common Files\\InstallShield\\Driver\\11\\Intel 32\\IDriverT.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "idsvc",
+      "display_name": "@%systemroot%\\Microsoft.NET\\Framework\\v3.0\\Windows Communication Foundation\\ServiceModelInstallRC.dll,-8193",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "\"%systemroot%\\Microsoft.NET\\Framework\\v3.0\\Windows Communication Foundation\\infocard.exe\"",
+      "resolved_path": "%systemroot%\\Microsoft.NET\\Framework\\v3.0\\Windows Communication Foundation\\infocard.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IDSVix86",
+      "display_name": "IDSVix86",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\Norton 360\\NortonData\\22.6.0.142\\Definitions\\IPSDefs\\20160223.011\\IDSVix86.sys",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iirsp",
+      "display_name": "iirsp",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\iirsp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\iirsp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IKEEXT",
+      "display_name": "@%SystemRoot%\\system32\\ikeext.dll,-501",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "inetaccs",
+      "display_name": "inetaccs",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IntcAzAudAddService",
+      "display_name": "Service for Realtek HD Audio (WDM)",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\RTKVHDA.sys",
+      "resolved_path": "system32\\drivers\\RTKVHDA.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "intelide",
+      "display_name": "intelide",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\intelide.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\intelide.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "intelppm",
+      "display_name": "Intel Processor Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\intelppm.sys",
+      "resolved_path": "system32\\DRIVERS\\intelppm.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IPBusEnum",
+      "display_name": "@%systemroot%\\system32\\IPBusEnum.dll,-102",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IpFilterDriver",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32013",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ipfltdrv.sys",
+      "resolved_path": "system32\\DRIVERS\\ipfltdrv.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iphlpsvc",
+      "display_name": "@%SystemRoot%\\system32\\iphlpsvc.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetSvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IpInIp",
+      "display_name": "IP in IP Tunnel Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ipinip.sys",
+      "resolved_path": "system32\\DRIVERS\\ipinip.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IPMIDRV",
+      "display_name": "IPMIDRV",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ipmidrv.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ipmidrv.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IPNAT",
+      "display_name": "IP Network Address Translator",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ipnat.sys",
+      "resolved_path": "system32\\DRIVERS\\ipnat.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iPod Service",
+      "display_name": "iPod Service",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\iPod\\bin\\iPodService.exe\"",
+      "resolved_path": "C:\\Program Files\\iPod\\bin\\iPodService.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "IRENUM",
+      "display_name": "IR Bus Enumerator",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\irenum.sys",
+      "resolved_path": "system32\\drivers\\irenum.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "isapnp",
+      "display_name": "PnP ISA/EISA Bus Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\isapnp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\isapnp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iScsiPrt",
+      "display_name": "iScsiPort Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\msiscsi.sys",
+      "resolved_path": "system32\\DRIVERS\\msiscsi.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iteatapi",
+      "display_name": "ITEATAPI_Service_Install",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\iteatapi.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\iteatapi.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "iteraid",
+      "display_name": "ITERAID_Service_Install",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\iteraid.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\iteraid.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "kbdclass",
+      "display_name": "Keyboard Class Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\kbdclass.sys",
+      "resolved_path": "system32\\DRIVERS\\kbdclass.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "kbdhid",
+      "display_name": "Keyboard HID Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\kbdhid.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\kbdhid.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "kbfiltr",
+      "display_name": "Keyboard Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\kbfiltr.sys",
+      "resolved_path": "system32\\DRIVERS\\kbfiltr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "KeyIso",
+      "display_name": "@keyiso.dll,-100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\lsass.exe",
+      "resolved_path": "%SystemRoot%\\system32\\lsass.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "KSecDD",
+      "display_name": "KSecDD",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\Drivers\\ksecdd.sys",
+      "resolved_path": "System32\\Drivers\\ksecdd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "KtmRm",
+      "display_name": "@comres.dll,-2946",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "LanmanServer",
+      "display_name": "@%systemroot%\\system32\\srvsvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "LanmanWorkstation",
+      "display_name": "@%systemroot%\\system32\\wkssvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ldap",
+      "display_name": "ldap",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "LightScribeService",
+      "display_name": "LightScribeService Direct Disc Labeling Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Common Files\\LightScribe\\LSSrvc.exe\"",
+      "resolved_path": "C:\\Program Files\\Common Files\\LightScribe\\LSSrvc.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "lltdio",
+      "display_name": "Link-Layer Topology Discovery Mapper I/O Driver",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\lltdio.sys",
+      "resolved_path": "system32\\DRIVERS\\lltdio.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "lltdsvc",
+      "display_name": "@%SystemRoot%\\system32\\lltdres.dll,-1",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "lmhosts",
+      "display_name": "@%SystemRoot%\\system32\\lmhsvc.dll,-101",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Lsa",
+      "display_name": "Lsa",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "LSI_FC",
+      "display_name": "LSI_FC",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\lsi_fc.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\lsi_fc.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "LSI_SAS",
+      "display_name": "LSI_SAS",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\lsi_sas.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\lsi_sas.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "LSI_SCSI",
+      "display_name": "LSI_SCSI",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\lsi_scsi.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\lsi_scsi.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "luafv",
+      "display_name": "UAC File Virtualization",
+      "start": "AUTO",
+      "type": "FS_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\luafv.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\luafv.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "McComponentHostService",
+      "display_name": "McAfee Security Scan Component Host Service",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\McAfee Security Scan\\3.11.266\\McCHSvc.exe\"",
+      "resolved_path": "C:\\Program Files\\McAfee Security Scan\\3.11.266\\McCHSvc.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Mcx2Svc",
+      "display_name": "@%SystemRoot%\\ehome\\ehres.dll,-15501",
+      "start": "DISABLED",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "megasas",
+      "display_name": "megasas",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\megasas.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\megasas.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MegaSR",
+      "display_name": "MegaSR",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\megasr.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\megasr.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MMCSS",
+      "display_name": "@%systemroot%\\system32\\mmcss.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Modem",
+      "display_name": "Modem",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\modem.sys",
+      "resolved_path": "system32\\drivers\\modem.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MODEMCSA",
+      "display_name": "Unimodem Streaming Filter Device",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\MODEMCSA.sys",
+      "resolved_path": "system32\\drivers\\MODEMCSA.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "monitor",
+      "display_name": "Microsoft Monitor Class Function Driver Service",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\monitor.sys",
+      "resolved_path": "system32\\DRIVERS\\monitor.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mouclass",
+      "display_name": "Mouse Class Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\mouclass.sys",
+      "resolved_path": "system32\\DRIVERS\\mouclass.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mouhid",
+      "display_name": "Mouse HID Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\mouhid.sys",
+      "resolved_path": "system32\\DRIVERS\\mouhid.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MountMgr",
+      "display_name": "Mount Point Manager",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\mountmgr.sys",
+      "resolved_path": "System32\\drivers\\mountmgr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mpio",
+      "display_name": "Microsoft Multi-Path Bus Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\mpio.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\mpio.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mpsdrv",
+      "display_name": "@%SystemRoot%\\system32\\FirewallAPI.dll,-23092",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\mpsdrv.sys",
+      "resolved_path": "System32\\drivers\\mpsdrv.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MpsSvc",
+      "display_name": "@%SystemRoot%\\system32\\FirewallAPI.dll,-23090",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalServiceNoNetwork",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Mraid35x",
+      "display_name": "Mraid35x",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\mraid35x.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\mraid35x.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MRxDAV",
+      "display_name": "WebDav Client Redirector Driver",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\mrxdav.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\mrxdav.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mrxsmb",
+      "display_name": "SMB MiniRedirector Wrapper and Engine",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\mrxsmb.sys",
+      "resolved_path": "system32\\DRIVERS\\mrxsmb.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mrxsmb10",
+      "display_name": "SMB 1.x MiniRedirector",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\mrxsmb10.sys",
+      "resolved_path": "system32\\DRIVERS\\mrxsmb10.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mrxsmb20",
+      "display_name": "SMB 2.0 MiniRedirector",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\mrxsmb20.sys",
+      "resolved_path": "system32\\DRIVERS\\mrxsmb20.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "msahci",
+      "display_name": "msahci",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\msahci.sys",
+      "resolved_path": "system32\\drivers\\msahci.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "msdsm",
+      "display_name": "Microsoft Multi-Path Device Specific Module",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\msdsm.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\msdsm.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSDTC",
+      "display_name": "@comres.dll,-2797",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\msdtc.exe",
+      "resolved_path": "%SystemRoot%\\System32\\msdtc.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSDTC Bridge 3.0.0.0",
+      "display_name": "MSDTC Bridge 3.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSDTC Bridge 4.0.0.0",
+      "display_name": "MSDTC Bridge 4.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Msfs",
+      "display_name": "Msfs",
+      "start": "SYSTEM",
+      "type": "FS_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "msisadrv",
+      "display_name": "ISA/EISA Class Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\msisadrv.sys",
+      "resolved_path": "system32\\drivers\\msisadrv.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSiSCSI",
+      "display_name": "@%SystemRoot%\\system32\\iscsidsc.dll,-5000",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "msiserver",
+      "display_name": "@%SystemRoot%\\system32\\msimsg.dll,-27",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\system32\\msiexec /V",
+      "resolved_path": "%systemroot%\\system32\\msiexec",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSKSSRV",
+      "display_name": "Microsoft Streaming Service Proxy",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\MSKSSRV.sys",
+      "resolved_path": "system32\\drivers\\MSKSSRV.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSPCLOCK",
+      "display_name": "Microsoft Streaming Clock Proxy",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\MSPCLOCK.sys",
+      "resolved_path": "system32\\drivers\\MSPCLOCK.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSPQM",
+      "display_name": "Microsoft Streaming Quality Manager Proxy",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\MSPQM.sys",
+      "resolved_path": "system32\\drivers\\MSPQM.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MsRPC",
+      "display_name": "MsRPC",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSSCNTRS",
+      "display_name": "MSSCNTRS",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "mssmbios",
+      "display_name": "Microsoft System Management BIOS Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\mssmbios.sys",
+      "resolved_path": "system32\\DRIVERS\\mssmbios.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MSTEE",
+      "display_name": "Microsoft Streaming Tee/Sink-to-Sink Converter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\MSTEE.sys",
+      "resolved_path": "system32\\drivers\\MSTEE.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "MTsensor",
+      "display_name": "ATK0100 ACPI UTILITY",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ATKACPI.sys",
+      "resolved_path": "system32\\DRIVERS\\ATKACPI.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Mup",
+      "display_name": "Mup",
+      "start": "BOOT",
+      "type": "FS_DRIVER",
+      "image_path": "System32\\Drivers\\mup.sys",
+      "resolved_path": "System32\\Drivers\\mup.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "napagent",
+      "display_name": "@%SystemRoot%\\system32\\qagentrt.dll,-6",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NativeWifiP",
+      "display_name": "NativeWiFi Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\nwifi.sys",
+      "resolved_path": "system32\\DRIVERS\\nwifi.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NAVENG",
+      "display_name": "NAVENG",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\Norton 360\\NortonData\\22.6.0.142\\Definitions\\VirusDefs\\20160511.001\\NAVENG.SYS",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NAVEX15",
+      "display_name": "NAVEX15",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Program Files\\Norton 360\\NortonData\\22.6.0.142\\Definitions\\VirusDefs\\20160511.001\\NAVEX15.SYS",
+      "resolved_path": "\\??\\C:\\Program",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NDIS",
+      "display_name": "NDIS System Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\ndis.sys",
+      "resolved_path": "system32\\drivers\\ndis.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NdisTapi",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32001",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ndistapi.sys",
+      "resolved_path": "system32\\DRIVERS\\ndistapi.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Ndisuio",
+      "display_name": "NDIS Usermode I/O Protocol",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ndisuio.sys",
+      "resolved_path": "system32\\DRIVERS\\ndisuio.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NdisWan",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32002",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ndiswan.sys",
+      "resolved_path": "system32\\DRIVERS\\ndiswan.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NDProxy",
+      "display_name": "NDProxy",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NetBIOS",
+      "display_name": "NetBIOS Interface",
+      "start": "SYSTEM",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\netbios.sys",
+      "resolved_path": "system32\\DRIVERS\\netbios.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "netbt",
+      "display_name": "NETBT",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\DRIVERS\\netbt.sys",
+      "resolved_path": "System32\\DRIVERS\\netbt.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Netlogon",
+      "display_name": "@%SystemRoot%\\System32\\netlogon.dll,-102",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\lsass.exe",
+      "resolved_path": "%systemroot%\\system32\\lsass.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Netman",
+      "display_name": "@%SystemRoot%\\system32\\netman.dll,-109",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "netprofm",
+      "display_name": "@%SystemRoot%\\system32\\netprof.dll,-246",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NetTcpPortSharing",
+      "display_name": "@%systemroot%\\Microsoft.NET\\Framework\\v3.0\\Windows Communication Foundation\\ServiceModelInstallRC.dll,-8201",
+      "start": "DISABLED",
+      "type": "SHARE_PROCESS",
+      "image_path": "\"%systemroot%\\Microsoft.NET\\Framework\\v3.0\\Windows Communication Foundation\\SMSvcHost.exe\"",
+      "resolved_path": "%systemroot%\\Microsoft.NET\\Framework\\v3.0\\Windows Communication Foundation\\SMSvcHost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nfrd960",
+      "display_name": "nfrd960",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\nfrd960.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\nfrd960.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NlaSvc",
+      "display_name": "@%SystemRoot%\\System32\\nlasvc.dll,-1",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NortonSecurity",
+      "display_name": "Norton Security",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Norton 360\\Engine\\22.15.5.40\\NortonSecurity.exe\" /s \"NortonSecurity\" /m \"C:\\Program Files\\Norton 360\\Engine\\22.15.5.40\\diMaster.dll\" /prefetch:1",
+      "resolved_path": "C:\\Program Files\\Norton 360\\Engine\\22.15.5.40\\NortonSecurity.exe",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Npfs",
+      "display_name": "Npfs",
+      "start": "SYSTEM",
+      "type": "FS_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nsi",
+      "display_name": "@%SystemRoot%\\system32\\nsisvc.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nsiproxy",
+      "display_name": "NSI proxy service",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\nsiproxy.sys",
+      "resolved_path": "system32\\drivers\\nsiproxy.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NTDS",
+      "display_name": "NTDS",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Ntfs",
+      "display_name": "Ntfs",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ntrigdigi",
+      "display_name": "N-trig HID Tablet Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ntrigdigi.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ntrigdigi.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Null",
+      "display_name": "Null",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NVENETFD",
+      "display_name": "NVIDIA nForce 10/100/1000 Mbps Ethernet ",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\nvmfdx32.sys",
+      "resolved_path": "system32\\DRIVERS\\nvmfdx32.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NVHDA",
+      "display_name": "Service for NVIDIA High Definition Audio Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\nvhda32v.sys",
+      "resolved_path": "system32\\drivers\\nvhda32v.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nvlddmkm",
+      "display_name": "nvlddmkm",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\nvlddmkm.sys",
+      "resolved_path": "system32\\DRIVERS\\nvlddmkm.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nvraid",
+      "display_name": "NVIDIA nForce RAID Driver   ",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\nvraid.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\nvraid.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nvsmu",
+      "display_name": "nvsmu",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\nvsmu.sys",
+      "resolved_path": "system32\\DRIVERS\\nvsmu.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nvstor",
+      "display_name": "nvstor",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\nvstor.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\nvstor.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nvsvc",
+      "display_name": "NVIDIA Display Driver Service",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\nvvsvc.exe",
+      "resolved_path": "%SystemRoot%\\system32\\nvvsvc.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "nv_agp",
+      "display_name": "NVIDIA nForce AGP Bus Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\nv_agp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\nv_agp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NwlnkFlt",
+      "display_name": "IPX Traffic Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\nwlnkflt.sys",
+      "resolved_path": "system32\\DRIVERS\\nwlnkflt.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "NwlnkFwd",
+      "display_name": "IPX Traffic Forwarder Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\nwlnkfwd.sys",
+      "resolved_path": "system32\\DRIVERS\\nwlnkfwd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ohci1394",
+      "display_name": "RICOH OHCI Compliant IEEE 1394 Host Controller",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\ohci1394.sys",
+      "resolved_path": "system32\\DRIVERS\\ohci1394.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ose",
+      "display_name": "Office Source Engine",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Common Files\\Microsoft Shared\\Source Engine\\OSE.EXE\"",
+      "resolved_path": "C:\\Program Files\\Common Files\\Microsoft Shared\\Source Engine\\OSE.EXE",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Outlook",
+      "display_name": "Outlook",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "p2pimsvc",
+      "display_name": "@%SystemRoot%\\system32\\p2psvc.dll,-8004",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "p2psvc",
+      "display_name": "@%SystemRoot%\\system32\\p2psvc.dll,-8006",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Parport",
+      "display_name": "Parallel port driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\parport.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\parport.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "partmgr",
+      "display_name": "Partition Manager",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\partmgr.sys",
+      "resolved_path": "System32\\drivers\\partmgr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Parvdm",
+      "display_name": "Parvdm",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\parvdm.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\parvdm.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PcaSvc",
+      "display_name": "@%SystemRoot%\\system32\\pcasvc.dll,-1",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "pci",
+      "display_name": "PCI Bus Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\pci.sys",
+      "resolved_path": "system32\\drivers\\pci.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "pciide",
+      "display_name": "pciide",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\pciide.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\pciide.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "pcmcia",
+      "display_name": "pcmcia",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\pcmcia.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\pcmcia.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PEAUTH",
+      "display_name": "PEAUTH",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\peauth.sys",
+      "resolved_path": "system32\\drivers\\peauth.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PerfDisk",
+      "display_name": "PerfDisk",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PerfNet",
+      "display_name": "PerfNet",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PerfOS",
+      "display_name": "PerfOS",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PerfProc",
+      "display_name": "PerfProc",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "pla",
+      "display_name": "@%systemroot%\\system32\\pla.dll,-500",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNoNetwork",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PlugPlay",
+      "display_name": "@%SystemRoot%\\system32\\umpnpmgr.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k DcomLaunch",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PNRPAutoReg",
+      "display_name": "@%SystemRoot%\\system32\\p2psvc.dll,-8002",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PNRPsvc",
+      "display_name": "@%SystemRoot%\\system32\\p2psvc.dll,-8000",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PolicyAgent",
+      "display_name": "@%SystemRoot%\\System32\\polstore.dll,-5010",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k NetworkServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PortProxy",
+      "display_name": "PortProxy",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PptpMiniport",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32006",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\raspptp.sys",
+      "resolved_path": "system32\\DRIVERS\\raspptp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Processor",
+      "display_name": "Processor Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\processr.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\processr.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ProfSvc",
+      "display_name": "@%systemroot%\\system32\\profsvc.dll,-300",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ProtectedStorage",
+      "display_name": "@%systemroot%\\system32\\psbase.dll,-300",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\lsass.exe",
+      "resolved_path": "%SystemRoot%\\system32\\lsass.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "PSched",
+      "display_name": "@%SystemRoot%\\System32\\drivers\\pacer.sys,-101",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\pacer.sys",
+      "resolved_path": "system32\\DRIVERS\\pacer.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ql2300",
+      "display_name": "QLogic Fibre Channel Miniport Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ql2300.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ql2300.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ql40xx",
+      "display_name": "QLogic iSCSI Miniport Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ql40xx.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ql40xx.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "QWAVE",
+      "display_name": "@%SystemRoot%\\system32\\qwave.dll,-1",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%windir%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%windir%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "QWAVEdrv",
+      "display_name": "@%SystemRoot%\\system32\\drivers\\qwavedrv.sys,-1",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\qwavedrv.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\qwavedrv.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RasAcd",
+      "display_name": "Remote Access Auto Connection Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\DRIVERS\\rasacd.sys",
+      "resolved_path": "System32\\DRIVERS\\rasacd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RasAuto",
+      "display_name": "@%Systemroot%\\system32\\rasauto.dll,-200",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Rasl2tp",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32005",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\rasl2tp.sys",
+      "resolved_path": "system32\\DRIVERS\\rasl2tp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RasMan",
+      "display_name": "@%Systemroot%\\system32\\rasmans.dll,-200",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RasPppoe",
+      "display_name": "@%systemroot%\\system32\\rascfg.dll,-32007",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\raspppoe.sys",
+      "resolved_path": "system32\\DRIVERS\\raspppoe.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RasSstp",
+      "display_name": "@%systemroot%\\system32\\sstpsvc.dll,-202",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\rassstp.sys",
+      "resolved_path": "system32\\DRIVERS\\rassstp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "rdbss",
+      "display_name": "Redirected Buffering Sub Sysytem",
+      "start": "SYSTEM",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\rdbss.sys",
+      "resolved_path": "system32\\DRIVERS\\rdbss.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RDPCDD",
+      "display_name": "RDPCDD",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\DRIVERS\\RDPCDD.sys",
+      "resolved_path": "System32\\DRIVERS\\RDPCDD.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RDPDD",
+      "display_name": "RDPDD",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "rdpdr",
+      "display_name": "Terminal Server Device Redirector Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\rdpdr.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\rdpdr.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RDPENCDD",
+      "display_name": "RDP Encoder Mirror Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\rdpencdd.sys",
+      "resolved_path": "system32\\drivers\\rdpencdd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RDPNP",
+      "display_name": "@%systemroot%\\system32\\drprov.dll,-100",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RDPWD",
+      "display_name": "RDP Winstation Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RemoteAccess",
+      "display_name": "@%Systemroot%\\system32\\mprdim.dll,-200",
+      "start": "DISABLED",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RemoteRegistry",
+      "display_name": "@regsvc.dll,-1",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k regsvc",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RpcLocator",
+      "display_name": "@%systemroot%\\system32\\Locator.exe,-2",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\locator.exe",
+      "resolved_path": "%SystemRoot%\\system32\\locator.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "RpcSs",
+      "display_name": "@oleres.dll,-5010",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k rpcss",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "rspndr",
+      "display_name": "Link-Layer Topology Discovery Responder",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\rspndr.sys",
+      "resolved_path": "system32\\DRIVERS\\rspndr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SamSs",
+      "display_name": "@%SystemRoot%\\system32\\samsrv.dll,-1",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\lsass.exe",
+      "resolved_path": "%SystemRoot%\\system32\\lsass.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sbp2port",
+      "display_name": "SBP-2 Transport/Protocol Bus Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sbp2port.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sbp2port.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SCardSvr",
+      "display_name": "@%SystemRoot%\\System32\\SCardSvr.dll,-1",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Schedule",
+      "display_name": "@%SystemRoot%\\system32\\schedsvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SCPolicySvc",
+      "display_name": "@%SystemRoot%\\System32\\certprop.dll,-13",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sdbus",
+      "display_name": "sdbus",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\sdbus.sys",
+      "resolved_path": "system32\\DRIVERS\\sdbus.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SDRSVC",
+      "display_name": "@%SystemRoot%\\system32\\sdrsvc.dll,-107",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k SDRSVC",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "secdrv",
+      "display_name": "Security Driver",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "seclogon",
+      "display_name": "@%SystemRoot%\\system32\\seclogon.dll,-7001",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%windir%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%windir%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SENS",
+      "display_name": "@%SystemRoot%\\system32\\Sens.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Serenum",
+      "display_name": "Serenum Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\serenum.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\serenum.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Serial",
+      "display_name": "Serial Port Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\serial.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\serial.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sermouse",
+      "display_name": "Serial Mouse Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sermouse.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sermouse.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ServiceModelEndpoint 3.0.0.0",
+      "display_name": "ServiceModelEndpoint 3.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ServiceModelOperation 3.0.0.0",
+      "display_name": "ServiceModelOperation 3.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ServiceModelService 3.0.0.0",
+      "display_name": "ServiceModelService 3.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SessionEnv",
+      "display_name": "@%SystemRoot%\\System32\\SessEnv.dll,-1026",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sffdisk",
+      "display_name": "SFF Storage Class Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sffdisk.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sffdisk.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sffp_mmc",
+      "display_name": "SFF Storage Protocol Driver for MMC",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sffp_mmc.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sffp_mmc.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sffp_sd",
+      "display_name": "SFF Storage Protocol Driver for SDBus",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sffp_sd.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sffp_sd.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sfloppy",
+      "display_name": "High-Capacity Floppy Disk Drive",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sfloppy.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sfloppy.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SharedAccess",
+      "display_name": "@%SystemRoot%\\system32\\ipnathlp.dll,-106",
+      "start": "DISABLED",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ShellHWDetection",
+      "display_name": "@%SystemRoot%\\System32\\shsvcs.dll,-12288",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "sisagp",
+      "display_name": "SIS AGP Bus Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sisagp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sisagp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SiSRaid2",
+      "display_name": "SiSRaid2",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sisraid2.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sisraid2.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SiSRaid4",
+      "display_name": "SiSRaid4",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sisraid4.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sisraid4.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SkypeUpdate",
+      "display_name": "Skype Updater",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "\"C:\\Program Files\\Skype\\Updater\\Updater.exe\"",
+      "resolved_path": "C:\\Program Files\\Skype\\Updater\\Updater.exe",
+      "path_exists": true,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "slsvc",
+      "display_name": "@%SystemRoot%\\system32\\SLsvc.exe,-101",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\SLsvc.exe",
+      "resolved_path": "%SystemRoot%\\system32\\SLsvc.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SLUINotify",
+      "display_name": "@%SystemRoot%\\system32\\SLUINotify.dll,-103",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Smb",
+      "display_name": "@%SystemRoot%\\system32\\tcpipcfg.dll,-50005",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\smb.sys",
+      "resolved_path": "system32\\DRIVERS\\smb.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "smserial",
+      "display_name": "smserial",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\smserial.sys",
+      "resolved_path": "system32\\DRIVERS\\smserial.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SMSvcHost 3.0.0.0",
+      "display_name": "SMSvcHost 3.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SMSvcHost 4.0.0.0",
+      "display_name": "SMSvcHost 4.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SNMPTRAP",
+      "display_name": "@%SystemRoot%\\system32\\snmptrap.exe,-3",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\snmptrap.exe",
+      "resolved_path": "%SystemRoot%\\System32\\snmptrap.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SNP2UVC",
+      "display_name": "USB2.0 PC Camera (SNP2UVC)",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\snp2uvc.sys",
+      "resolved_path": "system32\\DRIVERS\\snp2uvc.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "spldr",
+      "display_name": "Security Processor Loader Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "spmgr",
+      "display_name": "spmgr",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "C:\\Program Files\\ASUS\\NB Probe\\SPM\\spmgr.exe",
+      "resolved_path": "C:\\Program",
+      "path_exists": false,
+      "object_name": "LocalSystem",
+      "flags": [
+        "SUSPICIOUS",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Spooler",
+      "display_name": "@%systemroot%\\system32\\spoolsv.exe,-1",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\spoolsv.exe",
+      "resolved_path": "%SystemRoot%\\System32\\spoolsv.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SRTSP",
+      "display_name": "Symantec Real Time Storage Protection",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "\\SystemRoot\\System32\\Drivers\\NGC\\160F050.028\\SRTSP.SYS",
+      "resolved_path": "\\SystemRoot\\System32\\Drivers\\NGC\\160F050.028\\SRTSP.SYS",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SRTSPX",
+      "display_name": "Symantec Real Time Storage Protection (PEL)",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\NGC\\160F050.028\\SRTSPX.SYS",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\NGC\\160F050.028\\SRTSPX.SYS",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "srv",
+      "display_name": "srv",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "System32\\DRIVERS\\srv.sys",
+      "resolved_path": "System32\\DRIVERS\\srv.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "srv2",
+      "display_name": "srv2",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "System32\\DRIVERS\\srv2.sys",
+      "resolved_path": "System32\\DRIVERS\\srv2.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "srvnet",
+      "display_name": "srvnet",
+      "start": "DEMAND",
+      "type": "FS_DRIVER",
+      "image_path": "System32\\DRIVERS\\srvnet.sys",
+      "resolved_path": "System32\\DRIVERS\\srvnet.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SSDPSRV",
+      "display_name": "@%systemroot%\\system32\\ssdpsrv.dll,-100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SstpSvc",
+      "display_name": "@%SystemRoot%\\system32\\sstpsvc.dll,-200",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "stisvc",
+      "display_name": "@%SystemRoot%\\system32\\wiaservc.dll,-9",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k imgsvc",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "swenum",
+      "display_name": "Software Bus Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\swenum.sys",
+      "resolved_path": "system32\\DRIVERS\\swenum.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "swprv",
+      "display_name": "@%SystemRoot%\\System32\\swprv.dll,-103",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k swprv",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Symc8xx",
+      "display_name": "Symc8xx",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\symc8xx.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\symc8xx.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SymEFASI",
+      "display_name": "Symantec Extended File Attributes (SI)",
+      "start": "BOOT",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\drivers\\NGC\\160F050.028\\SYMEFASI.SYS",
+      "resolved_path": "system32\\drivers\\NGC\\160F050.028\\SYMEFASI.SYS",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SymEvent",
+      "display_name": "SymEvent",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\??\\C:\\Windows\\system32\\Drivers\\SYMEVENT.SYS",
+      "resolved_path": "\\??\\C:\\Windows\\system32\\Drivers\\SYMEVENT.SYS",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SymIRON",
+      "display_name": "Symantec Iron Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\NGC\\160F050.028\\Ironx86.SYS",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\NGC\\160F050.028\\Ironx86.SYS",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SYMTDIv",
+      "display_name": "Symantec Vista Network Dispatch Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\System32\\Drivers\\NGC\\160F050.028\\symtdiv.sys",
+      "resolved_path": "\\SystemRoot\\System32\\Drivers\\NGC\\160F050.028\\symtdiv.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Sym_hi",
+      "display_name": "Sym_hi",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sym_hi.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sym_hi.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Sym_u3",
+      "display_name": "Sym_u3",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\sym_u3.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\sym_u3.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SynTP",
+      "display_name": "Synaptics TouchPad Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\SynTP.sys",
+      "resolved_path": "system32\\DRIVERS\\SynTP.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "SysMain",
+      "display_name": "@%SystemRoot%\\system32\\sysmain.dll,-1000",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TabletInputService",
+      "display_name": "@%SystemRoot%\\system32\\TabSvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TapiSrv",
+      "display_name": "@%SystemRoot%\\system32\\tapisrv.dll,-10100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TBS",
+      "display_name": "@%SystemRoot%\\system32\\tbssvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Tcpip",
+      "display_name": "@%SystemRoot%\\system32\\tcpipcfg.dll,-50003",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\tcpip.sys",
+      "resolved_path": "System32\\drivers\\tcpip.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Tcpip6",
+      "display_name": "Microsoft IPv6 Protocol Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\tcpip.sys",
+      "resolved_path": "system32\\DRIVERS\\tcpip.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "tcpipreg",
+      "display_name": "TCP/IP Registry Compatibility",
+      "start": "AUTO",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\tcpipreg.sys",
+      "resolved_path": "System32\\drivers\\tcpipreg.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TDPIPE",
+      "display_name": "TDPIPE",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\tdpipe.sys",
+      "resolved_path": "system32\\drivers\\tdpipe.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TDTCP",
+      "display_name": "TDTCP",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\tdtcp.sys",
+      "resolved_path": "system32\\drivers\\tdtcp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "tdx",
+      "display_name": "@%SystemRoot%\\system32\\tcpipcfg.dll,-50004",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\tdx.sys",
+      "resolved_path": "system32\\DRIVERS\\tdx.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TermDD",
+      "display_name": "Terminal Device Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\termdd.sys",
+      "resolved_path": "system32\\DRIVERS\\termdd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TermService",
+      "display_name": "@%SystemRoot%\\System32\\termsrv.dll,-268",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Themes",
+      "display_name": "@%SystemRoot%\\System32\\shsvcs.dll,-8192",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "THREADORDER",
+      "display_name": "@%systemroot%\\system32\\mmcss.dll,-102",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TrkWks",
+      "display_name": "@%SystemRoot%\\system32\\trkwks.dll,-1",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TrustedInstaller",
+      "display_name": "@%SystemRoot%\\servicing\\TrustedInstaller.exe,-100",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\servicing\\TrustedInstaller.exe",
+      "resolved_path": "%SystemRoot%\\servicing\\TrustedInstaller.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "TSDDD",
+      "display_name": "TSDDD",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "tssecsrv",
+      "display_name": "Terminal Services Security Filter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\DRIVERS\\tssecsrv.sys",
+      "resolved_path": "System32\\DRIVERS\\tssecsrv.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "tunmp",
+      "display_name": "Microsoft Tun Miniport Adapter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\tunmp.sys",
+      "resolved_path": "system32\\DRIVERS\\tunmp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "tunnel",
+      "display_name": "Microsoft IPv6 Tunnel Miniport Adapter Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\tunnel.sys",
+      "resolved_path": "system32\\DRIVERS\\tunnel.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "uagp35",
+      "display_name": "Microsoft AGPv3.5 Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\uagp35.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\uagp35.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "udfs",
+      "display_name": "udfs",
+      "start": "DISABLED",
+      "type": "FS_DRIVER",
+      "image_path": "system32\\DRIVERS\\udfs.sys",
+      "resolved_path": "system32\\DRIVERS\\udfs.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "UGatherer",
+      "display_name": "UGatherer",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "UGTHRSVC",
+      "display_name": "UGTHRSVC",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "UI0Detect",
+      "display_name": "@%SystemRoot%\\system32\\ui0detect.exe,-101",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\UI0Detect.exe",
+      "resolved_path": "%SystemRoot%\\system32\\UI0Detect.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "uliagpkx",
+      "display_name": "Uli AGP Bus Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\uliagpkx.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\uliagpkx.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "uliahci",
+      "display_name": "uliahci",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\uliahci.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\uliahci.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "UlSata",
+      "display_name": "UlSata",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ulsata.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ulsata.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ulsata2",
+      "display_name": "ulsata2",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ulsata2.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ulsata2.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "umbus",
+      "display_name": "UMBus Enumerator Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\umbus.sys",
+      "resolved_path": "system32\\DRIVERS\\umbus.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "upnphost",
+      "display_name": "@%systemroot%\\system32\\upnphost.dll,-213",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usb",
+      "display_name": "usb",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "USBAAPL",
+      "display_name": "Apple Mobile USB Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\Drivers\\usbaapl.sys",
+      "resolved_path": "System32\\Drivers\\usbaapl.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbccgp",
+      "display_name": "Microsoft USB Generic Parent Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\usbccgp.sys",
+      "resolved_path": "system32\\DRIVERS\\usbccgp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbcir",
+      "display_name": "eHome Infrared Receiver (USBCIR)",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\usbcir.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\usbcir.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbehci",
+      "display_name": "Microsoft USB 2.0 Enhanced Host Controller Miniport Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\usbehci.sys",
+      "resolved_path": "system32\\DRIVERS\\usbehci.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbhub",
+      "display_name": "USB2 Enabled Hub",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\usbhub.sys",
+      "resolved_path": "system32\\DRIVERS\\usbhub.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbohci",
+      "display_name": "Microsoft USB Open Host Controller Miniport Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\usbohci.sys",
+      "resolved_path": "system32\\DRIVERS\\usbohci.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbprint",
+      "display_name": "Microsoft USB PRINTER Class",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\usbprint.sys",
+      "resolved_path": "system32\\DRIVERS\\usbprint.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "USBSTOR",
+      "display_name": "USB Mass Storage Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\USBSTOR.SYS",
+      "resolved_path": "system32\\DRIVERS\\USBSTOR.SYS",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbuhci",
+      "display_name": "Microsoft USB Universal Host Controller Miniport Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\usbuhci.sys",
+      "resolved_path": "system32\\DRIVERS\\usbuhci.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "usbvideo",
+      "display_name": "USB Video Device (WDM)",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\Drivers\\usbvideo.sys",
+      "resolved_path": "System32\\Drivers\\usbvideo.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "UxSms",
+      "display_name": "@%SystemRoot%\\system32\\dwm.exe,-2000",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "vds",
+      "display_name": "@%SystemRoot%\\system32\\vds.exe,-100",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\vds.exe",
+      "resolved_path": "%SystemRoot%\\System32\\vds.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "vga",
+      "display_name": "vga",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\vgapnp.sys",
+      "resolved_path": "system32\\DRIVERS\\vgapnp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "VgaSave",
+      "display_name": "VgaSave",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\System32\\drivers\\vga.sys",
+      "resolved_path": "\\SystemRoot\\System32\\drivers\\vga.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "viaagp",
+      "display_name": "VIA AGP Bus Filter",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\viaagp.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\viaagp.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ViaC7",
+      "display_name": "VIA C7 Processor Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\viac7.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\viac7.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "viaide",
+      "display_name": "viaide",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\viaide.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\viaide.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "volmgr",
+      "display_name": "Volume Manager Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\volmgr.sys",
+      "resolved_path": "system32\\drivers\\volmgr.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "volmgrx",
+      "display_name": "Dynamic Volume Manager",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "System32\\drivers\\volmgrx.sys",
+      "resolved_path": "System32\\drivers\\volmgrx.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "volsnap",
+      "display_name": "Storage volumes",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\volsnap.sys",
+      "resolved_path": "system32\\drivers\\volsnap.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "vsmraid",
+      "display_name": "vsmraid",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\vsmraid.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\vsmraid.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "VSS",
+      "display_name": "@%systemroot%\\system32\\vssvc.exe,-102",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\system32\\vssvc.exe",
+      "resolved_path": "%systemroot%\\system32\\vssvc.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "W32Time",
+      "display_name": "@%SystemRoot%\\system32\\w32time.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "W3SVC",
+      "display_name": "W3SVC",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WacomPen",
+      "display_name": "Wacom Serial Pen HID Driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\wacompen.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\wacompen.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Wanarp",
+      "display_name": "Remote Access IP ARP Driver",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\wanarp.sys",
+      "resolved_path": "system32\\DRIVERS\\wanarp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Wanarpv6",
+      "display_name": "Remote Access IPv6 ARP Driver",
+      "start": "SYSTEM",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\wanarp.sys",
+      "resolved_path": "system32\\DRIVERS\\wanarp.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "wcncsvc",
+      "display_name": "@%SystemRoot%\\system32\\wcncsvc.dll,-3",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WcsPlugInService",
+      "display_name": "@%SystemRoot%\\system32\\WcsPlugInService.dll,-200",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k wcssvc",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Wd",
+      "display_name": "Microsoft Watchdog Timer Driver",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\wd.sys",
+      "resolved_path": "system32\\drivers\\wd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Wdf01000",
+      "display_name": "Kernel Mode Driver Frameworks service",
+      "start": "BOOT",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\drivers\\Wdf01000.sys",
+      "resolved_path": "system32\\drivers\\Wdf01000.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WdiServiceHost",
+      "display_name": "@%systemroot%\\system32\\wdi.dll,-502",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k wdisvc",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WdiSystemHost",
+      "display_name": "@%systemroot%\\system32\\wdi.dll,-500",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WebClient",
+      "display_name": "@%systemroot%\\system32\\webclnt.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Wecsvc",
+      "display_name": "@%SystemRoot%\\system32\\wecsvc.dll,-200",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "wercplsupport",
+      "display_name": "@%SystemRoot%\\System32\\wercplsupport.dll,-101",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k netsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WerSvc",
+      "display_name": "@%SystemRoot%\\System32\\wersvc.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k WerSvcGroup",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WinDefend",
+      "display_name": "@%ProgramFiles%\\Windows Defender\\MsMpRes.dll,-103",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k secsvcs",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Windows Workflow Foundation 3.0.0.0",
+      "display_name": "Windows Workflow Foundation 3.0.0.0",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WinHttpAutoProxySvc",
+      "display_name": "@%SystemRoot%\\system32\\winhttp.dll,-100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalService",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Winmgmt",
+      "display_name": "@%Systemroot%\\system32\\wbem\\wmisvc.dll,-205",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WinRM",
+      "display_name": "@%Systemroot%\\system32\\wsmsvc.dll,-101",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k NetworkService",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Winsock",
+      "display_name": "Winsock",
+      "start": "DEMAND",
+      "type": "ADAPTER",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WinSock2",
+      "display_name": "WinSock2",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "Wlansvc",
+      "display_name": "@%SystemRoot%\\System32\\wlansvc.dll,-257",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WmiAcpi",
+      "display_name": "Microsoft Windows Management Interface for ACPI",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\wmiacpi.sys",
+      "resolved_path": "system32\\DRIVERS\\wmiacpi.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WmiApRpl",
+      "display_name": "WmiApRpl",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "wmiApSrv",
+      "display_name": "@%Systemroot%\\system32\\wbem\\wmiapsrv.exe,-110",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\system32\\wbem\\WmiApSrv.exe",
+      "resolved_path": "%systemroot%\\system32\\wbem\\WmiApSrv.exe",
+      "path_exists": null,
+      "object_name": "localSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WMPNetworkSvc",
+      "display_name": "@%ProgramFiles%\\Windows Media Player\\wmpnetwk.exe,-101",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "\"%ProgramFiles%\\Windows Media Player\\wmpnetwk.exe\"",
+      "resolved_path": "%ProgramFiles%\\Windows Media Player\\wmpnetwk.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\NetworkService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WPCSvc",
+      "display_name": "@%SystemRoot%\\system32\\wpcsvc.dll,-100",
+      "start": "DEMAND",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT Authority\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WPDBusEnum",
+      "display_name": "@%SystemRoot%\\system32\\wpdbusenum.dll,-100",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WpdUsb",
+      "display_name": "WpdUsb",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\wpdusb.sys",
+      "resolved_path": "system32\\DRIVERS\\wpdusb.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WPFFontCache_v0400",
+      "display_name": "@C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\WPF\\WPFFontCache_v0400.exe,-100",
+      "start": "DEMAND",
+      "type": "OWN_PROCESS",
+      "image_path": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\WPF\\WPFFontCache_v0400.exe",
+      "resolved_path": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\WPF\\WPFFontCache_v0400.exe",
+      "path_exists": true,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "ws2ifsl",
+      "display_name": "Winsock IFS driver",
+      "start": "DISABLED",
+      "type": "KERNEL_DRIVER",
+      "image_path": "\\SystemRoot\\system32\\drivers\\ws2ifsl.sys",
+      "resolved_path": "\\SystemRoot\\system32\\drivers\\ws2ifsl.sys",
+      "path_exists": false,
+      "object_name": "",
+      "flags": [
+        "DRIVER",
+        "DISABLED",
+        "DELETED"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "wscsvc",
+      "display_name": "@%SystemRoot%\\System32\\wscsvc.dll,-200",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\System32\\svchost.exe -k LocalServiceNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\System32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "NT AUTHORITY\\LocalService",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WSearch",
+      "display_name": "@%systemroot%\\system32\\SearchIndexer.exe,-103",
+      "start": "AUTO",
+      "type": "OWN_PROCESS",
+      "image_path": "%systemroot%\\system32\\SearchIndexer.exe /Embedding",
+      "resolved_path": "%systemroot%\\system32\\SearchIndexer.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WSearchIdxPi",
+      "display_name": "WSearchIdxPi",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "wuauserv",
+      "display_name": "@%systemroot%\\system32\\wuaueng.dll,-105",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%systemroot%\\system32\\svchost.exe -k netsvcs",
+      "resolved_path": "%systemroot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "WUDFRd",
+      "display_name": "WUDFRd",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\WUDFRd.sys",
+      "resolved_path": "system32\\DRIVERS\\WUDFRd.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "wudfsvc",
+      "display_name": "@%SystemRoot%\\system32\\wudfsvc.dll,-1000",
+      "start": "AUTO",
+      "type": "SHARE_PROCESS",
+      "image_path": "%SystemRoot%\\system32\\svchost.exe -k LocalSystemNetworkRestricted",
+      "resolved_path": "%SystemRoot%\\system32\\svchost.exe",
+      "path_exists": null,
+      "object_name": "LocalSystem",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "xmlprov",
+      "display_name": "xmlprov",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "yukonwlh",
+      "display_name": "NDIS6.0 Miniport Driver for Marvell Yukon Ethernet Controller",
+      "start": "DEMAND",
+      "type": "KERNEL_DRIVER",
+      "image_path": "system32\\DRIVERS\\yk60x86.sys",
+      "resolved_path": "system32\\DRIVERS\\yk60x86.sys",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [
+        "DRIVER"
+      ],
+      "suspicious_reason": null
+    },
+    {
+      "name": "{0CE7208D-B1BE-4BD6-9A38-C06A827FBE02}",
+      "display_name": "{0CE7208D-B1BE-4BD6-9A38-C06A827FBE02}",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    },
+    {
+      "name": "{CE51F956-E21D-4ECF-94EE-6EA8ACEE5F01}",
+      "display_name": "{CE51F956-E21D-4ECF-94EE-6EA8ACEE5F01}",
+      "start": "?",
+      "type": "?",
+      "image_path": "",
+      "resolved_path": "",
+      "path_exists": null,
+      "object_name": "",
+      "flags": [],
+      "suspicious_reason": null
+    }
+  ]
+}
