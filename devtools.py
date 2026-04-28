@@ -871,13 +871,204 @@ def run_all(
 
 
 # ---------------------------------------------------------------------------
+# Inline schema validation (replaces validate_logs.py subprocess call)
+# ---------------------------------------------------------------------------
+
+def _validate_logs(logs_dir: str = "logs") -> int:
+    """Validate locally-fetched logs against their JSON Schemas.
+
+    Reads schemas/_index.json to discover module→schema mappings, then
+    validates the most-recent local log file for each module.  Prints a
+    summary table.  Returns 0 if all present logs pass, 1 if any fail.
+    """
+    import pathlib as _pl, json as _json
+    try:
+        from jsonschema import Draft7Validator, ValidationError  # noqa: F401
+    except ImportError:
+        print("  WARNING: jsonschema not installed — skipping validation.")
+        return 0
+
+    schemas_dir = _pl.Path(__file__).parent / "schemas"
+    index_file  = schemas_dir / "_index.json"
+    if not index_file.exists():
+        print(f"  WARNING: {index_file} not found — skipping validation.")
+        return 0
+
+    index    = _json.loads(index_file.read_text(encoding="utf-8"))
+    logs_dir = _pl.Path(logs_dir)
+    results: dict = {}
+
+    def _validate_file(schema_path, data_path, is_jsonl):
+        schema = _json.loads(schema_path.read_text(encoding="utf-8"))
+        errors = []
+        if is_jsonl:
+            for lineno, raw in enumerate(
+                    data_path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    obj = _json.loads(raw)
+                except _json.JSONDecodeError as exc:
+                    errors.append(f"  line {lineno}: JSON parse error — {exc}")
+                    continue
+                for err in Draft7Validator(schema).iter_errors(obj):
+                    errors.append(f"  line {lineno}: {err.json_path}: {err.message}")
+        else:
+            try:
+                obj = _json.loads(data_path.read_text(encoding="utf-8", errors="replace"))
+            except _json.JSONDecodeError as exc:
+                return [f"  JSON parse error — {exc}"]
+            for err in Draft7Validator(schema).iter_errors(obj):
+                errors.append(f"  {err.json_path}: {err.message}")
+        return errors
+
+    for mod, info in index["modules"].items():
+        schema_key  = "schema" if "schema" in info else "schema_run"
+        schema_file = info.get(schema_key)
+        if not schema_file:
+            continue
+        glob     = info.get("log_glob") or info.get("log_glob_run", "")
+        pat      = _pl.Path(glob).name
+        fmt      = info.get("format", "JSON")
+        is_jsonl = "JSONL" in fmt and "JSON +" not in fmt
+
+        local_files = sorted(logs_dir.glob(pat))
+        if not local_files:
+            results[mod] = {"status": "MISSING", "file": None, "errors": []}
+            continue
+
+        data_path   = local_files[-1]
+        schema_path = schemas_dir / schema_file
+        errors = _validate_file(schema_path, data_path, is_jsonl)
+        results[mod] = {
+            "status": "PASS" if not errors else "FAIL",
+            "file":   data_path.name,
+            "errors": errors,
+        }
+
+    # Print report
+    pass_n  = sum(1 for r in results.values() if r["status"] == "PASS")
+    fail_n  = sum(1 for r in results.values() if r["status"] == "FAIL")
+    miss_n  = sum(1 for r in results.values() if r["status"] == "MISSING")
+    sep68   = "=" * 68
+    print()
+    print(sep68)
+    print("  SCHEMA VALIDATION REPORT")
+    print(sep68)
+    for mod, r in sorted(results.items()):
+        icon  = {"PASS": "✓", "FAIL": "✗", "MISSING": "–"}.get(r["status"], "?")
+        fname = r["file"] or "(no log)"
+        print(f"  {icon}  {mod:<36}  {r['status']:<7}  {fname}")
+        for e in r["errors"]:
+            print(f"         {e}")
+    print(sep68)
+    print(f"  PASS {pass_n}  |  FAIL {fail_n}  |  MISSING {miss_n}  |  TOTAL {len(results)}")
+    print(sep68)
+    print()
+    return 1 if fail_n else 0
+
+
+# ---------------------------------------------------------------------------
+# ChatGPT bundle — zip logs + schemas for AI report generation
+# ---------------------------------------------------------------------------
+
+_CHATGPT_PROMPT = """\
+# Nielsoln Rescue Toolkit — AI Report Instructions
+
+You are analysing diagnostic scan data from the **Nielsoln Rescue Toolkit**, a
+portable USB tool that scans offline Windows installations from a RescueZilla
+live-Linux environment.
+
+## What's in this zip
+
+| Path | Contents |
+|---|---|
+| `logs/*.json` / `logs/*.jsonl` | Scan output from each diagnostic module |
+| `schemas/*.json` | JSON Schema files describing each log's structure |
+
+The log filenames follow the pattern `<module_name>_YYYYMMDD_HHMMSS.json`.
+See each schema file's `title` and `description` for field definitions.
+
+## Your task
+
+Generate a **customer-facing diagnostic report** in Markdown.  The customer is
+a non-technical home user.  Write plainly — avoid jargon.  Use the following
+structure:
+
+1. **Executive Summary** — one paragraph, overall health verdict, most urgent action
+2. **Hardware** — machine make/model, CPU, RAM, disk model and age
+3. **Disk Health** — SMART verdict, any wear indicators or bad sectors
+4. **Thermal Status** — temperature verdict, throttling, fan warnings
+5. **Antivirus Scan** — ClamAV result, definition age, coverage
+6. **Security Findings** — persistence scan, suspicious services, execution surface
+7. **System Integrity** — missing/modified system files, event log anomalies
+8. **Software** — notable installed apps, legacy software, flagged items
+9. **Logon History** — summary of logon events, any anomalies
+10. **Recommendations** — numbered list, most critical first.  Highlight
+    anything marked ACTION REQUIRED or CRITICAL in the source data.
+11. **Upgrade Advice** — upgrade_advisor recommendation verbatim if present
+
+## Tone and formatting
+
+- Bold any **ACTION REQUIRED** or **WARNING** items
+- Use tables where data is tabular
+- Keep the report under 2 pages when printed
+- Date the report using the most recent log timestamp
+"""
+
+
+def bundle_chatgpt(device_folder: str = "", output_dir: str = ".") -> str:
+    """Create a zip bundle for uploading to ChatGPT to generate a customer report.
+
+    Includes all scan logs from the named device subfolder (or the most recent
+    subfolder in logs/) plus every schema file, plus a prompt file for ChatGPT.
+
+    Returns the path to the created zip file.
+    """
+    import pathlib as _pl, zipfile as _zf
+
+    base = _pl.Path("logs")
+
+    if device_folder:
+        device_dir  = _pl.Path(device_folder)
+        folder_name = device_dir.name
+    else:
+        subfolders = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
+        if subfolders:
+            device_dir  = max(subfolders, key=lambda d: d.stat().st_mtime)
+            folder_name = device_dir.name
+        else:
+            # Fall back to flat logs/ dir
+            device_dir  = base
+            folder_name = "scan_data"
+
+    zip_path    = _pl.Path(output_dir) / f"{folder_name}.zip"
+    schemas_dir = _pl.Path(__file__).parent / "schemas"
+
+    log_files    = sorted(device_dir.glob("*.json")) + sorted(device_dir.glob("*.jsonl"))
+    schema_files = sorted(schemas_dir.glob("*.json"))
+
+    with _zf.ZipFile(zip_path, "w", compression=_zf.ZIP_DEFLATED) as zf:
+        for f in log_files:
+            zf.write(f, f"logs/{f.name}")
+        for f in schema_files:
+            zf.write(f, f"schemas/{f.name}")
+        zf.writestr("INSTRUCTIONS_FOR_CHATGPT.md", _CHATGPT_PROMPT)
+
+    print(f"Bundle: {zip_path}")
+    print(f"  {len(log_files)} log file(s),  {len(schema_files)} schema file(s)")
+    print(f"  Upload to ChatGPT and ask it to follow INSTRUCTIONS_FOR_CHATGPT.md")
+    return str(zip_path)
+
+
+# ---------------------------------------------------------------------------
 # fetch-and-validate convenience helper
 # ---------------------------------------------------------------------------
 
 def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
     """Fetch logs from the device, run schema validation, then optionally
-    organise logs into a named device subfolder.  Returns the validate exit code."""
-    import subprocess as _sp, sys as _sys, pathlib as _pl
+    organise logs into a named device subfolder.  Returns 0 if all schemas pass."""
     print("=" * 60)
     print("STEP 1 — Fetch logs from device")
     print("=" * 60)
@@ -887,12 +1078,7 @@ def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
     print("=" * 60)
     print("STEP 2 — Schema validation")
     print("=" * 60)
-    validate_script = _pl.Path(__file__).parent / "validate_logs.py"
-    result = _sp.run(
-        [_PY, str(validate_script), "--no-fetch"],
-        cwd=str(_pl.Path(__file__).parent),
-    )
-    rc = result.returncode
+    rc = _validate_logs(logs_dir)
 
     if organize:
         print()
@@ -910,7 +1096,7 @@ def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
+    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
     commit_message = "docs: add housekeeping rule to AGENTS.md, archive old helper scripts to old/"
@@ -952,6 +1138,8 @@ def main() -> None:
     elif action == "fetch_and_validate":
         import sys as _sys
         _sys.exit(fetch_and_validate())
+    elif action == "bundle_chatgpt":
+        bundle_chatgpt()
     elif action == "setup_ssh_agent":
         setup_ssh_agent()
     elif action == "relay":
@@ -969,26 +1157,15 @@ def main() -> None:
             print()
             for line in resp.get("recent", [])[-30:]:
                 print(line)
-    elif action == "fetch_report":
-        # 1. Push the latest report_gen.py to the device
-        _scp_run("report_gen.py", f"{USB_PATH}/report_gen.py")
-        print("Pushed report_gen.py")
-        # 2. Run it on the device
-        _ssh_run(f"cd {USB_PATH} && python3 report_gen.py")
-        # 3. Pull the outputs back
-        _scp_get(f"{USB_PATH}/customer_report.md", "customer_report.md")
-        print("Downloaded customer_report.md")
-        _scp_get(f"{USB_PATH}/logon_events.tsv", "logon_events.tsv")
-        print("Downloaded logon_events.tsv")
     elif action == "ssh_test":
         out = _ssh_run("echo 'session_secrets test OK'; hostname; uptime")
         print(out)
     elif action not in ("release", "run_remote", "push_file", "push_module",
                         "run_module", "run_module_serial", "run_all",
                         "fetch_logs", "organize_logs", "fetch_and_validate",
-                        "setup_ssh_agent", "fetch_report",
+                        "bundle_chatgpt", "setup_ssh_agent",
                         "relay", "relay_status", "ssh_test"):
-        print(f"Unknown action {action!r}. Valid actions: release, run_remote, push_file, push_module, run_module, run_module_serial, run_all, fetch_logs, organize_logs, fetch_and_validate, setup_ssh_agent, fetch_report, relay, relay_status, ssh_test")
+        print(f"Unknown action {action!r}. Valid actions: release, run_remote, push_file, push_module, run_module, run_module_serial, run_all, fetch_logs, organize_logs, fetch_and_validate, bundle_chatgpt, setup_ssh_agent, relay, relay_status, ssh_test")
         sys.exit(1)
 
 
