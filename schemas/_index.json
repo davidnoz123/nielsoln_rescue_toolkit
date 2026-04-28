@@ -75,6 +75,11 @@
       "schema": "disk_integrity.schema.json",
       "log_glob": "logs/disk_integrity_*.json",
       "format": "JSON"
+    },
+    "m31_system_integrity_audit": {
+      "schema": "system_integrity.schema.json",
+      "log_glob": "logs/system_integrity_*.json",
+      "format": "JSON"
     }
   }
 }

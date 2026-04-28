@@ -247,6 +247,26 @@ def _persistence(logs_dir: Path) -> Optional[dict]:
     }
 
 
+def _integrity(logs_dir: Path) -> Optional[dict]:
+    p = _latest(logs_dir, "system_integrity_*.json")
+    if not p:
+        return None
+    d = _read_json(p)
+    if not d:
+        return None
+    missing = d.get("missing_files") or []
+    anomalous = d.get("anomalous_files") or []
+    recs = d.get("recommendations") or []
+    return {
+        "log":          p.name,
+        "verdict":      d.get("verdict", "?"),
+        "confidence":   d.get("confidence", "?"),
+        "missing_files": len(missing),
+        "anomalous_files": len(anomalous),
+        "recommendations": recs[:2],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Report printer
 # ---------------------------------------------------------------------------
@@ -348,6 +368,18 @@ def _print_report(data: dict, target: str) -> None:
     else:
         print("  (no service_analysis log found — run m07)")
 
+    # --- System integrity ---
+    integ = data.get("integrity")
+    _section("SYSTEM INTEGRITY")
+    if integ:
+        print(_bar("Verdict:", f"{integ['verdict']}  (confidence: {integ['confidence']})"))
+        print(_bar("Missing system files:", str(integ["missing_files"])))
+        print(_bar("Anomalous files:", str(integ["anomalous_files"])))
+        for rec in integ.get("recommendations", []):
+            print(f"    → {rec[:60]}")
+    else:
+        print("  (no system_integrity log found — run m31)")
+
     # --- Software ---
     sw = data.get("software")
     _section("SOFTWARE INVENTORY")
@@ -388,6 +420,11 @@ def _print_report(data: dict, target: str) -> None:
         if item:
             verdicts.append(item.get("verdict", "?"))
     if persist and persist["suspicious"] > 0:
+        verdicts.append("SUSPICIOUS")
+
+    integ = data.get("integrity")
+    if integ and integ.get("verdict") in ("TAMPERING_SUSPECTED", "DISK_RELATED_CORRUPTION_SUSPECTED",
+                                           "CORRUPTION_SUSPECTED"):
         verdicts.append("SUSPICIOUS")
 
     if any("SUSPICIOUS" in v or "INFECTED" in v for v in verdicts):
@@ -433,6 +470,7 @@ def run(root: Path, argv: list) -> int:
         "services":    _services(logs_dir),
         "software":    _software(logs_dir),
         "upgrade":     _upgrade(logs_dir),
+        "integrity":   _integrity(logs_dir),
     }
 
     _print_report(data, args.target)

@@ -1,0 +1,138 @@
+{
+  "generated": "2026-04-28T14:30:00+00:00",
+  "target": "/mnt/windows",
+  "windows_version_hint": "Windows Vista",
+  "scan_status": "complete",
+  "verdict": "DISK_RELATED_CORRUPTION_SUSPECTED",
+  "confidence": "medium",
+  "limitations": [
+    "Authenticode signature validation not performed (requires Windows tooling)",
+    "WinSxS correlation uses filename/size comparison only",
+    "SFC /scannow equivalent cannot run without booting the target OS"
+  ],
+  "files_checked": 62,
+  "protected_files_checked": 62,
+  "missing_files": [
+    {"path": "System32/samsrv.dll",   "category": "auth"},
+    {"path": "System32/samlib.dll",   "category": "auth"},
+    {"path": "System32/netlogon.dll", "category": "auth"}
+  ],
+  "anomalous_files": [],
+  "recommendations": [
+    "Run SFC /scannow when Windows is bootable — 3 protected system file(s) missing",
+    "Run CHKDSK C: /F /R — disk I/O errors detected in event logs",
+    "Clone disk before any repairs — disk health verdict is CAUTION"
+  ],
+  "protected_files_scan": {
+    "checked":  62,
+    "clean":    59,
+    "missing":  [
+      {"path": "System32/samsrv.dll",   "category": "auth"},
+      {"path": "System32/samlib.dll",   "category": "auth"},
+      {"path": "System32/netlogon.dll", "category": "auth"}
+    ],
+    "anomalous": [],
+    "flags": ["PROTECTED_FILES_MISSING"]
+  },
+  "winsxs_findings": {
+    "winsxs_exists":       true,
+    "component_count":     412,
+    "manifest_count":      410,
+    "files_with_match":    7,
+    "files_without_match": 2,
+    "size_mismatches":     [],
+    "flags":               [],
+    "notes":               []
+  },
+  "manifest_catalog_findings": {
+    "manifests_dir_exists":      true,
+    "manifest_count":            410,
+    "catroot_exists":            true,
+    "catroot_cat_count":         98,
+    "catroot2_exists":           true,
+    "servicing_packages_exists": true,
+    "servicing_package_count":   75,
+    "flags":                     []
+  },
+  "servicing_findings": {
+    "cbs_log_found":         true,
+    "cbs_log_path":          "mnt/windows/Windows/Logs/CBS/CBS.log",
+    "cbs_log_scanned_bytes": 524288,
+    "corruption_indicators": [
+      "2026-03-10 08:55:12, Error  CBS  Cannot repair member file [l:28]\"samsrv.dll\""
+    ],
+    "repair_attempts":       3,
+    "failed_repairs":        1,
+    "error_count":           22,
+    "dism_log_found":        false,
+    "dism_errors":           [],
+    "flags":                 ["CBS_CORRUPTION_INDICATOR", "CBS_FAILED_REPAIRS"]
+  },
+  "pending_repair_findings": {
+    "pending_xml": {
+      "found":              false,
+      "path":               null,
+      "pending_operations": 0,
+      "pending_renames":    0,
+      "pending_moves":      0,
+      "parse_error":        null
+    },
+    "pfro_registry_entries": 0,
+    "flags":                 []
+  },
+  "boot_findings": {
+    "boot_mode":       "bios",
+    "efi_found":       false,
+    "boot_dir_exists": true,
+    "bootmgr": {
+      "exists":     true,
+      "size_bytes": 382696,
+      "modified":   "2009-04-11T06:49:34Z"
+    },
+    "ntldr":      {"exists": false},
+    "winload_exe": {
+      "exists":     true,
+      "size_bytes": 524288
+    },
+    "bcd_store": {
+      "exists":     true,
+      "path":       "Boot/BCD",
+      "size_bytes": 32768
+    },
+    "unusual_boot_files": [],
+    "flags":              []
+  },
+  "driver_integrity_findings": {
+    "hive_available":        true,
+    "total_drivers":         83,
+    "checked_drivers":       81,
+    "missing_driver_files":  [],
+    "suspicious_paths":      [],
+    "flags":                 []
+  },
+  "event_log_correlations": {
+    "evtx_available":    true,
+    "disk_io_errors":    12,
+    "controller_resets": 1,
+    "driver_failures":   2,
+    "chkdsk_events":     1,
+    "sfc_repair_events": 0,
+    "flags":             ["DISK_IO_ERRORS", "CONTROLLER_RESETS", "DRIVER_LOAD_FAILURES", "CHKDSK_WAS_RUN"]
+  },
+  "cross_module_correlation": {
+    "disk_health_log":         "disk_health_20260428_100000.json",
+    "disk_health_verdict":     "CAUTION",
+    "disk_integrity_log":      "disk_integrity_20260428_101500.json",
+    "disk_errors_found":       true,
+    "service_analysis_log":    "service_analysis_20260428_102000.json",
+    "service_suspicious":      0,
+    "persistence_log":         null,
+    "persistence_suspicious":  0,
+    "device_manager_log":      "device_manager_20260428_103000.json",
+    "device_problem_count":    1,
+    "combined_signals": [
+      "DISK_HEALTH_CAUTION + disk I/O errors → probable disk-related corruption"
+    ],
+    "flags": ["DISK_RELATED_CORRUPTION_SUSPECTED"]
+  }
+}
