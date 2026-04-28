@@ -68,6 +68,11 @@ UPDATE_FILES = [
     "modules/m15_upgrade_advisor.py",
     "modules/m18_clamav_scan.py",
     "modules/m23_logon_audit.py",
+    "modules/m33_user_account_analysis.py",
+    "modules/m34_task_scheduler_analysis.py",
+    "modules/m35_windows_update_analysis.py",
+    "modules/m36_execution_history.py",
+    "modules/m37_network_analysis.py",
 ]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
@@ -345,6 +350,42 @@ def setup_ssh_agent() -> None:
     print("ssh-agent configured and key loaded.")
 
 
+def _sync_device_clock() -> None:
+    """Set the device system clock to the dev machine's current epoch.
+
+    This is the primary clock correction path when devtools has an active SSH
+    connection.  The dev machine's clock is the source of truth — entirely
+    independent of the device's potentially-dead CMOS battery.
+
+    Silent on success.  Prints a warning but never raises on failure.
+    """
+    import time
+    epoch = int(time.time())
+    try:
+        _ssh_run(f"date -s '@{epoch}' > /dev/null 2>&1 || true")
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: could not sync device clock: {exc}")
+
+
+def _push_clock_ref() -> None:
+    """Write clock_ref.json to the USB and SCP it to the device.
+
+    Allows run_sync_time() to correct the clock offline (no internet) on
+    future boots by reading the last known-good timestamp written by devtools.
+    """
+    import time
+    import json
+    import tempfile
+    import os
+    epoch = int(time.time())
+    iso   = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(epoch))
+    payload = json.dumps({"utc_unix": epoch, "iso": iso, "source": "devtools"}, indent=2)
+    # Write locally so it's available in the working tree too
+    pathlib.Path("clock_ref.json").write_text(payload, encoding="utf-8")
+    # Push to device
+    _scp_run("clock_ref.json", f"{USB_PATH}/clock_ref.json")
+
+
 def run_remote(script_path: str) -> None:
     """Encode *script_path* and execute it on the remote host via bootstrap exec.
 
@@ -355,6 +396,7 @@ def run_remote(script_path: str) -> None:
     The payload is sent via stdin (not as a CLI arg) to avoid ARG_MAX limits
     on large scripts.
     """
+    _sync_device_clock()
     code = pathlib.Path(script_path).read_text(encoding="utf-8")
     payload = encode_script(code)
     remote_cmd = (
@@ -366,6 +408,8 @@ def run_remote(script_path: str) -> None:
 
 def push_file(local_path: str, remote_subpath: str = "") -> None:
     """SCP *local_path* to the USB root (or a subpath below it) on the remote host."""
+    _sync_device_clock()
+    _push_clock_ref()
     dst_dir = f"{USB_PATH}/{remote_subpath}".rstrip("/")
     remote = f"{dst_dir}/{pathlib.Path(local_path).name}"
     _scp_run(local_path, remote)
@@ -376,6 +420,8 @@ def push_module(name: str) -> None:
 
     Creates the remote modules/ directory if absent via SSH.
     """
+    _sync_device_clock()
+    _push_clock_ref()
     remote_modules = f"{USB_PATH}/modules"
     _ssh_run(f"mkdir -p {remote_modules}")
     _scp_run(f"modules/{name}.py", f"{remote_modules}/{name}.py")
@@ -391,6 +437,8 @@ def run_module(name: str, module_argv: list = None) -> None:
     *module_argv* is a list of strings passed after ``--`` to the module.
     Example: run_module("m01_persistence_scan", ["--target", "/mnt/windows"])
     """
+    _sync_device_clock()
+    _push_clock_ref()
     local_path = pathlib.Path(f"modules/{name}.py")
     remote_modules = f"{USB_PATH}/modules"
     remote_file = f"{remote_modules}/{name}.py"
@@ -464,7 +512,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add m32 execution surface analysis module, schema, tests, update m17 and _index"
+    commit_message = "feat: add m33-m37 analysis modules (user accounts, tasks, win-update, exec history, network); add modules to UPDATE_FILES"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

@@ -1040,8 +1040,14 @@ _time_sync_log = logging.getLogger("time_sync")
 _NRT_TIME_FLAG = "/tmp/.nrt_time_ok"
 
 # Probed in order; first reachable URL wins.
+# Plain HTTP probes come FIRST — a dead CMOS battery leaves the system clock
+# years in the past, which causes TLS cert validation to fail (NotBefore is in
+# the future from the machine's perspective).  HTTP responses always include a
+# Date header regardless of clock state.
 _TIME_PROBE_URLS = [
-    "https://www.google.com",
+    "http://neverssl.com",          # plain HTTP, always up, no redirect
+    "http://example.com",           # IANA stable, plain HTTP
+    "https://www.google.com",       # HTTPS — works once clock is correct
     "https://www.cloudflare.com",
 ]
 
@@ -1081,10 +1087,30 @@ def _get_internet_time(timeout: int = 10) -> float:
             import json as _json
             data = _json.loads(resp.read().decode("utf-8"))
             return float(data["unixtime"])
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(
-            f"Could not determine internet time from any source: {exc}"
-        ) from exc
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Last resort: retry HTTPS with certificate verification disabled.
+    # Acceptable here because we are only reading a Date response header to
+    # determine the current time — we are not authenticating or exchanging
+    # secrets.  This handles the edge case where HTTP probes are blocked but
+    # HTTPS is allowed, and the TLS failure was purely due to the bad clock.
+    import ssl as _ssl
+    _ctx = _ssl.create_default_context()
+    _ctx.check_hostname = False
+    _ctx.verify_mode = _ssl.CERT_NONE
+    for url in ("https://www.google.com", "https://www.cloudflare.com"):
+        try:
+            req = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+            with urllib.request.urlopen(req, timeout=timeout, context=_ctx) as resp:  # noqa: S310
+                date_str = resp.headers.get("Date", "")
+                if date_str:
+                    dt = email.utils.parsedate_to_datetime(date_str)
+                    return dt.timestamp()
+        except Exception:  # noqa: BLE001
+            continue
+
+    raise RuntimeError("Could not determine internet time from any source")
 
 
 def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False) -> int:
@@ -1115,16 +1141,43 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
 
     _time_sync_log.info("Checking system clock against internet time ...")
     print("Checking system clock ...", end=" ", flush=True)
+
+    # Snapshot the pre-correction state so we can log it as evidence.
+    # Must be captured before any correction is applied.
+    old_epoch = time.time()
+    old_iso   = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(old_epoch))
+
+    internet_ts: float | None = None
+    clock_source = "internet"
     try:
         internet_ts = _get_internet_time()
     except RuntimeError as exc:
-        print(f"SKIP (cannot reach time server: {exc})")
-        _time_sync_log.warning("Clock check skipped: %s", exc)
+        print(f"no internet ({exc})")
+        _time_sync_log.warning("Internet time unavailable: %s", exc)
+
+    # --- offline fallback: clock_ref.json written by devtools on last push ---
+    if internet_ts is None and root is not None:
+        _ref_path = Path(root) / "clock_ref.json"
+        if _ref_path.exists():
+            try:
+                import json as _json
+                _ref = _json.loads(_ref_path.read_text(encoding="utf-8"))
+                internet_ts = float(_ref["utc_unix"])
+                clock_source = "clock_ref.json"
+                ref_iso = _ref.get("iso", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(internet_ts)))
+                print(f"Using USB clock reference (written {ref_iso}) ...", end=" ", flush=True)
+                _time_sync_log.info("Using clock_ref.json: %s", ref_iso)
+            except Exception as exc:  # noqa: BLE001
+                _time_sync_log.warning("Could not read clock_ref.json: %s", exc)
+
+    if internet_ts is None:
+        print("SKIP (no internet and no USB clock reference)")
+        _time_sync_log.warning("Clock check skipped: no internet and no clock_ref.json")
         return 0  # non-fatal; proceed without correction
 
     skew = internet_ts - time.time()
-    _time_sync_log.info("Clock skew: %.1fs (internet=%.0f, local=%.0f)",
-                         skew, internet_ts, time.time())
+    _time_sync_log.info("Clock skew: %.1fs (ref=%.0f, local=%.0f, source=%s)",
+                         skew, internet_ts, time.time(), clock_source)
 
     if abs(skew) <= threshold_seconds:
         print(f"OK (skew {skew:+.1f}s)")
@@ -1168,6 +1221,34 @@ def run_sync_time(root=None, threshold_seconds: int = 120, dry_run: bool = False
             correct_str = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(internet_ts))
             print(f"  System clock set to {correct_str} (was off by {skew_str})")
             _time_sync_log.info("Clock corrected to %s (skew was %s)", correct_str, skew_str)
+            # Write clock_correction.json evidence BEFORE returning so it is
+            # available even if subsequent steps fail.  This records the
+            # pre-correction clock value and skew for the customer report and
+            # for time-integrity analysis.  The hardware RTC is NOT modified
+            # here — m28_cmos_health reads the RTC directly and will still
+            # report the dead-battery condition correctly.
+            if root is not None:
+                try:
+                    import json as _json
+                    new_epoch = internet_ts
+                    new_iso   = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(new_epoch))
+                    _corr = {
+                        "old_epoch": old_epoch,
+                        "old_iso":   old_iso,
+                        "new_epoch": new_epoch,
+                        "new_iso":   new_iso,
+                        "delta_sec": int(skew),
+                        "source":    clock_source,
+                    }
+                    _corr_dir = Path(root) / "logs"
+                    _corr_dir.mkdir(parents=True, exist_ok=True)
+                    (_corr_dir / "clock_correction.json").write_text(
+                        _json.dumps(_corr, indent=2), encoding="utf-8"
+                    )
+                    _time_sync_log.info("Wrote clock_correction.json (old=%s, new=%s)",
+                                        old_iso, new_iso)
+                except OSError as _e:
+                    _time_sync_log.warning("Could not write clock_correction.json: %s", _e)
             try:
                 _flag.write_text(str(int(internet_ts)), encoding="utf-8")
             except OSError:
@@ -1403,6 +1484,23 @@ def run_update(root: Path = None, offline: bool = False) -> int:
 
     print("\nUpdate complete. Changes take effect on the next run.")
     _updater_log.info("Update complete.")
+
+    # --- Refresh clock_ref.json now that we have proved internet access ---
+    # run_update() already called _get_internet_time() (indirectly via
+    # run_sync_time above) and succeeded.  Call it again cheaply to capture
+    # the current time and write it to clock_ref.json so offline bootstrap
+    # runs after this update can still correct a dead-CMOS clock without
+    # internet access.
+    try:
+        import json as _json_cr
+        _cr_ts  = _get_internet_time()
+        _cr_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_cr_ts))
+        _cr = {"utc_unix": int(_cr_ts), "iso": _cr_iso, "source": "run_update"}
+        (root / "clock_ref.json").write_text(_json_cr.dumps(_cr, indent=2), encoding="utf-8")
+        _updater_log.info("Wrote clock_ref.json (%s)", _cr_iso)
+        print(f"Clock reference updated: {_cr_iso}")
+    except Exception as _cr_exc:  # noqa: BLE001
+        _updater_log.warning("Could not write clock_ref.json: %s", _cr_exc)
 
     # --- Ensure dropbear is present (self-healing) ---
     # If the USB was set up manually or dropbear was never copied, fetch it now.

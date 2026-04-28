@@ -192,7 +192,14 @@ def main() -> int:
         start_background_update(root)
 
     if args.command == "run":
-        from toolkit import load_module, acquire_run_lock, release_run_lock
+        from toolkit import load_module, acquire_run_lock, release_run_lock, run_sync_time
+        # Sync the system clock before any module runs.  A dead CMOS battery
+        # leaves the hardware clock years in the past, producing log filenames
+        # and generated timestamps that are completely wrong.  Non-fatal: if
+        # this fails we warn and continue.  Skipped in --offline mode because
+        # the internet probe would just time out.
+        if not getattr(args, "offline", False):
+            run_sync_time(root)
         module_argv = args.args
         # Strip a leading '--' separator if the user wrote: bootstrap run <name> -- --flag
         if module_argv and module_argv[0] == "--":
