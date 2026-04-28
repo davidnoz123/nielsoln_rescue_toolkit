@@ -1,5 +1,4 @@
-﻿---REPORT_START---
-# Laptop Diagnostic Report
+﻿# Laptop Diagnostic Report
 
 **Prepared by:** Nielsoln Rescue Toolkit  
 **Date:** 20 November 2008  
@@ -573,11 +572,14 @@
 
 | | |
 |---|---|
-| Verdict | ≡ƒƒó **HEALTHY** |
-| RTC clock delta vs UTC | N/A |
+| Verdict | ΓÜ¬ **LIKELY_DEAD** |
+| RTC reading | 2008-11-20T06:48:05+00:00 |
+| RTC clock delta vs UTC | RTC reports 2008 ΓÇö battery dead (delta hidden by boot-time sync) |
 | Time-change events (Evt 37) | 0 |
 | Dirty shutdown events (Evt 41) | 0 |
 | Unexpected shutdown events (Evt 6008) | 0 |
+
+> **CMOS battery is dead.** The RTC clock is stuck in 2008. The rescue environment synced the system clock from the RTC at boot so the delta shows 0 ΓÇö but the real offset is years. Replace the CR2032 coin cell under the service panel on the base of the laptop (typically ┬ú1ΓÇô2).
 
 ## Storage Usage
 
@@ -682,5 +684,3 @@ Answer these questions:
 
 _This report was generated automatically by the Nielsoln Rescue Toolkit_  
 _Report date: 20 November 2008_
-
----REPORT_END---

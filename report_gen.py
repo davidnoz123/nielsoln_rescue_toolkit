@@ -965,12 +965,22 @@ def section_cmos_health() -> str:
         return "## CMOS / Clock Health\n\n_No CMOS health data available. Run m28_cmos_health._\n\n"
 
     verdict      = _str(cm.get("verdict"), "UNKNOWN")
-    delta_s      = cm.get("clock_delta_seconds")
-    delta_str    = f"{delta_s:+.1f} s" if isinstance(delta_s, (int, float)) else _na(delta_s)
-    time_changes = _int_or(cm.get("time_change_count"))
-    dirty_shuts  = _int_or(cm.get("dirty_shutdown_count"))
-    unexp_shuts  = _int_or(cm.get("unexpected_shutdown_count"))
-    notes        = cm.get("notes") or []
+    clock        = cm.get("clock_delta") or {}
+    events       = cm.get("events") or {}
+    frozen       = clock.get("frozen_in_past", False)
+    frozen_year  = clock.get("frozen_year")
+    delta_s      = clock.get("delta_sec")
+    hw_time      = _str(clock.get("hw_time_utc"), "")
+    time_changes = _int_or(events.get("time_change_count"))
+    dirty_shuts  = _int_or(events.get("dirty_shut_count"))
+    unexp_shuts  = _int_or(events.get("unexpected_shut_count"))
+
+    if frozen and frozen_year:
+        delta_str = f"RTC reports {frozen_year} — battery dead (delta hidden by boot-time sync)"
+    elif isinstance(delta_s, (int, float)):
+        delta_str = f"{delta_s:+d} s"
+    else:
+        delta_str = "N/A"
 
     lines = [
         "## CMOS / Clock Health",
@@ -978,6 +988,7 @@ def section_cmos_health() -> str:
         f"| | |",
         f"|---|---|",
         f"| Verdict | {_badge(verdict)} |",
+        f"| RTC reading | {_na(hw_time) if hw_time else 'N/A'} |",
         f"| RTC clock delta vs UTC | {delta_str} |",
         f"| Time-change events (Evt 37) | {time_changes} |",
         f"| Dirty shutdown events (Evt 41) | {dirty_shuts} |",
@@ -985,11 +996,15 @@ def section_cmos_health() -> str:
         "",
     ]
 
-    if notes:
-        lines += ["**Notes:**", ""]
-        for n in notes:
-            lines.append(f"- {n}")
-        lines.append("")
+    if frozen:
+        lines += [
+            "> **CMOS battery is dead.** The RTC clock is stuck in "
+            f"{frozen_year}. The rescue environment synced the system clock "
+            "from the RTC at boot so the delta shows 0 — but the real offset "
+            "is years. Replace the CR2032 coin cell under the service panel "
+            "on the base of the laptop (typically £1–2).",
+            "",
+        ]
 
     return "\n".join(lines)
 

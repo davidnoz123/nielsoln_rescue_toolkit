@@ -51,6 +51,11 @@ _DELTA_WARN_SEC   = 120     # 2 minutes: possible drift
 _DELTA_SUSPECT_SEC = 3600   # 1 hour: suspicious
 _DELTA_DEAD_SEC   = 86400   # 1 day: likely dead battery
 
+# If the RTC year is below this threshold the battery is dead regardless of
+# the system-clock delta (live environments sync the system clock FROM the RTC
+# at boot, so both clocks agree on the wrong year and the delta is 0).
+_MIN_PLAUSIBLE_YEAR = 2020
+
 # Windows EVTX EventIDs relevant to RTC / time / shutdown
 _TIME_CHANGE_ID       = 4616   # Security: system time changed (requires audit)
 _W32TM_CHANGE_ID      = 37     # System: W32tm time jump > threshold
@@ -176,14 +181,7 @@ def collect_clock_delta() -> dict:
                 hw_time = datetime.strptime(out.strip(), fmt)
                 if hw_time.tzinfo is None:
                     hw_time = hw_time.replace(tzinfo=timezone.utc)
-                delta = int((hw_time - now_utc).total_seconds())
-                return {
-                    "method": "hwclock",
-                    "hw_time_utc": hw_time.isoformat(),
-                    "sys_time_utc": now_utc.isoformat(),
-                    "delta_sec": delta,
-                    "delta_abs_sec": abs(delta),
-                }
+                return _build_clock_result("hwclock", hw_time, now_utc)
             except ValueError:
                 continue
 
@@ -195,14 +193,7 @@ def collect_clock_delta() -> dict:
             hw_time = datetime.strptime(
                 f"{rtc_date} {rtc_time}", "%Y-%m-%d %H:%M:%S"
             ).replace(tzinfo=timezone.utc)
-            delta = int((hw_time - now_utc).total_seconds())
-            return {
-                "method": "sysfs_rtc",
-                "hw_time_utc": hw_time.isoformat(),
-                "sys_time_utc": now_utc.isoformat(),
-                "delta_sec": delta,
-                "delta_abs_sec": abs(delta),
-            }
+            return _build_clock_result("sysfs_rtc", hw_time, now_utc)
         except ValueError:
             pass
 
@@ -212,6 +203,30 @@ def collect_clock_delta() -> dict:
         "sys_time_utc": now_utc.isoformat(),
         "delta_sec": None,
         "delta_abs_sec": None,
+        "frozen_in_past": False,
+        "frozen_year": None,
+    }
+
+
+def _build_clock_result(method: str, hw_time: datetime, now_utc: datetime) -> dict:
+    """
+    Build the clock-delta result dict, including the frozen-in-past check.
+
+    On live rescue environments the system clock is synced FROM the RTC at
+    boot — so if the battery is dead both clocks report the same wrong year
+    and the delta is 0.  We detect this by comparing the RTC year against
+    _MIN_PLAUSIBLE_YEAR rather than trusting the system clock.
+    """
+    delta = int((hw_time - now_utc).total_seconds())
+    frozen = hw_time.year < _MIN_PLAUSIBLE_YEAR
+    return {
+        "method": method,
+        "hw_time_utc": hw_time.isoformat(),
+        "sys_time_utc": now_utc.isoformat(),
+        "delta_sec": delta,
+        "delta_abs_sec": abs(delta),
+        "frozen_in_past": frozen,
+        "frozen_year": hw_time.year if frozen else None,
     }
 
 
@@ -271,6 +286,11 @@ def collect_time_events(target: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 def _derive_verdict(clock: dict, events: dict) -> str:
+    # Frozen-in-past check: RTC year is implausibly old, so battery is dead
+    # even if the delta vs system clock is 0 (live env syncs clock from RTC).
+    if clock.get("frozen_in_past"):
+        return "LIKELY_DEAD"
+
     delta = clock.get("delta_abs_sec")
 
     if delta is not None:
@@ -323,7 +343,13 @@ def _fmt_report(report: dict) -> str:
             f"    Sys time UTC: {clock['sys_time_utc']}",
             f"    Delta       : {clock['delta_sec']:+d} seconds ({clock['delta_abs_sec']}s absolute)",
         ]
-        if clock["delta_abs_sec"] >= _DELTA_DEAD_SEC:
+        if clock.get("frozen_in_past"):
+            lines.append(
+                f"    *** RTC reports year {clock['frozen_year']} — battery is DEAD. "
+                f"System clock was synced from RTC at boot so delta shows 0. "
+                f"Replace CR2032 CMOS battery. ***"
+            )
+        elif clock["delta_abs_sec"] >= _DELTA_DEAD_SEC:
             lines.append("    *** RTC is more than 1 day off — battery likely dead ***")
         elif clock["delta_abs_sec"] >= _DELTA_SUSPECT_SEC:
             lines.append("    *** RTC offset > 1 hour — battery suspect ***")
