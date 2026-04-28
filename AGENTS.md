@@ -154,20 +154,35 @@ There are **two separate deployment paths** and they must never be confused:
 
 | Path | When to use | How it works |
 |---|---|---|
-| **`push_module` / `push_file`** (devtools.py) | Dev machine → device | Direct SCP over SSH. Instant. No internet needed on device. |
+| **`push_module` / `push_file`** (devtools.py) | Dev machine → device | Direct SCP over SSH via relay. Instant. No internet needed on device. |
 | **`bootstrap update`** (on device) | Device self-update in the field | Device pulls from GitHub over the internet. Has CDN lag after a push. |
 
 **Rules:**
 
-- **When deploying a change from the dev machine, always use `push_module` or
-  `push_file` in `devtools.py`.**  This uses SCP directly and is immediate.
+- **When deploying a change or collecting data from the dev machine, ALWAYS use
+  `run_module` or `push_module` / `push_file` in `devtools.py`.**
+  Set `action = "run_module"` (to push+run) or `action = "push_module"` (push
+  only), edit `module_name` and `module_args`, then run devtools via `runpy`.
 - **NEVER run `bootstrap update` from the dev machine as a deploy step.**
   It tells the *device* to fetch from GitHub.  This requires internet on the device,
   has CDN propagation delay after a `git push`, and is slower than SCP.
+- **NEVER SSH into the device and run `python3 bootstrap.py update` manually.**
+  Use `run_module` instead.
 - `bootstrap update` is the *self-healing* mechanism for the rescue machine when
   it has internet access in the field.  It is not a dev tool.
 - If you accidentally `bootstrap update` instead of `push_module`, you may deploy
   a stale version (GitHub CDN may not have the latest commit yet).
+
+### Standard workflow for collecting data from all modules
+
+1. Commit and push changes with `action = "release"` in `devtools.py`.
+2. For each module that needs to run, set `action = "run_module"` in `devtools.py`,
+   set `module_name` and `module_args`, and run via `runpy`.
+   - `run_module` pushes the latest `.py` via SCP then immediately runs it on the
+     device via `bootstrap.py run`.  One relay connection. No GitHub needed.
+3. After all modules have run, use `validate_logs.py` with `--no-fetch` if logs
+   were already SCP'd locally, or set `action = "run_remote"` with a fetch script.
+4. Run `validate_logs.py` (see JSON Schema section) to validate all logs.
 
 ## CRITICAL: Lock File Safety — NEVER Delete Blindly
 
@@ -286,6 +301,66 @@ To copy a single file to the USB root on the rescue machine:
 Note: the underlying `scp` call always uses the `-O` flag (legacy SCP protocol)
 because the remote host runs `dropbear`, which does not include an SFTP server.
 Always use `-O` in any manual `scp` commands to the rescue machine.
+
+## CRITICAL: SSH Passphrase — Always Use session_secrets, Never Prompt
+
+The passphrase for `C:\Users\david\.ssh\id_ed25519` is stored in the
+`session_secrets` module (in-memory key/value store, populated at the start of
+each dev session).
+
+**Rules that must never be broken:**
+
+- **NEVER call `devtools._ensure_passphrase()` directly in a Python one-liner
+  or standalone script** unless `session_secrets` has already been imported and
+  queried first.  Calling it cold drops to an interactive `getpass.getpass()`
+  prompt which blocks the terminal.
+- **NEVER pass the passphrase as a CLI argument or write it to a file.**
+- **Always load the passphrase via `session_secrets` first:**
+
+```python
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path('.').resolve()))
+import session_secrets          # loads NRT_SSH_PASSPHRASE into os.environ
+import devtools as dt           # _ensure_passphrase() will find it in env — no prompt
+
+# now safe to call any dt function
+dt._ssh_run("echo OK")
+```
+
+- If `session_secrets` is not available (cold terminal), the passphrase will be
+  prompted once and cached in `devtools._passphrase` for the rest of the process.
+  In that case accept the prompt — do NOT try to bypass it.
+
+## CRITICAL: SSH Transport — Always Use the Relay
+
+All SSH and SCP calls from the dev machine go through `ssh_relay.py`, a local
+TCP relay daemon that caches the authenticated SSH connection.  This avoids
+a passphrase prompt on every call and is **significantly faster** than spawning
+a new `ssh` subprocess each time.
+
+**Rules:**
+
+- **NEVER call `subprocess.run(["ssh", ...])` or `subprocess.run(["scp", ...])`
+  directly in scripts or one-liners.**  Always use `devtools._ssh_run()` and
+  `devtools._scp_run()` / `devtools._scp_get()` — these automatically route
+  through the relay.
+- `devtools._ssh_run()` calls `_ensure_relay()` internally.  If the relay is
+  not running it starts it automatically.
+- The relay listens on `127.0.0.1:19022`.  Check with
+  `action = "relay_status"` in `devtools.py`.
+- **Do NOT write Python one-liners that contain the full SSH connection string.**
+  Use the devtools helpers instead.
+
+### Correct pattern for any ad-hoc SSH task from the dev machine
+
+```python
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path('.').resolve()))
+import session_secrets          # 1. Load passphrase into env
+import devtools as dt           # 2. Import devtools (relay auto-starts)
+
+dt._ssh_run("your command here")   # 3. Use the helpers — relay handles auth
+```
 
 ## SSH Key Passphrase Caching (one-time setup per machine)
 
