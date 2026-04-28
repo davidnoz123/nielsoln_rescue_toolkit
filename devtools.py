@@ -48,7 +48,7 @@ import tempfile
 # Configuration — edit these before running
 # ---------------------------------------------------------------------------
 
-HOST        = "192.168.20.4"
+HOST        = "192.168.1.67"
 PORT        = 22
 KEY         = r"C:\Users\david\.ssh\id_ed25519"
 USB_PATH    = "/media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB"
