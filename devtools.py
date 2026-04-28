@@ -73,6 +73,7 @@ UPDATE_FILES = [
     "modules/m35_windows_update_analysis.py",
     "modules/m36_execution_history.py",
     "modules/m37_network_analysis.py",
+    "modules/m38_browser_activity.py",
 ]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
@@ -512,7 +513,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: upgrade m09 thermal_health to full thermal_analysis spec (load test, GOOD/FAIR/POOR/CRITICAL/UNKNOWN/SKIPPED verdicts, cooldown monitoring)"
+    commit_message = "feat: add m38_browser_activity (Chrome/Edge/Firefox/IE, domain summary, downloads, extensions, cred indicators)"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
