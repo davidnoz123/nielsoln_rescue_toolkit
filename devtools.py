@@ -677,6 +677,8 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
                               "Service Pack", "SP1", "SP2", "SP3",
                               "32-bit", "64-bit", "Windows"):
                     product = product.replace(token, "").strip()
+                # Strip trademark/registered symbols
+                product = product.replace("™", "").replace("®", "").strip()
                 info["os_name"] = product.strip()
             elif version and version not in ("unknown", ""):
                 major_minor = ".".join(version.split(".")[:2])
