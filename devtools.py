@@ -77,6 +77,12 @@ UPDATE_FILES = [
     "modules/m39_driver_store_analysis.py",
     "modules/m44_performance_diagnosis.py",
     "modules/m46_recent_change_analysis.py",
+    "modules/m40_time_integrity.py",
+    "modules/m41_file_anomalies.py",
+    "modules/m42_registry_health.py",
+    "modules/m43_backup_analysis.py",
+    "modules/m45_trust_score.py",
+    "modules/m47_module_conflict_analysis.py",
 ]
 
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
@@ -516,7 +522,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: add m39 driver_store, m44 performance_diagnosis, m46 recent_change_analysis"
+    commit_message = "feat: add m40-m43 m45 m47: time_integrity file_anomalies registry_health backup_analysis trust_score module_conflict"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
