@@ -591,7 +591,6 @@ def fetch_logs(local_dir: str = "logs") -> int:
     import pathlib as _pl
     dest = _pl.Path(local_dir)
     dest.mkdir(exist_ok=True)
-    listing_buf = []
 
     import io as _io, contextlib as _cl
     buf = _io.StringIO()
@@ -613,15 +612,291 @@ def fetch_logs(local_dir: str = "logs") -> int:
 
 
 # ---------------------------------------------------------------------------
+# Device identity helpers (for named log folders)
+# ---------------------------------------------------------------------------
+
+# Maps NT major.minor version → friendly OS name
+_NT_VERSION_MAP = {
+    "5.0": "Win2000", "5.1": "WinXP", "5.2": "WinXP64",
+    "6.0": "Vista",   "6.1": "Win7",  "6.2": "Win8",
+    "6.3": "Win8.1",  "10.0": "Win10",
+}
+
+# Common manufacturer name abbreviations
+_MFR_ABBREV = [
+    ("ASUSTeK Computer Inc.", "ASUS"),
+    ("ASUSTeK", "ASUS"),
+    ("Hewlett-Packard", "HP"),
+    ("Hewlett Packard", "HP"),
+    ("Toshiba Corporation", "Toshiba"),
+    ("Dell Inc.", "Dell"),
+    ("Acer Inc.", "Acer"),
+    ("Samsung Electronics", "Samsung"),
+    ("Sony Corporation", "Sony"),
+    ("Fujitsu", "Fujitsu"),
+]
+
+
+def _read_device_info(logs_dir: str = "logs") -> dict:
+    """Scan a local logs directory and extract device identity fields.
+
+    Returns a dict with keys: manufacturer, model, serial, os_name.
+    Any key may be absent if the source log was not found.
+    """
+    import pathlib as _pl, json as _json
+    base = _pl.Path(logs_dir)
+    info: dict = {}
+
+    # hardware_profile → manufacturer / model / serial
+    hw_files = sorted(base.glob("hardware_profile_*.json"), reverse=True)
+    if hw_files:
+        try:
+            d = _json.loads(hw_files[0].read_text(encoding="utf-8", errors="replace"))
+            sys_block = d.get("system", {})
+            if sys_block.get("manufacturer"):
+                info["manufacturer"] = sys_block["manufacturer"]
+            if sys_block.get("product_name"):
+                info["model"] = sys_block["product_name"]
+            if sys_block.get("serial_number"):
+                info["serial"] = sys_block["serial_number"]
+        except Exception:
+            pass
+
+    # os_profile → OS name / version
+    os_files = sorted(base.glob("os_profile_*.json"), reverse=True)
+    if os_files:
+        try:
+            d = _json.loads(os_files[0].read_text(encoding="utf-8", errors="replace"))
+            os_block = d.get("os", {})
+            product = os_block.get("product_name", "")
+            version  = os_block.get("version", "")
+            if product and product not in ("unknown", ""):
+                # Strip edition noise: "Windows Vista Home Premium" → "Vista"
+                for token in ("Home Premium", "Home Basic", "Ultimate",
+                              "Professional", "Enterprise", "Starter",
+                              "Service Pack", "SP1", "SP2", "SP3",
+                              "32-bit", "64-bit", "Windows"):
+                    product = product.replace(token, "").strip()
+                info["os_name"] = product.strip()
+            elif version and version not in ("unknown", ""):
+                major_minor = ".".join(version.split(".")[:2])
+                info["os_name"] = _NT_VERSION_MAP.get(major_minor, f"NT{major_minor}")
+        except Exception:
+            pass
+
+    return info
+
+
+def device_label(logs_dir: str = "logs") -> str:
+    """Generate a filesystem-safe label for a device based on its local logs.
+
+    Format: {Mfr}_{Model}__{OS}__{YYYYMMDD}_{serial_suffix}
+    Example: ASUS_F5GL__Vista__20260428_960013
+
+    Falls back gracefully to whatever fields are available.
+    """
+    import re as _re, datetime as _dt
+    info = _read_device_info(logs_dir)
+
+    def slug(s: str) -> str:
+        return _re.sub(r"[^A-Za-z0-9]+", "_", s.strip()).strip("_")
+
+    mfr = info.get("manufacturer", "")
+    for long, short in _MFR_ABBREV:
+        if mfr.startswith(long):
+            mfr = short
+            break
+    mfr = slug(mfr) or "Unknown"
+
+    model  = slug(info.get("model", "")) or "Unknown"
+    os_str = slug(info.get("os_name", ""))
+    serial = info.get("serial", "")
+    serial_suffix = serial[-6:] if len(serial) >= 6 else serial
+
+    date_str = _dt.date.today().strftime("%Y%m%d")
+
+    hw_part = f"{mfr}_{model}"
+    mid     = f"__{os_str}" if os_str else ""
+    suffix  = f"_{serial_suffix}" if serial_suffix else ""
+
+    return f"{hw_part}{mid}__{date_str}{suffix}"
+
+
+def organize_device_logs(logs_dir: str = "logs") -> str:
+    """Move all log files in logs_dir into a named device subfolder.
+
+    Reads hardware_profile and os_profile logs to build the folder name, then
+    moves every .json/.jsonl file found at the top level of logs_dir into
+    logs_dir/{device_label}/.
+
+    Returns the path to the device subfolder.
+    """
+    import pathlib as _pl, shutil as _shutil
+    base  = _pl.Path(logs_dir)
+    label = device_label(logs_dir)
+    dest  = base / label
+    dest.mkdir(parents=True, exist_ok=True)
+
+    moved = 0
+    for f in sorted(base.glob("*.json")) + sorted(base.glob("*.jsonl")):
+        target = dest / f.name
+        if not target.exists():
+            _shutil.move(str(f), str(target))
+            moved += 1
+        else:
+            f.unlink()   # duplicate — already in dest
+
+    print(f"Organized {moved} file(s) → {dest}")
+    return str(dest)
+
+
+# ---------------------------------------------------------------------------
+# Full module sequence + run_all helper
+# ---------------------------------------------------------------------------
+
+# Canonical module run order.  Each entry is a 3-tuple:
+#   (module_name,  needs_target: bool,  extra_args: list)
+# run_all() builds the final argv as:
+#   ["--target", target] + extra_args   (when needs_target=True)
+#   extra_args                          (when needs_target=False / aggregate module)
+FULL_MODULE_SEQUENCE = [
+    # ── Core hardware & storage ─────────────────────────────────────────────
+    ("m04_hardware_profile",            True,  []),
+    ("m05_disk_health",                 True,  []),
+    ("m06_software_inventory",          True,  []),
+    ("m07_service_analysis",            True,  []),
+    ("m09_thermal_health",              True,  []),
+    ("m15_upgrade_advisor",             True,  []),
+    # ── Users & event logs ──────────────────────────────────────────────────
+    ("m23_logon_audit",                 True,  []),
+    ("m01_persistence_scan",            True,  []),
+    ("m25_event_archive",               True,  []),
+    # ── Device & OS inventory ───────────────────────────────────────────────
+    ("m26_os_profile",                  True,  []),
+    ("m27_device_manager",              True,  []),
+    ("m28_cmos_health",                 True,  []),
+    ("m29_storage_usage",               True,  []),
+    ("m30_disk_integrity",              True,  []),
+    # ── Deep analysis ───────────────────────────────────────────────────────
+    ("m31_system_integrity_audit",      True,  []),
+    ("m33_user_account_analysis",       True,  []),
+    ("m34_task_scheduler_analysis",     True,  []),
+    ("m35_windows_update_analysis",     True,  []),
+    ("m36_execution_history",           True,  []),
+    ("m37_network_analysis",            True,  []),
+    ("m38_browser_activity",            True,  []),
+    ("m39_driver_store_analysis",       True,  []),
+    ("m40_time_integrity",              True,  []),
+    ("m41_file_anomalies",              True,  []),
+    ("m42_registry_health",             True,  []),
+    ("m43_backup_analysis",             True,  []),
+    ("m44_performance_diagnosis",       True,  []),
+    # ── Aggregate (read existing logs, no --target) ─────────────────────────
+    ("m45_trust_score",                 False, []),
+    ("m46_recent_change_analysis",      True,  []),
+    ("m47_module_conflict_analysis",    False, []),
+    # ── Cross-module correlation (depends on all others) ────────────────────
+    ("m18_clamav_scan",                 True,  ["--profile", "quick"]),
+    ("m32_execution_surface_analysis",  True,  []),
+    ("m17_system_summary",              True,  []),
+]
+
+
+def run_all(
+    target: str = "/mnt/windows",
+    modules: list = None,
+    skip_existing: bool = False,
+) -> None:
+    """Run all (or a subset of) modules serially, waiting for each lock to clear.
+
+    Args:
+        target: Windows mount path on the rescue device.
+        modules: List of 3-tuples (name, needs_target, extra_args).
+                 Defaults to FULL_MODULE_SEQUENCE.
+        skip_existing: If True, check the device for an existing log before
+                       running each module and skip if found.
+    """
+    import time as _time, io as _io, contextlib as _cl
+    if modules is None:
+        modules = FULL_MODULE_SEQUENCE
+
+    sep = "=" * 60
+    total = len(modules)
+
+    # Optionally fetch the list of existing logs on the device
+    existing: set = set()
+    if skip_existing:
+        print("Checking existing logs on device...")
+        buf = _io.StringIO()
+        with _cl.redirect_stdout(buf):
+            _ssh_run(f"ls {USB_PATH}/logs/ 2>/dev/null || true")
+        existing = {line.strip() for line in buf.getvalue().splitlines() if line.strip()}
+        print(f"  {len(existing)} log file(s) already on device")
+
+    wait_for_lock_clear("initial")
+
+    for i, (name, needs_target, extra_args) in enumerate(modules, 1):
+        print(f"\n{sep}\n  [{i}/{total}] {name}\n{sep}")
+
+        if skip_existing:
+            # Module log prefix matches "mXX_<stem>_YYYYMMDD_HHMMSS.json"
+            stem = name.split("_", 1)[1] if "_" in name else name
+            if any(stem in f for f in existing):
+                print(f"  SKIP — log already on device")
+                continue
+
+        args = (["--target", target] if needs_target else []) + extra_args
+        run_module_serial(name, args)
+
+    print(f"\n{sep}")
+    print("ALL MODULES COMPLETE")
+    print(sep)
+
+
+# ---------------------------------------------------------------------------
+# fetch-and-validate convenience helper
+# ---------------------------------------------------------------------------
+
+def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
+    """Fetch logs from the device, run schema validation, then optionally
+    organise logs into a named device subfolder.  Returns the validate exit code."""
+    import subprocess as _sp, sys as _sys, pathlib as _pl
+    print("=" * 60)
+    print("STEP 1 — Fetch logs from device")
+    print("=" * 60)
+    fetch_logs(logs_dir)
+
+    print()
+    print("=" * 60)
+    print("STEP 2 — Schema validation")
+    print("=" * 60)
+    validate_script = _pl.Path(__file__).parent / "validate_logs.py"
+    result = _sp.run(
+        [_PY, str(validate_script), "--no-fetch"],
+        cwd=str(_pl.Path(__file__).parent),
+    )
+    rc = result.returncode
+
+    if organize:
+        print()
+        print("=" * 60)
+        print("STEP 3 — Organise into device folder")
+        print("=" * 60)
+        organize_device_logs(logs_dir)
+
+    return rc
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "fetch_logs" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
+    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "setup_ssh_agent" | "relay" | "relay_status" | "fetch_report" | "ssh_test"
 
     # --- release config ---
-    commit_message = "chore: repo cleanup — untrack logs/ad-hoc scripts, add bad_sector_scan schema, absorb run_serial+fetch_logs into devtools"
+    commit_message = "feat: add run_all, device_label, organize_device_logs, fetch_and_validate to devtools"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely
@@ -633,6 +908,10 @@ def main() -> None:
     # --- run_module / push_module config ---
     module_name = "m18_clamav_scan"
     module_args = ["--target", "/mnt/windows", "--profile", "quick"]
+
+    # --- run_all config ---
+    run_all_target        = "/mnt/windows"
+    run_all_skip_existing = False   # True = skip modules that already have a log on device
 
     # ---------------------------------------------------
     if action == "release":
@@ -647,8 +926,15 @@ def main() -> None:
         run_module(module_name, module_args)
     elif action == "run_module_serial":
         run_module_serial(module_name, module_args)
+    elif action == "run_all":
+        run_all(target=run_all_target, skip_existing=run_all_skip_existing)
     elif action == "fetch_logs":
         fetch_logs()
+    elif action == "organize_logs":
+        organize_device_logs()
+    elif action == "fetch_and_validate":
+        import sys as _sys
+        _sys.exit(fetch_and_validate())
     elif action == "setup_ssh_agent":
         setup_ssh_agent()
     elif action == "relay":
@@ -681,10 +967,11 @@ def main() -> None:
         out = _ssh_run("echo 'session_secrets test OK'; hostname; uptime")
         print(out)
     elif action not in ("release", "run_remote", "push_file", "push_module",
-                        "run_module", "run_module_serial", "fetch_logs",
+                        "run_module", "run_module_serial", "run_all",
+                        "fetch_logs", "organize_logs", "fetch_and_validate",
                         "setup_ssh_agent", "fetch_report",
                         "relay", "relay_status", "ssh_test"):
-        print(f"Unknown action {action!r}. Set action to one of: release, run_remote, push_file, push_module, run_module, run_module_serial, fetch_logs, setup_ssh_agent, fetch_report, ssh_test")
+        print(f"Unknown action {action!r}. Valid actions: release, run_remote, push_file, push_module, run_module, run_module_serial, run_all, fetch_logs, organize_logs, fetch_and_validate, setup_ssh_agent, fetch_report, relay, relay_status, ssh_test")
         sys.exit(1)
 
 
