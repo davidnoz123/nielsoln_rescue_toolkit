@@ -73,11 +73,14 @@ UPDATE_FILES = [
 _PY = r"C:\analytics\projects\git\lexi\demos\venv\Scripts\python.exe"
 
 # ---------------------------------------------------------------------------
-# Passphrase cache — prompted once per devtools session, reused everywhere
+# Passphrase cache — in-memory within one process; disk-backed via
+# session_secrets when SESSION_MASTER_SECRET + EXECUTION_SESSION_ID are set.
 # ---------------------------------------------------------------------------
 
 _passphrase: str = ""
 _askpass_bat_path: str = ""
+
+_SECRET_NAME = "ssh_passphrase"
 
 
 def _write_askpass_bat(passphrase: str) -> str:
@@ -94,11 +97,51 @@ def _write_askpass_bat(passphrase: str) -> str:
 
 
 def _ensure_passphrase() -> str:
-    """Return the cached passphrase, prompting once if not yet set."""
+    """Return the SSH key passphrase.
+
+    Resolution order
+    ----------------
+    1. In-memory cache (already prompted this process).
+    2. session_secrets disk store — if both SESSION_MASTER_SECRET and
+       EXECUTION_SESSION_ID are set in the environment, attempt to decrypt the
+       stored passphrase.  On success, no prompt is needed.
+    3. getpass prompt — prompt the user once; if session_secrets is available
+       (both env vars set), encrypt and store for future processes.
+    """
     global _passphrase, _askpass_bat_path
-    if not _passphrase:
-        _passphrase = getpass.getpass("SSH key passphrase: ")
-        _askpass_bat_path = _write_askpass_bat(_passphrase)
+
+    # 1. In-memory cache
+    if _passphrase:
+        return _passphrase
+
+    # 2. Disk-backed session store
+    master = os.environ.get("SESSION_MASTER_SECRET", "")
+    sid    = os.environ.get("EXECUTION_SESSION_ID", "")
+    if master and sid:
+        try:
+            import session_secrets  # local module
+            pp = session_secrets.decrypt_session_secret(_SECRET_NAME)
+            _passphrase = pp
+            _askpass_bat_path = _write_askpass_bat(_passphrase)
+            print("[devtools] SSH passphrase loaded from session store.")
+            return _passphrase
+        except FileNotFoundError:
+            pass  # not stored yet — fall through to prompt
+        except Exception as exc:
+            print(f"[devtools] session_secrets decrypt failed ({exc}); prompting.")
+
+    # 3. Prompt
+    _passphrase = getpass.getpass("SSH key passphrase: ")
+    _askpass_bat_path = _write_askpass_bat(_passphrase)
+
+    # Persist for future processes if session env vars are available
+    if master and sid:
+        try:
+            import session_secrets
+            session_secrets.encrypt_session_secret(_SECRET_NAME, _passphrase)
+        except Exception as exc:
+            print(f"[devtools] Could not store passphrase in session store: {exc}")
+
     return _passphrase
 
 
