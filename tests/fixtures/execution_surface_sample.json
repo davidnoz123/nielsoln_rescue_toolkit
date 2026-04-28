@@ -1,0 +1,174 @@
+{
+  "generated": "2025-01-15T10:30:00+00:00",
+  "target": "/mnt/windows",
+  "source_logs": {
+    "service_analysis": "service_analysis_20250115_103000.json",
+    "clamav_scan": "clamav_scan_20250115_103000.json",
+    "system_integrity": "system_integrity_20250115_103000.json"
+  },
+  "services_analysed": [
+    {
+      "name": "MalwareLoader",
+      "display_name": "Malware Loader Service",
+      "start_type": "AUTO",
+      "start_type_int": 2,
+      "image_path_raw": "C:\\Users\\victim\\AppData\\Local\\Temp\\svchost32.exe",
+      "image_path_resolved": "C:\\Users\\victim\\AppData\\Local\\Temp\\svchost32.exe",
+      "is_svchost": false,
+      "svchost_group": null,
+      "scan_result": "out_of_scope",
+      "integrity_status": {
+        "exists": true,
+        "anomalies": [],
+        "in_protected_list": false,
+        "missing": false
+      },
+      "location_suspicious": true,
+      "risk": "CRITICAL",
+      "flags": [
+        "executable_not_scanned",
+        "executable_untrusted",
+        "suspicious_path",
+        "high_risk_autostart"
+      ]
+    },
+    {
+      "name": "wuauserv",
+      "display_name": "Windows Update",
+      "start_type": "AUTO",
+      "start_type_int": 2,
+      "image_path_raw": "%SystemRoot%\\system32\\svchost.exe -k netsvcs",
+      "image_path_resolved": "C:\\Windows\\system32\\svchost.exe",
+      "is_svchost": true,
+      "svchost_group": "netsvcs",
+      "scan_result": "scanned",
+      "integrity_status": {
+        "exists": true,
+        "anomalies": [],
+        "in_protected_list": false,
+        "missing": false
+      },
+      "location_suspicious": false,
+      "risk": "LOW",
+      "flags": [],
+      "service_dll": {
+        "path": "C:\\Windows\\System32\\wuaueng.dll",
+        "scan_result": "scanned"
+      }
+    },
+    {
+      "name": "TamperedService",
+      "display_name": "Tampered System Service",
+      "start_type": "AUTO",
+      "start_type_int": 2,
+      "image_path_raw": "C:\\Windows\\System32\\ntdll.exe",
+      "image_path_resolved": "C:\\Windows\\System32\\ntdll.exe",
+      "is_svchost": false,
+      "svchost_group": null,
+      "scan_result": "scanned",
+      "integrity_status": {
+        "exists": true,
+        "anomalies": ["SUSPICIOUS_METADATA", "INTERNAL_NAME_MISMATCH"],
+        "in_protected_list": true,
+        "missing": false
+      },
+      "location_suspicious": false,
+      "risk": "HIGH",
+      "flags": [
+        "system_file_anomaly",
+        "high_risk_autostart"
+      ]
+    },
+    {
+      "name": "GhostService",
+      "display_name": "Ghost Service (missing binary)",
+      "start_type": "AUTO",
+      "start_type_int": 2,
+      "image_path_raw": "C:\\Windows\\System32\\ghostsvc.exe",
+      "image_path_resolved": "C:\\Windows\\System32\\ghostsvc.exe",
+      "is_svchost": false,
+      "svchost_group": null,
+      "scan_result": "out_of_scope",
+      "integrity_status": {
+        "exists": false,
+        "anomalies": [],
+        "in_protected_list": false,
+        "missing": false
+      },
+      "location_suspicious": false,
+      "risk": "CRITICAL",
+      "flags": [
+        "executable_missing",
+        "executable_not_scanned",
+        "high_risk_autostart"
+      ]
+    },
+    {
+      "name": "SuspiciousSvchost",
+      "display_name": "Suspicious Svchost Service",
+      "start_type": "AUTO",
+      "start_type_int": 2,
+      "image_path_raw": "%SystemRoot%\\system32\\svchost.exe -k malgroup",
+      "image_path_resolved": "C:\\Windows\\system32\\svchost.exe",
+      "is_svchost": true,
+      "svchost_group": "malgroup",
+      "scan_result": "scanned",
+      "integrity_status": {
+        "exists": true,
+        "anomalies": [],
+        "in_protected_list": false,
+        "missing": false
+      },
+      "location_suspicious": false,
+      "risk": "HIGH",
+      "flags": [
+        "svchost_dll_unchecked",
+        "high_risk_autostart"
+      ],
+      "service_dll": {
+        "path": "C:\\Windows\\System32\\malicious.dll",
+        "scan_result": "out_of_scope"
+      }
+    },
+    {
+      "name": "Spooler",
+      "display_name": "Print Spooler",
+      "start_type": "AUTO",
+      "start_type_int": 2,
+      "image_path_raw": "%SystemRoot%\\System32\\spoolsv.exe",
+      "image_path_resolved": "C:\\Windows\\System32\\spoolsv.exe",
+      "is_svchost": false,
+      "svchost_group": null,
+      "scan_result": "scanned",
+      "integrity_status": {
+        "exists": true,
+        "anomalies": [],
+        "in_protected_list": false,
+        "missing": false
+      },
+      "location_suspicious": false,
+      "risk": "MEDIUM",
+      "flags": []
+    }
+  ],
+  "summary": {
+    "total_services": 6,
+    "executables_analysed": 6,
+    "not_scanned": 3,
+    "untrusted": 1,
+    "high_risk": 2,
+    "critical_risk": 2
+  },
+  "risk_distribution": {
+    "LOW": 1,
+    "MEDIUM": 1,
+    "HIGH": 2,
+    "CRITICAL": 2
+  },
+  "recommendations": [
+    "2 service(s) are CRITICAL risk — review immediately: MalwareLoader, GhostService",
+    "3 service(s) not scanned by ClamAV — run m18 with --thorough or broaden scan scope",
+    "1 service(s) have executables in suspicious locations — investigate manually",
+    "1 svchost-hosted service DLL(s) were not scanned — common persistence targets: SuspiciousSvchost"
+  ]
+}

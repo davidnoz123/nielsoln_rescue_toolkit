@@ -297,6 +297,29 @@ def _integrity(logs_dir: Path) -> Optional[dict]:
     }
 
 
+def _execution_surface(logs_dir: Path) -> Optional[dict]:
+    p = _latest(logs_dir, "execution_surface_*.json")
+    if not p:
+        return None
+    d = _read_json(p)
+    if not d:
+        return None
+    s = d.get("summary", {})
+    critical = s.get("critical_risk", 0)
+    high     = s.get("high_risk", 0)
+    verdict  = "CRITICAL" if critical > 0 else ("HIGH" if high > 0 else "CLEAN")
+    return {
+        "log":           p.name,
+        "total_services": s.get("total_services", 0),
+        "not_scanned":   s.get("not_scanned", 0),
+        "untrusted":     s.get("untrusted", 0),
+        "high_risk":     high,
+        "critical_risk": critical,
+        "verdict":       verdict,
+        "recommendations": (d.get("recommendations") or [])[:2],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Report printer
 # ---------------------------------------------------------------------------
@@ -421,6 +444,22 @@ def _print_report(data: dict, target: str) -> None:
     else:
         print("  (no system_integrity log found — run m31)")
 
+    # --- Execution surface ---
+    esurf = data.get("execution_surface")
+    _section("EXECUTION SURFACE")
+    if esurf:
+        print(_bar("Verdict:", esurf["verdict"]))
+        print(_bar("Services analysed:", str(esurf["total_services"])))
+        print(_bar("Not scanned by AV:", str(esurf["not_scanned"])))
+        print(_bar("Untrusted location:", str(esurf["untrusted"])))
+        print(_bar("High risk:", str(esurf["high_risk"])))
+        crit = esurf["critical_risk"]
+        print(_bar("CRITICAL risk:", f"{crit}" + ("  ← ACTION REQUIRED" if crit > 0 else "")))
+        for rec in (esurf.get("recommendations") or [])[:2]:
+            print(f"    → {rec[:60]}")
+    else:
+        print("  (no execution_surface log found — run m32)")
+
     # --- Software ---
     sw = data.get("software")
     _section("SOFTWARE INVENTORY")
@@ -468,6 +507,10 @@ def _print_report(data: dict, target: str) -> None:
                                            "CORRUPTION_SUSPECTED"):
         verdicts.append("SUSPICIOUS")
 
+    esurf = data.get("execution_surface")
+    if esurf and esurf.get("verdict") in ("CRITICAL", "HIGH"):
+        verdicts.append("SUSPICIOUS")
+
     if any("SUSPICIOUS" in v or "INFECTED" in v for v in verdicts):
         overall = "ACTION REQUIRED"
     elif any("REVIEW" in v or "CAUTION" in v or "WARN" in v for v in verdicts):
@@ -502,16 +545,17 @@ def run(root: Path, argv: list) -> int:
         return 1
 
     data = {
-        "hardware":    _hw(logs_dir),
-        "disk":        _disk(logs_dir),
-        "thermal":     _thermal(logs_dir),
-        "clamav":      _clamav(logs_dir),
-        "logon":       _logon(logs_dir),
-        "persistence": _persistence(logs_dir),
-        "services":    _services(logs_dir),
-        "software":    _software(logs_dir),
-        "upgrade":     _upgrade(logs_dir),
-        "integrity":   _integrity(logs_dir),
+        "hardware":          _hw(logs_dir),
+        "disk":              _disk(logs_dir),
+        "thermal":           _thermal(logs_dir),
+        "clamav":            _clamav(logs_dir),
+        "logon":             _logon(logs_dir),
+        "persistence":       _persistence(logs_dir),
+        "services":          _services(logs_dir),
+        "software":          _software(logs_dir),
+        "upgrade":           _upgrade(logs_dir),
+        "integrity":         _integrity(logs_dir),
+        "execution_surface": _execution_surface(logs_dir),
     }
 
     _print_report(data, args.target)

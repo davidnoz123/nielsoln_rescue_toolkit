@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "execution_surface.schema.json",
+  "title": "Execution Surface Analysis",
+  "description": "Output of m32_execution_surface_analysis.py — correlates service executables against ClamAV coverage and system integrity findings with risk scoring",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["generated", "target", "services_analysed", "summary", "risk_distribution"],
+  "properties": {
+    "generated": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp when this report was generated"
+    },
+    "target": {
+      "type": "string",
+      "description": "Path to the mounted offline Windows installation"
+    },
+    "source_logs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Source log filenames used for correlation",
+      "properties": {
+        "service_analysis": { "type": ["string", "null"] },
+        "clamav_scan":      { "type": ["string", "null"] },
+        "system_integrity": { "type": ["string", "null"] }
+      }
+    },
+    "error": {
+      "type": "string",
+      "description": "Error code if analysis could not proceed (e.g. no_service_log)"
+    },
+    "services_analysed": {
+      "type": "array",
+      "description": "Per-service execution surface analysis entries, sorted by risk (worst first)",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["name", "start_type", "scan_result", "risk", "flags"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Service registry key name"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "start_type": {
+            "type": "string",
+            "enum": ["AUTO", "BOOT", "SYSTEM", "DEMAND", "DISABLED", "?"],
+            "description": "Service start type"
+          },
+          "start_type_int": {
+            "type": ["integer", "null"],
+            "description": "Raw start type integer from registry (0=BOOT, 1=SYSTEM, 2=AUTO, 3=DEMAND, 4=DISABLED)"
+          },
+          "image_path_raw": {
+            "type": "string",
+            "description": "Raw ImagePath value from registry"
+          },
+          "image_path_resolved": {
+            "type": "string",
+            "description": "Resolved primary executable path (Windows-style)"
+          },
+          "is_svchost": {
+            "type": "boolean",
+            "description": "True if this service is hosted by svchost.exe"
+          },
+          "svchost_group": {
+            "type": ["string", "null"],
+            "description": "Svchost group name if is_svchost is true"
+          },
+          "scan_result": {
+            "type": "string",
+            "enum": ["scanned", "permission_denied", "size_skipped", "out_of_scope", "no_scan_data", "no_clamav", "not_applicable"],
+            "description": "ClamAV scan coverage status for the primary executable"
+          },
+          "integrity_status": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Correlation with m31 system integrity findings",
+            "properties": {
+              "exists":            { "type": ["boolean", "null"] },
+              "anomalies":         { "type": "array", "items": { "type": "string" } },
+              "in_protected_list": { "type": "boolean" },
+              "missing":           { "type": "boolean" }
+            }
+          },
+          "location_suspicious": {
+            "type": "boolean",
+            "description": "True if executable is in temp, appdata, user dirs or other unusual location"
+          },
+          "risk": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+            "description": "Risk level based on trust, scan coverage, location, and integrity"
+          },
+          "flags": {
+            "type": "array",
+            "description": "Risk flags for this service",
+            "items": {
+              "type": "string",
+              "enum": [
+                "executable_not_scanned",
+                "executable_missing",
+                "executable_untrusted",
+                "suspicious_path",
+                "svchost_dll_unchecked",
+                "system_file_anomaly",
+                "high_risk_autostart"
+              ]
+            }
+          },
+          "service_dll": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "ServiceDll details for svchost-hosted services",
+            "properties": {
+              "path":        { "type": ["string", "null"] },
+              "scan_result": {
+                "type": "string",
+                "enum": ["scanned", "permission_denied", "size_skipped", "out_of_scope", "no_scan_data", "no_clamav", "not_applicable"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["total_services", "not_scanned", "untrusted", "high_risk", "critical_risk"],
+      "properties": {
+        "total_services":       { "type": "integer" },
+        "executables_analysed": { "type": "integer" },
+        "not_scanned":          { "type": "integer" },
+        "untrusted":            { "type": "integer" },
+        "high_risk":            { "type": "integer" },
+        "critical_risk":        { "type": "integer" }
+      }
+    },
+    "risk_distribution": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Count of services at each risk level",
+      "properties": {
+        "LOW":      { "type": "integer" },
+        "MEDIUM":   { "type": "integer" },
+        "HIGH":     { "type": "integer" },
+        "CRITICAL": { "type": "integer" }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Actionable recommendations based on findings",
+      "items": { "type": "string" }
+    }
+  }
+}

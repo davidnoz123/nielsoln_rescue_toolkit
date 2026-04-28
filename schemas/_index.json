@@ -85,6 +85,11 @@
       "schema": "clamav_scan.schema.json",
       "log_glob": "logs/clamav_scan_*.json",
       "format": "JSON"
+    },
+    "m32_execution_surface_analysis": {
+      "schema": "execution_surface.schema.json",
+      "log_glob": "logs/execution_surface_*.json",
+      "format": "JSON"
     }
   }
 }
