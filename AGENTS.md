@@ -309,6 +309,32 @@ from an elevated terminal — it performs the same steps automatically.
 
 **Do NOT store the passphrase in any source file or AGENTS.md.**
 
+## JSON Schemas for Module Logs
+
+All module output formats are documented as JSON Schema draft-07 files in
+`schemas/`.  See `schemas/_index.json` for the full module → schema → log-glob
+mapping.
+
+### Validating logs on the dev machine
+
+Use `validate_logs.py` (root of repo) to validate locally-fetched logs against
+their schemas:
+
+```python
+import runpy ; temp = runpy._run_module_as_main("validate_logs")
+```
+
+Set `logs_dir` and optionally `module_filter` inside `main()` before running.
+Requires the `jsonschema` package (already available in the dev venv).
+
+### Future consideration — VS Code live validation
+
+Adding a `"$schema"` key pointing to the schema file at the top of each
+generated log would give inline red-underline validation when browsing logs in
+VS Code.  This is low-value today because logs are auto-generated and rarely
+edited by hand.  Worth adding if logs start being reviewed interactively
+(e.g., open `disk_health_*.json` in VS Code and see field annotations).
+
 ## Process Visibility
 
 - **No hidden processes.** Never start Python or Excel processes invisibly.

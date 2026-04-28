@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "device_manager.schema.json",
+  "title": "m27 device_manager",
+  "description": "Device Manager inventory from offline registry written by m27_device_manager. Log glob: logs/device_manager_*.json",
+  "type": "object",
+  "required": ["target", "timestamp", "total", "flagged_count", "devices"],
+  "additionalProperties": true,
+  "properties": {
+    "target":        { "type": "string" },
+    "timestamp":     { "type": "string" },
+    "total":         { "type": "integer" },
+    "flagged_count": { "type": "integer" },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "bus":             { "type": "string" },
+          "device_id":       { "type": "string" },
+          "instance":        { "type": "string" },
+          "description":     { "type": "string" },
+          "class":           { "type": "string" },
+          "class_guid":      { "type": "string" },
+          "manufacturer":    { "type": "string" },
+          "hardware_ids":    { "type": "array", "items": { "type": "string" } },
+          "driver_version":  { "type": "string" },
+          "driver_provider": { "type": "string" },
+          "driver_date":     { "type": "string" },
+          "problem_code":    {},
+          "problem_desc":    { "type": ["string", "null"] },
+          "config_flags":    {},
+          "flagged":         { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

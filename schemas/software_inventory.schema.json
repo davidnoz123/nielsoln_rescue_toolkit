@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "software_inventory.schema.json",
+  "title": "m06 software_inventory",
+  "description": "Installed software from registry written by m06_software_inventory. Log glob: logs/software_inventory_*.json",
+  "type": "object",
+  "required": ["timestamp", "target", "summary", "entries"],
+  "additionalProperties": true,
+  "properties": {
+    "timestamp": { "type": "string" },
+    "target":    { "type": "string" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "total":      { "type": "integer" },
+        "flagged":    { "type": "integer" },
+        "suspicious": { "type": "integer" },
+        "bloat":      { "type": "integer" },
+        "legacy":     { "type": "integer" },
+        "by_category": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "description": "Category name → count"
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name":        { "type": "string" },
+          "version":     { "type": ["string", "null"] },
+          "publisher":   { "type": ["string", "null"] },
+          "install_date":{ "type": ["string", "null"] },
+          "install_location": { "type": ["string", "null"] },
+          "uninstall_string": { "type": ["string", "null"] },
+          "scope":       { "type": "string", "examples": ["HKLM", "HKLM (32-bit)", "HKCU (username)"] },
+          "category":    { "type": "string" },
+          "flags":       { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

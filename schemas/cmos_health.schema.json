@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cmos_health.schema.json",
+  "title": "m28 cmos_health",
+  "description": "CMOS/RTC battery health written by m28_cmos_health. Log glob: logs/cmos_health_*.json",
+  "type": "object",
+  "required": ["timestamp", "verdict", "clock_delta", "events"],
+  "additionalProperties": true,
+  "properties": {
+    "target":    { "type": ["string", "null"] },
+    "timestamp": { "type": "string" },
+    "verdict": {
+      "type": "string",
+      "enum": ["HEALTHY", "DRIFT", "SUSPECT", "LIKELY_DEAD", "UNKNOWN"]
+    },
+    "clock_delta": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["method", "hw_time_utc", "sys_time_utc", "delta_sec", "delta_abs_sec", "frozen_in_past"],
+      "properties": {
+        "method":         { "type": "string", "examples": ["/dev/rtc0", "hwclock", "timedatectl"] },
+        "hw_time_utc":    { "type": ["string", "null"] },
+        "sys_time_utc":   { "type": "string" },
+        "delta_sec":      { "type": "number" },
+        "delta_abs_sec":  { "type": "number" },
+        "frozen_in_past": { "type": "boolean" },
+        "frozen_year":    { "type": ["integer", "null"] }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "error":     { "type": "string" },
+        "time_change_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "time": { "type": "string" },
+              "data": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "unexpected_shutdowns": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+        "dirty_shutdowns":      { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+        "time_change_count":       { "type": "integer" },
+        "unexpected_shut_count":   { "type": "integer" },
+        "dirty_shut_count":        { "type": "integer" }
+      }
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "logon_audit.schema.json",
+  "title": "m23 logon_audit",
+  "description": "Security event logon audit written by m23_logon_audit. Log glob: logs/logon_audit_*.json",
+  "type": "object",
+  "required": ["verdict", "totals"],
+  "additionalProperties": true,
+  "properties": {
+    "verdict": { "type": "string", "enum": ["CLEAN", "REVIEW", "SUSPICIOUS"] },
+    "notes":   { "type": "array", "items": { "type": "string" } },
+    "totals": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "failed_logons":                { "type": "integer" },
+        "account_lockouts":             { "type": "integer" },
+        "password_change_events":       { "type": "integer" },
+        "explicit_credential_logons":   { "type": "integer" },
+        "account_management_events":    { "type": "integer" }
+      }
+    },
+    "failed_logon_reasons":  {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Sub-status code → count"
+    },
+    "failed_logons_by_user": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Username → count"
+    },
+    "failed_logons_by_date": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Date string → count"
+    },
+    "lockout_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "timestamp": { "type": "string" },
+          "user":      { "type": "string" },
+          "caller":    { "type": "string" }
+        }
+      }
+    },
+    "password_change_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "event_id":    { "type": "integer" },
+          "event_name":  { "type": "string" },
+          "timestamp":   { "type": "string" },
+          "target_user": { "type": "string" },
+          "by_user":     { "type": "string" }
+        }
+      }
+    },
+    "account_management_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "event_id":    { "type": "integer" },
+          "event_name":  { "type": "string" },
+          "timestamp":   { "type": "string" },
+          "target_user": { "type": "string" },
+          "by_user":     { "type": "string" }
+        }
+      }
+    },
+    "recent_failed_logons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "timestamp":   { "type": "string" },
+          "user":        { "type": "string" },
+          "workstation": { "type": "string" },
+          "ip":          { "type": "string" },
+          "reason":      { "type": "string" }
+        }
+      }
+    }
+  }
+}

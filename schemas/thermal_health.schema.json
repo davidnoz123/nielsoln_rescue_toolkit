@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "thermal_health.schema.json",
+  "title": "m09 thermal_health",
+  "description": "Thermal sensor data written by m09_thermal_health. Log glob: logs/thermal_health_*.json",
+  "type": "object",
+  "required": ["timestamp", "verdict", "warnings", "recommendations", "temperatures", "fans", "thermal_zones", "sensors_available"],
+  "additionalProperties": true,
+  "properties": {
+    "timestamp":       { "type": "string", "description": "strftime %Y%m%d_%H%M%S (not ISO)" },
+    "verdict":         { "type": "string", "enum": ["HEALTHY", "WARM", "HOT", "CRITICAL"] },
+    "warnings":        { "type": "array", "items": { "type": "string" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "sensors_available": { "type": "boolean" },
+    "temperatures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "source":         { "type": "string" },
+          "chip":           { "type": "string" },
+          "label":          { "type": "string" },
+          "kind":           { "type": "string" },
+          "value_c":        { "type": "number" },
+          "crit_c":         { "type": ["number", "null"] },
+          "max_c":          { "type": ["number", "null"] },
+          "category":       { "type": "string", "examples": ["CPU", "GPU", "Disk", "Sensor"] },
+          "severity":       { "type": "string", "examples": ["ok", "warn", "critical"] },
+          "warn_threshold": {},
+          "crit_threshold": {}
+        }
+      }
+    },
+    "fans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "source": { "type": "string" },
+          "chip":   { "type": "string" },
+          "label":  { "type": "string" },
+          "kind":   { "type": "string" },
+          "rpm":    { "type": "integer" }
+        }
+      }
+    },
+    "thermal_zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "source":  { "type": "string" },
+          "zone":    { "type": "string" },
+          "type":    { "type": "string" },
+          "value_c": { "type": "number" },
+          "policy":  { "type": "string" }
+        }
+      }
+    },
+    "cpu_throttle": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "governor":        { "type": "string" },
+        "cur_mhz":         { "type": "integer" },
+        "max_mhz":         { "type": "integer" },
+        "throttled":       { "type": "boolean" },
+        "cpuinfo_mhz_min": { "type": "integer" },
+        "cpuinfo_mhz_max": { "type": "integer" }
+      }
+    }
+  }
+}

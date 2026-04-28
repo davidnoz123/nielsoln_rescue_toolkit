@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "disk_health.schema.json",
+  "title": "m05 disk_health",
+  "description": "SMART disk health written by m05_disk_health. Log glob: logs/disk_health_*.json. Top level is a JSON array — one object per block device.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["device", "model", "type", "size_gib", "smart_available", "overall_health", "overall_verdict"],
+    "additionalProperties": true,
+    "properties": {
+      "device":          { "type": "string", "examples": ["/dev/sda"] },
+      "model":           { "type": "string" },
+      "type":            { "type": "string", "examples": ["HDD", "SSD", "NVMe SSD", "eMMC/SD", "unknown"] },
+      "size_gib":        { "type": "number" },
+      "smart_available": { "type": "boolean" },
+      "overall_health":  { "type": "string", "examples": ["PASSED", "FAILED", "unknown"] },
+      "overall_verdict": { "type": "string", "examples": ["HEALTHY", "CAUTION", "FAILING", "unknown"] },
+      "critical_findings": { "type": "array", "items": { "type": "string" } },
+      "info": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Key/value SMART attribute snapshot. ATA: attr_name→raw_str. NVMe: temperature, percentage_used, available_spare, unsafe_shutdowns."
+      },
+      "raw_smart": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Full SMART attribute table. ATA: id_str→{name,value,worst,thresh,raw}. NVMe: key_str→value_str."
+      },
+      "recommendation":  { "type": "string" },
+      "clone_urgency":   { "type": "string", "examples": ["none", "soon", "immediate"] },
+      "note":            { "type": "string" }
+    }
+  }
+}

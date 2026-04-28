@@ -1,0 +1,80 @@
+{
+  "_comment": "Index of JSON Schema files for Nielsoln Rescue Toolkit module log outputs. Schema format: JSON Schema draft-07. All schemas use additionalProperties:true to allow forward-compatible new fields.",
+  "modules": {
+    "m01_persistence_scan": {
+      "schema": "persist_finding.schema.json",
+      "log_glob": "logs/persist_*.jsonl",
+      "format": "JSONL",
+      "notes": "Each line is one finding object. Validate line-by-line."
+    },
+    "m04_hardware_profile": {
+      "schema": "hardware_profile.schema.json",
+      "log_glob": "logs/hardware_profile_*.json",
+      "format": "JSON"
+    },
+    "m05_disk_health": {
+      "schema": "disk_health.schema.json",
+      "log_glob": "logs/disk_health_*.json",
+      "format": "JSON",
+      "notes": "Top-level is a JSON array, one object per block device."
+    },
+    "m06_software_inventory": {
+      "schema": "software_inventory.schema.json",
+      "log_glob": "logs/software_inventory_*.json",
+      "format": "JSON"
+    },
+    "m07_service_analysis": {
+      "schema": "service_analysis.schema.json",
+      "log_glob": "logs/service_analysis_*.json",
+      "format": "JSON"
+    },
+    "m09_thermal_health": {
+      "schema": "thermal_health.schema.json",
+      "log_glob": "logs/thermal_health_*.json",
+      "format": "JSON"
+    },
+    "m15_upgrade_advisor": {
+      "schema": "upgrade_advisor.schema.json",
+      "log_glob": "logs/upgrade_advisor_*.json",
+      "format": "JSON"
+    },
+    "m17_system_summary": {
+      "schema": "system_summary.schema.json",
+      "log_glob": "logs/system_summary_*.json",
+      "format": "JSON"
+    },
+    "m23_logon_audit": {
+      "schema": "logon_audit.schema.json",
+      "log_glob": "logs/logon_audit_*.json",
+      "format": "JSON"
+    },
+    "m25_event_archive": {
+      "schema_run": "event_archive_run.schema.json",
+      "schema_chunk": "event_archive_chunk.schema.json",
+      "log_glob_run": "logs/event_archive_*.json",
+      "log_glob_chunk": "logs/event_archive_chunks/*.jsonl",
+      "format": "JSON + JSONL",
+      "notes": "Run summary: single JSON file per run. Chunk lines: JSONL, validate each line separately."
+    },
+    "m27_device_manager": {
+      "schema": "device_manager.schema.json",
+      "log_glob": "logs/device_manager_*.json",
+      "format": "JSON"
+    },
+    "m28_cmos_health": {
+      "schema": "cmos_health.schema.json",
+      "log_glob": "logs/cmos_health_*.json",
+      "format": "JSON"
+    },
+    "m29_storage_usage": {
+      "schema": "storage_usage.schema.json",
+      "log_glob": "logs/storage_usage_*.json",
+      "format": "JSON"
+    },
+    "m30_disk_integrity": {
+      "schema": "disk_integrity.schema.json",
+      "log_glob": "logs/disk_integrity_*.json",
+      "format": "JSON"
+    }
+  }
+}

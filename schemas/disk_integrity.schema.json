@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "disk_integrity.schema.json",
+  "title": "m30 disk_integrity",
+  "description": "NTFS dirty-bit and chkdsk history written by m30_disk_integrity. Log glob: logs/disk_integrity_*.json",
+  "type": "object",
+  "required": ["target", "timestamp", "verdict", "dirty_bit", "events"],
+  "additionalProperties": true,
+  "properties": {
+    "target":    { "type": "string" },
+    "device":    { "type": ["string", "null"] },
+    "timestamp": { "type": "string" },
+    "verdict": {
+      "type": "string",
+      "enum": ["OK", "DIRTY_VOLUME", "WARNING", "CRITICAL", "CHKDSK_HISTORY", "UNKNOWN"]
+    },
+    "dirty_bit": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["method", "dirty"],
+      "properties": {
+        "method":   { "type": "string", "examples": ["ntfsinfo", "python-ntfs", "hexdump"] },
+        "dirty":    { "type": "boolean" },
+        "error":    { "type": "string" },
+        "note":     { "type": "string" },
+        "raw_byte": { "type": "string" }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["system_evtx_available", "app_evtx_available"],
+      "properties": {
+        "system_evtx_available": { "type": "boolean" },
+        "app_evtx_available":    { "type": "boolean" },
+        "disk_errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "event_id":    { "type": "integer" },
+              "description": { "type": "string" },
+              "time":        { "type": "string" },
+              "provider":    { "type": "string" },
+              "data":        { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "chkdsk_entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "event_id": { "type": "integer" },
+              "time":     { "type": "string" },
+              "provider": { "type": "string" },
+              "data":     { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "disk_error_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "count":       { "type": "integer" },
+              "description": { "type": "string" }
+            }
+          },
+          "description": "Event ID string → {count, description}"
+        },
+        "total_disk_errors":   { "type": "integer" },
+        "total_chkdsk_runs":   { "type": "integer" }
+      }
+    }
+  }
+}

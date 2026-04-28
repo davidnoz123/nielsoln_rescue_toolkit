@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event_archive_run.schema.json",
+  "title": "m25 event_archive run summary",
+  "description": "Run summary written by m25_event_archive per invocation. Log glob: logs/event_archive_*.json (not JSONL chunk files).",
+  "type": "object",
+  "required": ["machine_id", "run_time", "target", "channels", "total_new_events", "total_anomalies", "results"],
+  "additionalProperties": true,
+  "properties": {
+    "machine_id":      { "type": "string" },
+    "run_time":        { "type": "string" },
+    "target":          { "type": "string" },
+    "channels":        { "type": "array", "items": { "type": "string" } },
+    "total_new_events":{ "type": "integer" },
+    "total_anomalies": { "type": "integer" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "channel":    { "type": "string" },
+          "status":     { "type": "string", "examples": ["ok", "error", "no_new_events"] },
+          "new_events": { "type": "integer" },
+          "anomalies":  { "type": "integer" },
+          "chunk_file": { "type": "string", "description": "Relative path to JSONL chunk file, if any" }
+        }
+      }
+    }
+  }
+}

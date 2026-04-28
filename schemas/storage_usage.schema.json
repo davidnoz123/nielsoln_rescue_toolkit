@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "storage_usage.schema.json",
+  "title": "m29 storage_usage",
+  "description": "Disk space and temp bloat written by m29_storage_usage. Log glob: logs/storage_usage_*.json",
+  "type": "object",
+  "required": ["target", "timestamp", "partition", "verdict", "top_dirs", "temp_dirs", "total_temp_mb"],
+  "additionalProperties": true,
+  "properties": {
+    "target":    { "type": "string" },
+    "timestamp": { "type": "string" },
+    "partition": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "total_gb": { "type": "number" },
+        "used_gb":  { "type": "number" },
+        "free_gb":  { "type": "number" },
+        "used_pct": { "type": "number" }
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["OK", "WARNING", "CRITICAL", "TEMP_BLOAT", "UNKNOWN"]
+    },
+    "top_dirs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "path":    { "type": "string" },
+          "size_mb": { "type": "number" }
+        }
+      }
+    },
+    "temp_dirs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "path":    { "type": "string" },
+          "size_mb": { "type": "number" }
+        }
+      }
+    },
+    "total_temp_mb": { "type": "number" }
+  }
+}

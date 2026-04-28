@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "upgrade_advisor.schema.json",
+  "title": "m15 upgrade_advisor",
+  "description": "Upgrade recommendations written by m15_upgrade_advisor. Log glob: logs/upgrade_advisor_*.json",
+  "type": "object",
+  "required": ["timestamp", "recommendations", "sources"],
+  "additionalProperties": true,
+  "properties": {
+    "timestamp": { "type": "string" },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["category", "benefit", "urgency", "evidence", "recommendation", "confidence"],
+        "properties": {
+          "category":       { "type": "string", "examples": ["RAM", "Storage", "Cooling", "OS"] },
+          "benefit":        { "type": "string" },
+          "urgency":        { "type": "string", "examples": ["immediate", "soon", "eventually", "optional"] },
+          "evidence":       { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string" },
+          "confidence":     { "type": "string", "examples": ["high", "medium", "low"] }
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "hardware_profile": { "type": "boolean" },
+        "disk_health":      { "type": "boolean" },
+        "thermal_health":   { "type": "boolean" }
+      }
+    }
+  }
+}

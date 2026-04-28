@@ -1,0 +1,167 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "system_summary.schema.json",
+  "title": "m17 system_summary",
+  "description": "Cross-module summary written by m17_system_summary. Log glob: logs/system_summary_*.json",
+  "type": "object",
+  "required": ["generated", "target", "sections"],
+  "additionalProperties": true,
+  "properties": {
+    "generated": { "type": "string" },
+    "target":    { "type": "string" },
+    "sections": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "hardware": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":      { "type": "string" },
+                "machine":  { "type": "string" },
+                "cpu":      { "type": "string" },
+                "ram_gb":   {},
+                "disks":    { "type": "array", "items": { "type": "string" } },
+                "bios_date":{ "type": "string" }
+              }
+            }
+          ]
+        },
+        "disk": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log": { "type": "string" },
+                "drives": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {
+                      "model":   { "type": "string" },
+                      "verdict": { "type": "string" },
+                      "flags":   { "type": "array", "items": { "type": "string" } }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "thermal": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":       { "type": "string" },
+                "verdict":   { "type": "string" },
+                "warnings":  { "type": "array", "items": { "type": "string" } },
+                "hottest_c": { "type": ["number", "null"] }
+              }
+            }
+          ]
+        },
+        "clamav": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":      { "type": "string" },
+                "verdict":  { "type": "string" },
+                "infected": { "type": "integer" },
+                "scanned":  { "type": "integer" }
+              }
+            }
+          ]
+        },
+        "logon": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":            { "type": "string" },
+                "verdict":        { "type": "string" },
+                "failed_logons":  { "type": "integer" },
+                "lockouts":       { "type": "integer" },
+                "pw_changes":     { "type": "integer" },
+                "explicit_creds": { "type": "integer" }
+              }
+            }
+          ]
+        },
+        "persistence": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":        { "type": "string" },
+                "total":      { "type": "integer" },
+                "suspicious": { "type": "integer" }
+              }
+            }
+          ]
+        },
+        "services": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":         { "type": "string" },
+                "verdict":     { "type": "string" },
+                "total":       {},
+                "suspicious":  { "type": "integer" },
+                "deleted":     { "type": "integer" },
+                "third_party": { "type": "integer" },
+                "auto_start":  { "type": "integer" }
+              }
+            }
+          ]
+        },
+        "software": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":   { "type": "string" },
+                "total": { "type": "integer" },
+                "flags": { "type": "object", "additionalProperties": { "type": "integer" } }
+              }
+            }
+          ]
+        },
+        "upgrade": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":            { "type": "string" },
+                "recommendation": { "type": "string" },
+                "count":          { "type": "integer" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

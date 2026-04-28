@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "service_analysis.schema.json",
+  "title": "m07 service_analysis",
+  "description": "Windows services from offline SYSTEM hive written by m07_service_analysis. Log glob: logs/service_analysis_*.json",
+  "type": "object",
+  "required": ["generated", "target", "hive", "summary", "services"],
+  "additionalProperties": true,
+  "properties": {
+    "generated": { "type": "string", "description": "ISO 8601 UTC" },
+    "target":    { "type": "string" },
+    "hive":      { "type": "string" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "verdict":              { "type": "string", "enum": ["CLEAN", "REVIEW", "SUSPICIOUS"] },
+        "total":                { "type": "integer" },
+        "suspicious_count":     { "type": "integer" },
+        "third_party_count":    { "type": "integer" },
+        "deleted_count":        { "type": "integer" },
+        "auto_start_services":  { "type": "integer" }
+      }
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name":              { "type": "string" },
+          "display_name":      { "type": "string" },
+          "start":             { "type": "string", "examples": ["AUTO", "MANUAL", "DISABLED", "BOOT", "SYSTEM"] },
+          "type":              { "type": "string" },
+          "image_path":        { "type": "string" },
+          "resolved_path":     { "type": "string" },
+          "path_exists":       { "type": ["boolean", "null"] },
+          "object_name":       { "type": "string" },
+          "flags":             { "type": "array", "items": { "type": "string" } },
+          "suspicious_reason": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
