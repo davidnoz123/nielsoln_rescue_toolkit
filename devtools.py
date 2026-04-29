@@ -1021,12 +1021,13 @@ structure:
 def bundle_chatgpt(device_folder: str = "", output_dir: str = ".") -> str:
     """Create a zip bundle for uploading to ChatGPT to generate a customer report.
 
-    Includes all scan logs from the named device subfolder (or the most recent
-    subfolder in logs/) plus every schema file, plus a prompt file for ChatGPT.
+    Includes only the most-recent log file for each scan type from the named
+    device subfolder (or the most recent subfolder in logs/), plus every schema
+    file, plus a prompt file for ChatGPT.
 
     Returns the path to the created zip file.
     """
-    import pathlib as _pl, zipfile as _zf
+    import pathlib as _pl, zipfile as _zf, re as _re
 
     base = _pl.Path("logs")
 
@@ -1039,14 +1040,25 @@ def bundle_chatgpt(device_folder: str = "", output_dir: str = ".") -> str:
             device_dir  = max(subfolders, key=lambda d: d.stat().st_mtime)
             folder_name = device_dir.name
         else:
-            # Fall back to flat logs/ dir
             device_dir  = base
             folder_name = "scan_data"
 
     zip_path    = _pl.Path(output_dir) / f"{folder_name}.zip"
     schemas_dir = _pl.Path(__file__).parent / "schemas"
 
-    log_files    = sorted(device_dir.glob("*.json")) + sorted(device_dir.glob("*.jsonl"))
+    # Pick the most-recent file per scan-type prefix.
+    # Filenames look like: <scan_type>_YYYYMMDD_HHMMSS.json[l]
+    # Group by prefix (everything before the first date-like segment).
+    _DATE_PAT = _re.compile(r"_\d{8}_\d{6}")
+    by_prefix: dict = {}
+    all_logs = sorted(device_dir.glob("*.json")) + sorted(device_dir.glob("*.jsonl"))
+    for f in all_logs:
+        prefix = _DATE_PAT.split(f.name)[0]   # e.g. "hardware_profile"
+        # Keep whichever is lexicographically latest (timestamp is in the name)
+        if prefix not in by_prefix or f.name > by_prefix[prefix].name:
+            by_prefix[prefix] = f
+
+    log_files    = sorted(by_prefix.values(), key=lambda f: f.name)
     schema_files = sorted(schemas_dir.glob("*.json"))
 
     with _zf.ZipFile(zip_path, "w", compression=_zf.ZIP_DEFLATED) as zf:
@@ -1057,7 +1069,9 @@ def bundle_chatgpt(device_folder: str = "", output_dir: str = ".") -> str:
         zf.writestr("INSTRUCTIONS_FOR_CHATGPT.md", _CHATGPT_PROMPT)
 
     print(f"Bundle: {zip_path}")
-    print(f"  {len(log_files)} log file(s),  {len(schema_files)} schema file(s)")
+    print(f"  {len(log_files)} log file(s) (most recent per scan type),  {len(schema_files)} schema file(s)")
+    for f in log_files:
+        print(f"    {f.name}")
     print(f"  Upload to ChatGPT and ask it to follow INSTRUCTIONS_FOR_CHATGPT.md")
     return str(zip_path)
 
@@ -1099,7 +1113,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "docs: add housekeeping rule to AGENTS.md, archive old helper scripts to old/"
+    commit_message = "fix: bundle_chatgpt picks most-recent file per scan type; update AGENTS.md"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

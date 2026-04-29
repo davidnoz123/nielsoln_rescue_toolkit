@@ -200,9 +200,9 @@ There are **two separate deployment paths** and they must never be confused:
    set `module_name` and `module_args`, and run via `runpy`.
    - `run_module` pushes the latest `.py` via SCP then immediately runs it on the
      device via `bootstrap.py run`.  One relay connection. No GitHub needed.
-3. After all modules have run, use `validate_logs.py` with `--no-fetch` if logs
-   were already SCP'd locally, or set `action = "run_remote"` with a fetch script.
-4. Run `validate_logs.py` (see JSON Schema section) to validate all logs.
+3. After all modules have run, set `action = "fetch_and_validate"` in `devtools.py`
+   and run via `runpy` — this fetches, validates, and organises logs in one step.
+   Use `action = "bundle_chatgpt"` to create a zip for AI report generation.
 
 ## CRITICAL: Lock File Safety — NEVER Delete Blindly
 
@@ -412,14 +412,8 @@ mapping.
 
 ### Validating logs on the dev machine
 
-Use `validate_logs.py` (root of repo) to validate locally-fetched logs against
-their schemas:
-
-```python
-import runpy ; temp = runpy._run_module_as_main("validate_logs")
-```
-
-Set `logs_dir` and optionally `module_filter` inside `main()` before running.
+Schema validation is built into `devtools.py` (`_validate_logs()`).  Run it via
+`action = "fetch_and_validate"` which fetches, validates, and organises in one step.
 Requires the `jsonschema` package (already available in the dev venv).
 
 ### Future consideration — VS Code live validation
