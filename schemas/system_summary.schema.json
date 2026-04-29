@@ -343,6 +343,28 @@
               }
             }
           ]
+        },
+        "battery_health": {
+          "description": "Battery health summary from m10_battery_health. Reads /sys/class/power_supply/ on the live rescue Linux environment.",
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "log":             { "type": "string" },
+                "verdict":         { "type": "string", "enum": ["GOOD","WORN","POOR","FAILING","DEAD","NOT_PRESENT","UNKNOWN"] },
+                "battery_present": { "type": "boolean" },
+                "health_percent":  { "type": ["number", "null"], "description": "Worst-case health_percent across batteries" },
+                "capacity_percent":{ "type": ["integer", "null"] },
+                "status":          { "type": ["string", "null"] },
+                "ac_online":       { "type": ["boolean", "null"] },
+                "confidence":      { "type": "string", "enum": ["high","medium","low","unknown"] },
+                "limitations":     { "type": "array", "items": { "type": "string" } },
+                "recommendation":  { "type": "string" }
+              }
+            }
+          ]
         }
       }
     }

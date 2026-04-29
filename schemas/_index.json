@@ -1,6 +1,12 @@
 {
   "_comment": "Index of JSON Schema files for Nielsoln Rescue Toolkit module log outputs. Schema format: JSON Schema draft-07. All schemas use additionalProperties:true to allow forward-compatible new fields.",
   "modules": {
+    "m10_battery_health": {
+      "schema": "battery_health.schema.json",
+      "log_glob": "logs/battery_health_*.json",
+      "format": "JSON",
+      "notes": "Schema title: BATTERY_HEALTH. Reads /sys/class/power_supply/ from the live rescue environment — no Windows APIs. overall_verdict uses: GOOD (health>=70%), WORN (40-70%), POOR (20-40%), FAILING (<20%), DEAD (full capacity zero), NOT_PRESENT (no battery), UNKNOWN (insufficient telemetry). Per-battery health_percent = energy_full/energy_full_design (or charge_ equivalent). interpretation.customer_summary provides pre-written report text. safety.read_only is always true."
+    },
     "m01_persistence_scan": {
       "schema": "persist_finding.schema.json",
       "log_glob": "logs/persist_*.jsonl",
@@ -43,7 +49,7 @@
       "schema": "system_summary.schema.json",
       "log_glob": "logs/system_summary_*.json",
       "format": "JSON",
-      "notes": "sections: hardware, disk, thermal (v1 legacy/passive — idle sensor summary only, no load test), thermal_analysis (v2 preferred — includes passive_verdict/response_verdict/overall_thermal_verdict/temperature_rise_c/throttling_detected; use overall_thermal_verdict for reports), clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager (missing_drivers/disabled_devices/problem_code_devices/missing_driver_files/old_drivers/unsigned_drivers/devices_by_class), cmos_health, storage_usage, disk_integrity, bad_sector_scan (conclusion_strength/coverage_percent/blocks_failed/coverage_limitation — SAMPLE_OK means clean sample only, not full clean bill of health)."
+      "notes": "sections: hardware, disk, thermal (v1 legacy/passive — idle sensor summary only, no load test), thermal_analysis (v2 preferred — includes passive_verdict/response_verdict/overall_thermal_verdict/temperature_rise_c/throttling_detected; use overall_thermal_verdict for reports), battery_health (verdict/battery_present/health_percent/ac_online; GOOD/WORN/POOR/FAILING/DEAD/NOT_PRESENT/UNKNOWN), clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager (missing_drivers/disabled_devices/problem_code_devices/missing_driver_files/old_drivers/unsigned_drivers/devices_by_class), cmos_health, storage_usage, disk_integrity, bad_sector_scan (conclusion_strength/coverage_percent/blocks_failed/coverage_limitation — SAMPLE_OK means clean sample only, not full clean bill of health)."
     },
     "m23_logon_audit": {
       "schema": "logon_audit.schema.json",

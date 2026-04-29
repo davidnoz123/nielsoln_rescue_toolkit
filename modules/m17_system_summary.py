@@ -321,6 +321,40 @@ def _execution_surface(logs_dir: Path) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Battery health extractor
+# ---------------------------------------------------------------------------
+
+def _battery_health(logs_dir: Path) -> Optional[dict]:
+    p = _latest(logs_dir, "battery_health_*.json")
+    if not p:
+        return None
+    d = _read_json(p)
+    if not d:
+        return None
+    batteries   = d.get("batteries")   or []
+    ac_adapters = d.get("ac_adapters") or []
+    battery_present = bool(batteries) and any(b.get("battery_present") for b in batteries)
+    health_pcts = [b.get("health_percent") for b in batteries if b.get("health_percent") is not None]
+    worst_health = min(health_pcts) if health_pcts else None
+    capacity_pct = batteries[0].get("capacity_percent") if batteries else None
+    status       = batteries[0].get("status")           if batteries else None
+    ac_online    = any(a.get("ac_online") for a in ac_adapters) if ac_adapters else None
+    interp       = d.get("interpretation") or {}
+    return {
+        "log":             p.name,
+        "verdict":         d.get("overall_verdict", "UNKNOWN"),
+        "battery_present": battery_present,
+        "health_percent":  worst_health,
+        "capacity_percent": capacity_pct,
+        "status":          status,
+        "ac_online":       ac_online,
+        "confidence":      d.get("confidence", "unknown"),
+        "limitations":     d.get("limitations") or [],
+        "recommendation":  interp.get("recommended_action") or "",
+    }
+
+
+# ---------------------------------------------------------------------------
 # Cross-module adjustment rules
 # ---------------------------------------------------------------------------
 
@@ -636,6 +670,7 @@ def run(root: Path, argv: list) -> int:
         "upgrade":           _upgrade(logs_dir),
         "integrity":         _integrity(logs_dir),
         "execution_surface": _execution_surface(logs_dir),
+        "battery_health":    _battery_health(logs_dir),
     }
 
     _print_report(data, args.target)

@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "battery_health.schema.json",
+  "title": "BATTERY_HEALTH",
+  "description": "Output of m10_battery_health. Reads /sys/class/power_supply/ from the live rescue environment. Log glob: logs/battery_health_*.json",
+  "type": "object",
+  "required": ["generated", "target", "overall_verdict", "batteries"],
+  "additionalProperties": true,
+  "properties": {
+    "generated":       { "type": "string", "description": "ISO-8601 UTC timestamp" },
+    "target":          { "type": "string", "description": "Mounted Windows path (context only)" },
+    "overall_verdict": {
+      "type": "string",
+      "enum": ["GOOD", "WORN", "POOR", "FAILING", "DEAD", "NOT_PRESENT", "UNKNOWN"],
+      "description": "Worst verdict across all batteries detected"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "unknown"],
+      "description": "high=all batteries have full telemetry; medium=partial; low=no health_percent available"
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "e.g. live_test_not_performed, cycle_count_unavailable_BAT0, rescuezilla_linux_reading_only"
+    },
+    "interpretation": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "customer_summary":    { "type": "string" },
+            "technician_summary":  { "type": "string" },
+            "what_this_means":     { "type": "string" },
+            "confidence":          { "type": "string" },
+            "limitations":         { "type": "array", "items": { "type": "string" } },
+            "recommended_action":  { "type": "string" },
+            "all_recommendations": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ]
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "read_only":               { "type": "boolean", "description": "Always true for m10" },
+        "destructive":             { "type": "boolean" },
+        "charge_test_performed":   { "type": "boolean" },
+        "discharge_test_performed":{ "type": "boolean" },
+        "write_test_performed":    { "type": "boolean" }
+      }
+    },
+    "batteries": {
+      "type": "array",
+      "description": "One entry per battery device found under /sys/class/power_supply/",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["name", "battery_present", "verdict"],
+        "properties": {
+          "name":            { "type": "string", "description": "Kernel power_supply name, e.g. BAT0" },
+          "sysfs_path":      { "type": "string" },
+          "battery_present": { "type": "boolean" },
+          "manufacturer":    { "type": ["string", "null"] },
+          "model_name":      { "type": ["string", "null"] },
+          "serial_number":   { "type": ["string", "null"] },
+          "technology":      { "type": ["string", "null"], "description": "e.g. Li-ion, NiMH" },
+          "health":          { "type": ["string", "null"], "description": "Kernel-reported health string if available" },
+          "status":          { "type": "string", "description": "Charging/Discharging/Full/Not charging/Unknown" },
+          "capacity_percent":{ "type": ["integer", "null"], "description": "0-100 from kernel capacity file" },
+          "capacity_level":  { "type": ["string", "null"], "description": "e.g. Normal, Low, Critical" },
+          "alarm":           { "type": ["string", "null"] },
+          "energy_now":      { "type": ["integer", "null"], "description": "µWh" },
+          "energy_full":     { "type": ["integer", "null"], "description": "µWh" },
+          "energy_full_design": { "type": ["integer", "null"], "description": "µWh" },
+          "charge_now":      { "type": ["integer", "null"], "description": "µAh" },
+          "charge_full":     { "type": ["integer", "null"], "description": "µAh" },
+          "charge_full_design": { "type": ["integer", "null"], "description": "µAh" },
+          "voltage_now":     { "type": ["integer", "null"], "description": "µV" },
+          "current_now":     { "type": ["integer", "null"], "description": "µA (may be negative when discharging)" },
+          "power_now":       { "type": ["integer", "null"], "description": "µW" },
+          "cycle_count":     { "type": ["integer", "null"] },
+          "unit":            { "type": "string", "enum": ["mWh", "mAh"] },
+          "design_capacity_available": { "type": ["integer", "null"], "description": "mWh or mAh" },
+          "full_capacity_available":   { "type": ["integer", "null"], "description": "mWh or mAh" },
+          "health_percent": {
+            "type": ["number", "null"],
+            "description": "energy_full/energy_full_design * 100 (or charge_ equivalent). Primary health signal."
+          },
+          "remaining_percent": {
+            "type": ["number", "null"],
+            "description": "Current charge as percent of full charge capacity"
+          },
+          "estimated_runtime_minutes": { "type": ["number", "null"] },
+          "battery_age_hint":          { "type": ["string", "null"] },
+          "flags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "e.g. full_capacity_zero, not_charging_or_unknown_status, high_cycle_count_N"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": ["GOOD", "WORN", "POOR", "FAILING", "DEAD", "NOT_PRESENT", "UNKNOWN"],
+            "description": "Per-battery verdict"
+          },
+          "raw": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "Raw sysfs key/value snapshot from the battery directory"
+          }
+        }
+      }
+    },
+    "ac_adapters": {
+      "type": "array",
+      "description": "One entry per AC adapter / Mains device found",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name":       { "type": "string" },
+          "sysfs_path": { "type": "string" },
+          "ac_present": { "type": "boolean" },
+          "ac_online":  { "type": ["boolean", "null"], "description": "true=AC connected and supplying power" },
+          "raw": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

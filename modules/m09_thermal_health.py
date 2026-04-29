@@ -882,6 +882,7 @@ def run(root: Path, argv: list) -> int:
     limitations.append("rescue_environment_readings_reflect_live_system_state")
 
     # ── Interpretation block ─────────────────────────────────────────────────
+    _lt = load_test or {}
     _desc = {
         "GOOD":     "Thermal performance is healthy.",
         "FAIR":     "Mild thermal stress detected — cleaning may help.",
@@ -923,7 +924,6 @@ def run(root: Path, argv: list) -> int:
     log_path = log_dir / f"thermal_health_{timestamp}.json"
 
     # Promote time-series data to the top level for easy consumption
-    _lt = load_test or {}
     _ts = _lt.get("samples", []) if _lt.get("enabled") and not _lt.get("skipped_reason") else []
 
     report = {
