@@ -86,6 +86,15 @@ _CONTROLLER_RESET_IDS  = {129}
 _DRIVER_FAIL_IDS       = {7000, 7001, 7023, 7024, 7031, 7034}
 _CHKDSK_EVENT_IDS      = {26226}
 _SFC_REPAIR_IDS        = {4097, 4098}   # Wininit / WER events indicating SFC ran
+_NTFS_ERROR_IDS        = {55, 57}       # NTFS file system structure corruption (Ntfs source)
+_FS_ERROR_IDS          = {98, 140}      # Filesystem generic errors
+
+# Regex to extract Windows file paths from CBS log corruption lines
+_CBS_FILE_RE = re.compile(
+    r'"([A-Za-z]:\\[^"]+\.[A-Za-z]{2,6})'           # "C:\Windows\…"
+    r'|\\Windows\\([^\s,;:"]+\.[A-Za-z]{2,6})',       # \Windows\System32\…
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # Protected file list
@@ -683,6 +692,20 @@ def _parse_cbs_log(text: str) -> dict:
     }
 
 
+def _extract_cbs_affected_files(corruption_indicators: List[str]) -> List[str]:
+    """Extract Windows file paths from CBS corruption indicator lines."""
+    files: List[str] = []
+    seen: Set[str]   = set()
+    for line in corruption_indicators:
+        for m in _CBS_FILE_RE.finditer(line):
+            path = (m.group(1) or m.group(2) or "").rstrip(".,;:")
+            key  = path.lower()
+            if path and key not in seen:
+                seen.add(key)
+                files.append(path)
+    return files[:20]
+
+
 def _check_servicing(win_root: Path) -> dict:
     """Read CBS.log and DISM logs for repair/corruption history."""
     result: dict = {
@@ -690,6 +713,7 @@ def _check_servicing(win_root: Path) -> dict:
         "cbs_log_path":           None,
         "cbs_log_scanned_bytes":  0,
         "corruption_indicators":  [],
+        "affected_files":         [],
         "repair_attempts":        0,
         "failed_repairs":         0,
         "error_count":            0,
@@ -733,6 +757,10 @@ def _check_servicing(win_root: Path) -> dict:
     # Set flags
     if result["corruption_indicators"]:
         result["flags"].append("CBS_CORRUPTION_INDICATOR")
+        # Extract affected file paths from corruption indicator lines
+        result["affected_files"] = _extract_cbs_affected_files(result["corruption_indicators"])
+    else:
+        result["affected_files"] = []
     if result["failed_repairs"] > 0:
         result["flags"].append("CBS_FAILED_REPAIRS")
     if result["repair_attempts"] > 0 and result["failed_repairs"] == 0:
@@ -1039,15 +1067,58 @@ def _check_driver_integrity(win_root: Path, hive_fns) -> dict:
 # 8. Event log correlation
 # ---------------------------------------------------------------------------
 
+def _build_event_references(evts: dict) -> List[dict]:
+    """Return a list of event reference descriptors for structured JSON output."""
+    refs: List[dict] = []
+    if evts.get("disk_io_errors", 0):
+        refs.append({
+            "event_ids":   sorted(_DISK_IO_ERROR_IDS),
+            "count":       evts["disk_io_errors"],
+            "category":    "disk_io_error",
+            "description": "Disk I/O read/write errors (disk.sys / SCSI miniport)",
+        })
+    if evts.get("ntfs_errors", 0):
+        refs.append({
+            "event_ids":   sorted(_NTFS_ERROR_IDS),
+            "count":       evts["ntfs_errors"],
+            "category":    "ntfs_filesystem_error",
+            "description": "NTFS on-disk structure corruption detected by the NTFS driver",
+        })
+    if evts.get("controller_resets", 0):
+        refs.append({
+            "event_ids":   sorted(_CONTROLLER_RESET_IDS),
+            "count":       evts["controller_resets"],
+            "category":    "controller_reset",
+            "description": "Storage controller reset (atapi/storahci/iaStorA)",
+        })
+    if evts.get("driver_failures", 0):
+        refs.append({
+            "event_ids":   sorted(_DRIVER_FAIL_IDS),
+            "count":       evts["driver_failures"],
+            "category":    "driver_failure",
+            "description": "Service or driver failed to start/run (Service Control Manager)",
+        })
+    if evts.get("chkdsk_events", 0):
+        refs.append({
+            "event_ids":   sorted(_CHKDSK_EVENT_IDS),
+            "count":       evts["chkdsk_events"],
+            "category":    "chkdsk",
+            "description": "CHKDSK was run and logged results (Wininit)",
+        })
+    return refs
+
+
 def _correlate_events(win_root: Path) -> dict:
     """Parse System.evtx and Application.evtx for disk/driver/SFC events."""
     result: dict = {
         "evtx_available":    False,
         "disk_io_errors":    0,
+        "ntfs_errors":       0,
         "controller_resets": 0,
         "driver_failures":   0,
         "chkdsk_events":     0,
         "sfc_repair_events": 0,
+        "event_classification": {},
         "flags":             [],
     }
 
@@ -1088,11 +1159,12 @@ def _correlate_events(win_root: Path) -> dict:
             pass
         return counts
 
-    # System.evtx: disk errors + controller resets + driver failures
+    # System.evtx: disk errors + NTFS errors + controller resets + driver failures
     sys_evtx = logs_path / "System.evtx"
-    all_sys_ids = _DISK_IO_ERROR_IDS | _CONTROLLER_RESET_IDS | _DRIVER_FAIL_IDS
+    all_sys_ids = _DISK_IO_ERROR_IDS | _NTFS_ERROR_IDS | _CONTROLLER_RESET_IDS | _DRIVER_FAIL_IDS
     sys_counts = _parse_log(sys_evtx, all_sys_ids)
     result["disk_io_errors"]    = sum(sys_counts.get(i, 0) for i in _DISK_IO_ERROR_IDS)
+    result["ntfs_errors"]       = sum(sys_counts.get(i, 0) for i in _NTFS_ERROR_IDS)
     result["controller_resets"] = sum(sys_counts.get(i, 0) for i in _CONTROLLER_RESET_IDS)
     result["driver_failures"]   = sum(sys_counts.get(i, 0) for i in _DRIVER_FAIL_IDS)
 
@@ -1102,10 +1174,24 @@ def _correlate_events(win_root: Path) -> dict:
     result["chkdsk_events"]     = sum(app_counts.get(i, 0) for i in _CHKDSK_EVENT_IDS)
     result["sfc_repair_events"] = sum(app_counts.get(i, 0) for i in _SFC_REPAIR_IDS)
 
+    # Build structured event_classification
+    disk_hw = result["disk_io_errors"] + result["controller_resets"]
+    result["event_classification"] = {
+        "disk_hardware_events": disk_hw,
+        "ntfs_filesystem_events": result["ntfs_errors"],
+        "driver_events":        result["driver_failures"],
+        "chkdsk_events":        result["chkdsk_events"],
+        "sfc_events":           result["sfc_repair_events"],
+        "likely_disk_related":  disk_hw > 0 or result["ntfs_errors"] > 0 or result["chkdsk_events"] > 0,
+        "event_references": _build_event_references(result),
+    }
+
     if result["disk_io_errors"] > 5:
         result["flags"].append("DISK_IO_ERRORS")
     elif result["disk_io_errors"] > 0:
         result["flags"].append("SOME_DISK_IO_ERRORS")
+    if result["ntfs_errors"] > 0:
+        result["flags"].append("NTFS_FILESYSTEM_ERRORS")
     if result["controller_resets"] > 0:
         result["flags"].append("CONTROLLER_RESETS")
     if result["driver_failures"] > 0:
@@ -1238,6 +1324,548 @@ def _correlate_other_modules(logs_dir: Path) -> dict:
         result["flags"].append("CROSS_MODULE_TAMPERING_SIGNAL")
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# New: Volume context
+# ---------------------------------------------------------------------------
+
+def _check_volume_context(win_root: Path, logs_dir: Path) -> dict:
+    """Derive volume/filesystem context from sibling module logs.
+
+    Reads disk_integrity (m30) and disk_health (m05) logs for the NTFS
+    dirty bit, device name, and last CHKDSK indicators.
+    """
+    result: dict = {
+        "device":          None,
+        "filesystem":      "NTFS",
+        "ntfs_dirty_bit":  None,
+        "chkdsk_indicator": False,
+        "volume_name":     None,
+        "notes":           [],
+    }
+
+    di_path = _latest_log(logs_dir, "disk_integrity_*.json")
+    di      = _read_json_log(di_path)
+    if di:
+        dirty = di.get("dirty_bit", {})
+        if isinstance(dirty, dict):
+            result["ntfs_dirty_bit"]   = dirty.get("dirty")
+            if dirty.get("dirty"):
+                result["chkdsk_indicator"] = True
+        elif isinstance(dirty, bool):
+            result["ntfs_dirty_bit"] = dirty
+            if dirty:
+                result["chkdsk_indicator"] = True
+        dev = di.get("device") or di.get("volume") or di.get("disk")
+        if dev:
+            result["device"] = str(dev)
+
+    # Fallback: disk_health for device name
+    if result["device"] is None:
+        dh_path = _latest_log(logs_dir, "disk_health_*.json")
+        dh      = _read_json_log(dh_path)
+        if dh:
+            drives = dh if isinstance(dh, list) else dh.get("drives", dh.get("disks", []))
+            if isinstance(drives, list) and drives:
+                first = drives[0]
+                result["device"] = first.get("device") or first.get("model") or first.get("serial")
+
+    if result["ntfs_dirty_bit"]:
+        result["notes"].append(
+            "NTFS dirty bit set — volume was not cleanly unmounted; "
+            "suggests crash or sudden power loss, not deliberate tampering"
+        )
+    elif result["ntfs_dirty_bit"] is False:
+        result["notes"].append("NTFS dirty bit clear — volume was cleanly unmounted")
+    else:
+        result["notes"].append("NTFS dirty bit unknown — disk_integrity log not available")
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# New: File ↔ disk correlation
+# ---------------------------------------------------------------------------
+
+def _correlate_file_disk(pf_result: dict, evts_result: dict, vol_ctx: dict) -> dict:
+    """Map missing/anomalous files to disk/NTFS event indicators.
+
+    For each missing or anomalous file, records whether corroborating disk
+    hardware evidence exists and what event IDs are relevant.
+    """
+    disk_io    = evts_result.get("disk_io_errors", 0) or 0
+    ntfs_errs  = evts_result.get("ntfs_errors", 0) or 0
+    ctrl_rst   = evts_result.get("controller_resets", 0) or 0
+    chkdsk     = evts_result.get("chkdsk_events", 0) or 0
+    dirty      = bool(vol_ctx.get("ntfs_dirty_bit"))
+
+    has_disk_hw   = disk_io > 0 or ctrl_rst > 0
+    has_ntfs_err  = ntfs_errs > 0
+    has_any_disk  = has_disk_hw or has_ntfs_err or chkdsk > 0 or dirty
+
+    disk_event_refs: List[int] = []
+    if disk_io > 0:
+        disk_event_refs.extend(sorted(_DISK_IO_ERROR_IDS))
+    if ntfs_errs > 0:
+        disk_event_refs.extend(sorted(_NTFS_ERROR_IDS))
+    if ctrl_rst > 0:
+        disk_event_refs.extend(sorted(_CONTROLLER_RESET_IDS))
+
+    correlations: List[dict] = []
+
+    for f in pf_result.get("missing", []):
+        correlations.append({
+            "file":                 f["path"],
+            "anomaly_type":         "MISSING",
+            "disk_event_refs":      disk_event_refs,
+            "dirty_bit_correlated": dirty,
+            "likely_disk_related":  has_any_disk,
+            "note": (
+                "Disk I/O errors in event log — absence may be due to a read failure that left the file unreadable or partially written"
+                if has_disk_hw else
+                "NTFS structural errors logged — filesystem inconsistency may explain missing file"
+                if has_ntfs_err else
+                "NTFS dirty bit set — possible truncation from unclean shutdown"
+                if dirty else
+                "No corroborating disk events — absence is unexplained by hardware evidence alone"
+            ),
+        })
+
+    for f in pf_result.get("anomalous", []):
+        for anomaly in f.get("anomalies", []):
+            if anomaly == "ZERO_BYTE":
+                correlations.append({
+                    "file":                 f["path"],
+                    "anomaly_type":         "ZERO_BYTE",
+                    "disk_event_refs":      disk_event_refs,
+                    "dirty_bit_correlated": dirty,
+                    "likely_disk_related":  has_any_disk,
+                    "note": (
+                        "Zero-size file with disk errors — likely write truncation from I/O failure"
+                        if has_disk_hw else
+                        "Zero-size file — consistent with disk failure or deliberate zeroing; hardware context is ambiguous"
+                    ),
+                })
+            elif anomaly in ("SUSPICIOUS_METADATA", "INTERNAL_NAME_MISMATCH"):
+                correlations.append({
+                    "file":                 f["path"],
+                    "anomaly_type":         anomaly,
+                    "disk_event_refs":      [],
+                    "dirty_bit_correlated": False,
+                    "likely_disk_related":  False,
+                    "note": (
+                        "Metadata anomaly — disk errors do NOT cause CompanyName/InternalName "
+                        "substitution; this is consistent with deliberate file replacement"
+                    ),
+                })
+            elif anomaly == "DRIVER_OUTSIDE_EXPECTED_PATH":
+                correlations.append({
+                    "file":                 f["path"],
+                    "anomaly_type":         anomaly,
+                    "disk_event_refs":      [],
+                    "dirty_bit_correlated": False,
+                    "likely_disk_related":  False,
+                    "note": "Non-standard driver path is a configuration or tampering artifact, not disk damage",
+                })
+
+    return {
+        "correlations":        correlations[:30],
+        "disk_events_present": has_any_disk,
+        "disk_io_count":       disk_io,
+        "ntfs_error_count":    ntfs_errs,
+        "dirty_bit":           dirty,
+        "summary": (
+            "Disk hardware events corroborate file anomalies — hardware failure is the primary hypothesis"
+            if has_disk_hw and correlations else
+            "NTFS/filesystem events corroborate file anomalies — filesystem corruption likely from hardware issue"
+            if has_ntfs_err and correlations else
+            "File anomalies present but no disk hardware events — investigate metadata anomalies as potential tampering"
+            if correlations and not has_any_disk else
+            "No file anomalies detected"
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# New: Anomaly breakdown
+# ---------------------------------------------------------------------------
+
+def _compute_anomaly_breakdown(pf_result: dict) -> dict:
+    """Categorize file anomalies by type for structured reporting."""
+    missing   = pf_result.get("missing",   [])
+    anomalous = pf_result.get("anomalous", [])
+
+    zero_size     = [a for a in anomalous if "ZERO_BYTE"               in a.get("anomalies", [])]
+    meta_mismatch = [a for a in anomalous if any(
+        x in a.get("anomalies", []) for x in ("SUSPICIOUS_METADATA", "INTERNAL_NAME_MISMATCH")
+    )]
+    unexpected    = [a for a in anomalous if "DRIVER_OUTSIDE_EXPECTED_PATH" in a.get("anomalies", [])]
+    ts_anomaly    = [a for a in anomalous if any(
+        x in a.get("anomalies", []) for x in ("TIMESTAMP_TOO_OLD", "TIMESTAMP_FUTURE")
+    )]
+
+    return {
+        "missing_count":             len(missing),
+        "missing_files":             [f["path"] for f in missing],
+        "zero_size_count":           len(zero_size),
+        "zero_size_files":           [f["path"] for f in zero_size],
+        "metadata_mismatch_count":   len(meta_mismatch),
+        "metadata_mismatch_files":   [f["path"] for f in meta_mismatch],
+        "unexpected_location_count": len(unexpected),
+        "unexpected_location_files": [f["path"] for f in unexpected],
+        "timestamp_anomaly_count":   len(ts_anomaly),
+        "timestamp_anomaly_files":   [f["path"] for f in ts_anomaly],
+    }
+
+
+# ---------------------------------------------------------------------------
+# New: Explicit tampering indicators
+# ---------------------------------------------------------------------------
+
+def _compute_tampering_indicators(sections: dict) -> dict:
+    """Identify positive (pro-tampering) and negative (anti-tampering) signals.
+
+    Positive signals support the tampering hypothesis.
+    Negative signals argue against it (disk/hardware evidence).
+    """
+    pf    = sections.get("protected_files", {})
+    evts  = sections.get("events", {})
+    cross = sections.get("cross_module", {})
+    drv   = sections.get("driver_integrity", {})
+    svc   = sections.get("servicing", {})
+    vol   = sections.get("volume_context", {})
+
+    positive: List[dict] = []
+    negative: List[dict] = []
+
+    # ── Positive (pro-tampering) ──────────────────────────────────────────
+    for a in pf.get("anomalous", []):
+        if "SUSPICIOUS_METADATA" in a.get("anomalies", []):
+            positive.append({
+                "signal":  "SUSPICIOUS_METADATA",
+                "file":    a["path"],
+                "detail":  f"CompanyName='{a.get('version_info', {}).get('CompanyName', '')}' is not Microsoft Corporation",
+                "weight":  "high",
+            })
+        if "INTERNAL_NAME_MISMATCH" in a.get("anomalies", []):
+            positive.append({
+                "signal":  "INTERNAL_NAME_MISMATCH",
+                "file":    a["path"],
+                "detail":  "PE InternalName field does not match the file's actual name",
+                "weight":  "medium",
+            })
+
+    for d in drv.get("suspicious_paths", []):
+        positive.append({
+            "signal":  "BOOT_DRIVER_OUTSIDE_SAFE_PATH",
+            "file":    d.get("image_path"),
+            "detail":  f"Service '{d['name']}' registers a boot/system driver from a non-standard path",
+            "weight":  "high",
+        })
+
+    if cross.get("persistence_suspicious", 0) > 0:
+        positive.append({
+            "signal":  "PERSISTENCE_SCANNER_SUSPICIOUS",
+            "file":    None,
+            "detail":  f"{cross['persistence_suspicious']} suspicious persistence entry/entries (m01)",
+            "weight":  "medium",
+        })
+
+    if cross.get("service_suspicious", 0) > 0:
+        positive.append({
+            "signal":  "SUSPICIOUS_SERVICES",
+            "file":    None,
+            "detail":  f"{cross['service_suspicious']} suspicious service(s) flagged by m07",
+            "weight":  "medium",
+        })
+
+    # ── Negative (anti-tampering / hardware evidence) ─────────────────────
+    disk_io   = evts.get("disk_io_errors", 0) or 0
+    ctrl_rst  = evts.get("controller_resets", 0) or 0
+    ntfs_err  = evts.get("ntfs_errors", 0) or 0
+    chkdsk    = evts.get("chkdsk_events", 0) or 0
+    dirty     = bool(vol.get("ntfs_dirty_bit"))
+    dh_v      = cross.get("disk_health_verdict") or ""
+
+    if disk_io > 0 or ctrl_rst > 0:
+        negative.append({
+            "signal":  "DISK_HARDWARE_ERRORS_PRESENT",
+            "detail":  f"disk_io_errors={disk_io}  controller_resets={ctrl_rst} — hardware failure explains file anomalies without invoking tampering",
+            "weight":  "high",
+        })
+
+    if ntfs_err > 0:
+        negative.append({
+            "signal":  "NTFS_STRUCTURAL_ERRORS",
+            "detail":  f"{ntfs_err} NTFS filesystem structure error(s) logged — on-disk corruption by driver, consistent with hardware failure",
+            "weight":  "high",
+        })
+
+    if chkdsk > 0:
+        negative.append({
+            "signal":  "CHKDSK_EVIDENCE",
+            "detail":  f"CHKDSK was run {chkdsk} time(s) — confirms prior disk or filesystem issue was detected",
+            "weight":  "medium",
+        })
+
+    if dirty:
+        negative.append({
+            "signal":  "NTFS_DIRTY_BIT",
+            "detail":  "NTFS dirty bit set — indicates unclean shutdown (crash, power loss), not deliberate tampering",
+            "weight":  "medium",
+        })
+
+    if svc.get("corruption_indicators"):
+        negative.append({
+            "signal":  "CBS_LOGGED_CORRUPTION",
+            "detail":  "CBS.log recorded corruption — Windows itself detected and attempted to repair damage (expected after hardware failure)",
+            "weight":  "low",
+        })
+
+    if dh_v in ("CAUTION", "FAILING"):
+        negative.append({
+            "signal":  "DISK_HEALTH_DEGRADED",
+            "detail":  f"Disk health verdict={dh_v} (m05) — physical hardware degradation is the dominant failure mode",
+            "weight":  "high",
+        })
+
+    return {
+        "positive_indicators": positive,
+        "negative_indicators": negative,
+        "positive_count":      len(positive),
+        "negative_count":      len(negative),
+    }
+
+
+# ---------------------------------------------------------------------------
+# New: Classification block
+# ---------------------------------------------------------------------------
+
+def _compute_classification(sections: dict, tampering_indicators: dict) -> dict:
+    """Produce primary classification: CORRUPTION | TAMPERING | UNKNOWN.
+
+    Also determines cause (DISK_RELATED | SOFTWARE | UNKNOWN),
+    tampering_likelihood (0–100), and confidence.
+    """
+    pos = tampering_indicators.get("positive_indicators", [])
+    neg = tampering_indicators.get("negative_indicators", [])
+
+    _w = {"high": 3, "medium": 2, "low": 1}
+    pos_w = sum(_w.get(p["weight"], 1) for p in pos)
+    neg_w = sum(_w.get(n["weight"], 1) for n in neg)
+
+    pf   = sections.get("protected_files", {})
+    svc  = sections.get("servicing", {})
+    evts = sections.get("events", {})
+
+    missing_count   = len(pf.get("missing", []))
+    anomalous_count = len(pf.get("anomalous", []))
+    cbs_corrupt     = bool(svc.get("corruption_indicators"))
+    any_issue       = missing_count > 0 or anomalous_count > 0 or cbs_corrupt
+
+    has_disk_evidence   = neg_w > 0
+    has_tamper_evidence = pos_w > 0
+
+    # Primary classification
+    if not any_issue and not has_tamper_evidence:
+        primary = "CLEAN"
+    elif has_tamper_evidence and pos_w > neg_w:
+        primary = "TAMPERING"
+    elif any_issue and not has_tamper_evidence:
+        primary = "CORRUPTION"
+    elif has_disk_evidence and has_tamper_evidence:
+        # Both signals present — default to CORRUPTION; tampering_likelihood captures doubt
+        primary = "CORRUPTION"
+    else:
+        primary = "UNKNOWN"
+
+    # Cause
+    disk_hw = (evts.get("disk_io_errors", 0) or 0) + (evts.get("controller_resets", 0) or 0)
+    if not any_issue:
+        cause = "NONE"
+    elif disk_hw > 0 or (evts.get("ntfs_errors", 0) or 0) > 0:
+        cause = "DISK_RELATED"
+    elif has_tamper_evidence and pos_w > neg_w:
+        cause = "SOFTWARE"
+    elif bool(sections.get("volume_context", {}).get("ntfs_dirty_bit")):
+        cause = "DISK_RELATED"
+    else:
+        cause = "UNKNOWN"
+
+    # Tampering likelihood 0–100
+    if pos_w == 0 and neg_w == 0:
+        tampering_likelihood = 10       # baseline — possible but no evidence
+    elif pos_w == 0:
+        tampering_likelihood = max(5, 10 - neg_w * 5)
+    elif neg_w == 0:
+        tampering_likelihood = min(90, 30 + pos_w * 10)
+    else:
+        ratio = pos_w / (pos_w + neg_w)
+        tampering_likelihood = int(ratio * 80 + 10)
+    tampering_likelihood = max(0, min(100, tampering_likelihood))
+
+    # Confidence
+    flags = _collect_all_flags(sections)
+    limited = (
+        "EVTX_LIBRARY_UNAVAILABLE" in flags
+        or "HIVE_READER_UNAVAILABLE" in flags
+        or "EVTX_LOGS_DIR_MISSING" in flags
+    )
+    if not any_issue and not has_tamper_evidence:
+        confidence = "medium"   # absence of evidence is not proof of absence
+    elif limited:
+        confidence = "low"
+    elif has_disk_evidence and has_tamper_evidence:
+        confidence = "low"      # conflicting signals
+    elif (pos_w + neg_w) >= 4:
+        confidence = "high"
+    else:
+        confidence = "medium"
+
+    return {
+        "primary":              primary,
+        "cause":                cause,
+        "tampering_likelihood": tampering_likelihood,
+        "confidence":           confidence,
+    }
+
+
+# ---------------------------------------------------------------------------
+# New: Cross-module reasoning block
+# ---------------------------------------------------------------------------
+
+def _compute_cross_module_reasoning(sections: dict, classification: dict) -> dict:
+    """Structured step-by-step reasoning that combines all module signals."""
+    cross  = sections.get("cross_module", {})
+    evts   = sections.get("events", {})
+    vol    = sections.get("volume_context", {})
+    svc    = sections.get("servicing", {})
+    pf     = sections.get("protected_files", {})
+    drv    = sections.get("driver_integrity", {})
+
+    steps: List[str] = []
+
+    # Hardware context
+    dh_v   = cross.get("disk_health_verdict") or ""
+    disk_io = evts.get("disk_io_errors", 0) or 0
+    ctrl    = evts.get("controller_resets", 0) or 0
+    ntfs_e  = evts.get("ntfs_errors", 0) or 0
+    if dh_v in ("CAUTION", "FAILING"):
+        steps.append(
+            f"m05 disk health verdict is {dh_v} — hardware degradation is the leading hypothesis for any observed file anomalies"
+        )
+    if disk_io > 0 or ctrl > 0:
+        steps.append(
+            f"System event log: {disk_io} disk I/O error(s), {ctrl} controller reset(s) "
+            f"— corroborates hardware failure as cause of filesystem damage"
+        )
+    if ntfs_e > 0:
+        steps.append(
+            f"NTFS driver logged {ntfs_e} filesystem structure error(s) "
+            f"— confirms on-disk NTFS corruption, consistent with hardware failure"
+        )
+    if vol.get("ntfs_dirty_bit"):
+        steps.append(
+            "NTFS dirty bit set — prior unclean shutdown (crash or sudden power loss) "
+            "may have left filesystem in an inconsistent state"
+        )
+
+    # File anomaly reasoning
+    missing   = len(pf.get("missing", []))
+    anomalous = len(pf.get("anomalous", []))
+    if missing > 0:
+        steps.append(
+            f"{missing} required system file(s) missing — "
+            "evaluate against disk error history before concluding tampering"
+        )
+    if anomalous > 0:
+        sus_meta = [a for a in pf.get("anomalous", []) if "SUSPICIOUS_METADATA" in a.get("anomalies", [])]
+        zero_f   = [a for a in pf.get("anomalous", []) if "ZERO_BYTE"           in a.get("anomalies", [])]
+        if sus_meta:
+            steps.append(
+                f"{len(sus_meta)} file(s) have non-Microsoft company metadata — "
+                "disk I/O errors do NOT alter PE version strings; this is a strong tampering indicator"
+            )
+        if zero_f:
+            steps.append(
+                f"{len(zero_f)} zero-byte system file(s) — "
+                "consistent with either disk write failure or deliberate zeroing; cannot distinguish without further evidence"
+            )
+
+    # CBS
+    if svc.get("corruption_indicators"):
+        steps.append(
+            f"CBS.log: {len(svc['corruption_indicators'])} corruption indicator(s), "
+            f"{svc.get('failed_repairs', 0)} failed repair(s) — "
+            "Windows previously detected and attempted to log and repair damage (typical after hardware failure)"
+        )
+        if svc.get("affected_files"):
+            steps.append(
+                f"CBS affected files: {', '.join(svc['affected_files'][:5])}"
+                + (f" (+ {len(svc['affected_files'])-5} more)" if len(svc["affected_files"]) > 5 else "")
+            )
+
+    # Drivers
+    miss_drv = len(drv.get("missing_driver_files", []))
+    sus_drv  = len(drv.get("suspicious_paths", []))
+    if miss_drv > 0:
+        steps.append(f"{miss_drv} registered driver binary/binaries missing — may indicate disk failure or uninstalled hardware")
+    if sus_drv > 0:
+        steps.append(
+            f"{sus_drv} boot/system driver(s) registered from non-standard path(s) — "
+            "strong tampering indicator; disk failure does not cause driver path changes"
+        )
+
+    # Cross-module: persistence + services
+    pers = cross.get("persistence_suspicious", 0) or 0
+    svcs = cross.get("service_suspicious", 0) or 0
+    if pers > 0 and svcs > 0:
+        steps.append(
+            f"m01 persistence ({pers} suspicious) combined with m07 services ({svcs} suspicious) "
+            "— this pattern suggests active malware rather than passive hardware corruption"
+        )
+    elif pers > 0:
+        steps.append(f"m01 persistence scan: {pers} suspicious entry/entries — warrants investigation independent of hardware status")
+    elif svcs > 0:
+        steps.append(f"m07 service analysis: {svcs} suspicious service(s) — warrants investigation independent of hardware status")
+
+    # Final synthesis
+    primary = classification.get("primary", "UNKNOWN")
+    cause   = classification.get("cause",   "UNKNOWN")
+    tl      = classification.get("tampering_likelihood", 0)
+    if cause == "DISK_RELATED":
+        synthesis = (
+            "Hardware evidence dominates. Recommend: (1) clone disk before any repairs, "
+            "(2) run CHKDSK /F /R, (3) run SFC /scannow when bootable — "
+            "then re-evaluate for software tampering if issues persist."
+        )
+    elif primary == "TAMPERING":
+        synthesis = (
+            "Tampering indicators present with no offsetting hardware evidence. "
+            "Recommend: secondary AV scan, manual inspection of flagged files, "
+            "and consider full OS reinstallation."
+        )
+    else:
+        synthesis = (
+            "Insufficient evidence to cleanly distinguish hardware failure from software tampering. "
+            "Pursue both paths: hardware diagnostics (CHKDSK, SMART) and malware investigation."
+        )
+    steps.append(
+        f"Classification: primary={primary}  cause={cause}  "
+        f"tampering_likelihood={tl}%  confidence={classification.get('confidence', '?')} — {synthesis}"
+    )
+
+    return {
+        "reasoning_steps":       steps,
+        "disk_health_input":     dh_v or "not_available",
+        "disk_events_input":     {"disk_io_errors": disk_io, "controller_resets": ctrl, "ntfs_errors": ntfs_e},
+        "ntfs_dirty_bit_input":  vol.get("ntfs_dirty_bit"),
+        "cbs_corruption_input":  bool(svc.get("corruption_indicators")),
+        "persistence_signals":   pers,
+        "service_signals":       svcs,
+        "driver_suspicious":     sus_drv,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1644,6 +2272,11 @@ def run(root: Path, argv: list) -> int:
     logs_dir = root / "logs"
     cross_result = _correlate_other_modules(logs_dir)
 
+    print("[m31] Checking volume context ...")
+    vol_result = _check_volume_context(win_root, logs_dir)
+    if vol_result.get("ntfs_dirty_bit") is not None:
+        print(f"[m31]   NTFS dirty bit: {vol_result['ntfs_dirty_bit']}")
+
     # Assemble sections for verdict computation
     sections = {
         "protected_files": pf_result,
@@ -1655,10 +2288,24 @@ def run(root: Path, argv: list) -> int:
         "driver_integrity": drv_result,
         "events":          evts_result,
         "cross_module":    cross_result,
+        "volume_context":  vol_result,
     }
 
     verdict, confidence, limitations, recommendations = _compute_verdict(sections)
     print(f"[m31] Verdict: {verdict}  (confidence: {confidence})")
+
+    # New: derived analysis blocks
+    anomaly_breakdown   = _compute_anomaly_breakdown(pf_result)
+    file_disk_corr      = _correlate_file_disk(pf_result, evts_result, vol_result)
+    tampering_indicators = _compute_tampering_indicators(sections)
+    classification      = _compute_classification(sections, tampering_indicators)
+    xmod_reasoning      = _compute_cross_module_reasoning(sections, classification)
+    print(
+        f"[m31] Classification: primary={classification['primary']}  "
+        f"cause={classification['cause']}  "
+        f"tampering_likelihood={classification['tampering_likelihood']}%  "
+        f"confidence={classification['confidence']}"
+    )
 
     result = {
         "generated":              datetime.now(timezone.utc).isoformat(),
@@ -1673,15 +2320,23 @@ def run(root: Path, argv: list) -> int:
         "missing_files":          pf_result.get("missing", []),
         "anomalous_files":        pf_result.get("anomalous", []),
         "recommendations":        recommendations,
-        "protected_files_scan":   pf_result,
-        "winsxs_findings":        winsxs_result,
-        "manifest_catalog_findings": mc_result,
-        "servicing_findings":     svc_result,
-        "pending_repair_findings": pend_result,
-        "boot_findings":          boot_result,
-        "driver_integrity_findings": drv_result,
-        "event_log_correlations": evts_result,
-        "cross_module_correlation": cross_result,
+        # New structured blocks
+        "classification":              classification,
+        "anomaly_breakdown":           anomaly_breakdown,
+        "file_disk_correlation":       file_disk_corr,
+        "tampering_indicators":        tampering_indicators,
+        "cross_module_reasoning":      xmod_reasoning,
+        # Existing detail sections
+        "protected_files_scan":        pf_result,
+        "winsxs_findings":             winsxs_result,
+        "manifest_catalog_findings":   mc_result,
+        "servicing_findings":          svc_result,
+        "pending_repair_findings":     pend_result,
+        "boot_findings":               boot_result,
+        "driver_integrity_findings":   drv_result,
+        "event_log_correlations":      evts_result,
+        "volume_context":              vol_result,
+        "cross_module_correlation":    cross_result,
     }
 
     if not args.summary:

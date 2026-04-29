@@ -1238,7 +1238,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(m18): effective_definition_age uses freshest DB (daily); add definition_summary; fix confidence/recs to not use worst-age"
+    commit_message = "feat(m31): file-disk correlation, volume context, CBS file extraction, event classification, classification block, anomaly breakdown, tampering indicators, cross-module reasoning"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
