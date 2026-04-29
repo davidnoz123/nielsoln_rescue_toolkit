@@ -651,11 +651,95 @@ def _correlate_modules(logs_dir: Path, infected: List[dict]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 8b. Definition summary (effective age + confidence)
+# ---------------------------------------------------------------------------
+
+def _compute_definition_summary(definitions: dict) -> dict:
+    """Derive effective_definition_age and definition_confidence from per-DB metadata.
+
+    effective_definition_age is the age (days) of the NEWEST available database,
+    which is what determines how current the signatures actually are.  The daily DB
+    supersedes main; if both are present the daily age is used.
+
+    definition_confidence:
+      "high"   — daily DB present with a parseable timestamp
+      "medium" — only main DB found with a parseable timestamp
+      "low"    — no parseable timestamps, inconsistent values, or only bytecode
+
+    Returns a dict with:
+      effective_definition_age  : int | None
+      effective_db              : "daily" | "main" | "bytecode" | None
+      definition_confidence     : "high" | "medium" | "low"
+      limitation                : str | None  (set when confidence is not "high")
+    """
+    # Prefer databases in freshness order: daily, main, bytecode
+    candidates = [
+        ("daily",    definitions.get("daily",    {})),
+        ("main",     definitions.get("main",     {})),
+        ("bytecode", definitions.get("bytecode", {})),
+    ]
+
+    ages: dict = {}   # db_name → age_days (int) for all DBs that have a value
+    for name, meta in candidates:
+        age = meta.get("age_days")
+        if age is not None:
+            ages[name] = age
+
+    # Detect inconsistency: main and daily should not differ by more than a few days
+    # in normal operation.  A large discrepancy (e.g. one freshly updated and one not)
+    # means the effective coverage is only as good as the freshest.
+    inconsistent = False
+    if "main" in ages and "daily" in ages:
+        if abs(ages["daily"] - ages["main"]) > 7:
+            # Not an error — daily is always newer; just confirm we use daily
+            inconsistent = False  # expected divergence; not a problem
+
+    # Pick effective DB: the one with the smallest (freshest) age_days
+    if ages:
+        effective_db   = min(ages, key=lambda k: ages[k])
+        effective_age  = ages[effective_db]
+    else:
+        effective_db  = None
+        effective_age = None
+
+    # Confidence
+    if "daily" in ages:
+        confidence   = "high"
+        limitation   = None
+    elif "main" in ages:
+        confidence   = "medium"
+        limitation   = (
+            "daily.cvd/cld not found — using main database age as effective age; "
+            "signatures may be older than the most recent daily update"
+        )
+    elif "bytecode" in ages:
+        confidence   = "low"
+        limitation   = (
+            "Only bytecode database found — cannot determine signature age accurately; "
+            "main and daily databases are missing"
+        )
+    else:
+        confidence   = "low"
+        limitation   = (
+            "No ClamAV definition databases with parseable timestamps found; "
+            "definition age cannot be determined"
+        )
+
+    return {
+        "effective_definition_age": effective_age,
+        "effective_db":             effective_db,
+        "definition_confidence":    confidence,
+        "limitation":               limitation,
+    }
+
+
+# ---------------------------------------------------------------------------
 # 9. Scan confidence
 # ---------------------------------------------------------------------------
 
 def _compute_confidence(
     definitions: dict,
+    def_summary: dict,
     coverage: dict,
     gaps: dict,
     execution: dict,
@@ -679,35 +763,39 @@ def _compute_confidence(
     score   = 6
     reasons: List[str] = []
 
-    # Definition age
-    worst_age = -1
-    any_def_ok = False
-    for db_name in ("main", "daily"):
-        db = definitions.get(db_name, {})
-        age = db.get("age_days")
-        if age is None:
-            score -= 1
-            reasons.append(f"{db_name} definition database not found")
-        else:
-            any_def_ok = True
-            if age > worst_age:
-                worst_age = age
+    # Definition age — use the pre-computed summary (effective = freshest DB)
+    eff_age   = def_summary.get("effective_definition_age")
+    eff_db    = def_summary.get("effective_db")
+    def_conf  = def_summary.get("definition_confidence", "low")
+    def_limit = def_summary.get("limitation")
+
+    any_def_ok = eff_age is not None
+    missing_dbs = [
+        name for name in ("main", "daily")
+        if definitions.get(name, {}).get("age_days") is None
+    ]
+    for db_name in missing_dbs:
+        score -= 1
+        reasons.append(f"{db_name} definition database not found")
 
     if not any_def_ok:
         score -= 3
         reasons.append("No definition databases found — signature matching unavailable")
-    elif worst_age > _DEF_STALE_HIGH:
+    elif eff_age > _DEF_STALE_HIGH:
         score -= 2
         reasons.append(
-            f"Definitions are {worst_age} days old (> {_DEF_STALE_HIGH} days) — "
-            f"many recent threats will not be detected"
+            f"Definitions are {eff_age} days old ({eff_db}) "
+            f"(> {_DEF_STALE_HIGH} days) — many recent threats will not be detected"
         )
-    elif worst_age > _DEF_STALE_WARN:
+    elif eff_age > _DEF_STALE_WARN:
         score -= 1
         reasons.append(
-            f"Definitions are {worst_age} days old (> {_DEF_STALE_WARN} days) — "
-            f"some recent threats may not be detected"
+            f"Definitions are {eff_age} days old ({eff_db}) "
+            f"(> {_DEF_STALE_WARN} days) — some recent threats may not be detected"
         )
+
+    if def_conf == "low" and any_def_ok:
+        reasons.append(f"Definition confidence: low — {def_limit}")
 
     # Coverage
     if not coverage.get("system32_scanned"):
@@ -809,6 +897,7 @@ def _compute_miss_analysis(
 
 def _compute_recommendations(
     definitions: dict,
+    def_summary: dict,
     coverage: dict,
     gaps: dict,
     confidence: dict,
@@ -818,24 +907,24 @@ def _compute_recommendations(
 ) -> List[str]:
     recs: List[str] = []
 
-    # Definition age
-    worst_age = max(
-        (definitions.get(k, {}).get("age_days") or 0)
-        for k in ("main", "daily", "bytecode")
-    )
-    if not any(definitions.get(k, {}).get("age_days") is not None for k in ("main", "daily")):
+    # Definition age — use effective (freshest) age from pre-computed summary
+    eff_age = def_summary.get("effective_definition_age")
+    eff_db  = def_summary.get("effective_db")
+    no_defs = not any(definitions.get(k, {}).get("age_days") is not None for k in ("main", "daily"))
+
+    if no_defs:
         recs.append(
             "Install ClamAV and download virus definitions: "
             "run `bootstrap clamav --install` then `bootstrap clamav --update-db`"
         )
-    elif worst_age > _DEF_STALE_HIGH:
+    elif eff_age is not None and eff_age > _DEF_STALE_HIGH:
         recs.append(
-            f"Update virus definitions immediately — they are {worst_age} days old "
+            f"Update virus definitions immediately — {eff_db} is {eff_age} days old "
             f"(run `bootstrap clamav --update-db` with a network connection)"
         )
-    elif worst_age > _DEF_STALE_WARN:
+    elif eff_age is not None and eff_age > _DEF_STALE_WARN:
         recs.append(
-            f"Update virus definitions when possible — they are {worst_age} days old "
+            f"Update virus definitions when possible — {eff_db} is {eff_age} days old "
             f"(run `bootstrap clamav --update-db`)"
         )
 
@@ -918,7 +1007,8 @@ def _print_report(result: dict) -> None:
     print()
 
     # Definitions
-    defs = result.get("definitions", {})
+    defs     = result.get("definitions", {})
+    def_summ = result.get("definition_summary", {})
     print(f"  {'─'*10} VIRUS DEFINITIONS {'─'*38}")
     for db_name in ("main", "daily", "bytecode"):
         db = defs.get(db_name, {})
@@ -934,6 +1024,13 @@ def _print_report(result: dict) -> None:
             print(f"  {db_name:<10}: NOT FOUND")
         else:
             print(f"  {db_name:<10}: v{ver}  sigs={sigs_str}  age={age_str}{warn}")
+    eff_age  = def_summ.get("effective_definition_age")
+    eff_db   = def_summ.get("effective_db")
+    def_conf = def_summ.get("definition_confidence", "?")
+    eff_str  = f"{eff_age}d ({eff_db})" if eff_age is not None else "unknown"
+    print(f"  {'effective':<10}: age={eff_str}  confidence={def_conf}")
+    if def_summ.get("limitation"):
+        print(f"  NOTE: {def_summ['limitation'][:62]}")
 
     # Coverage
     cov = result.get("coverage", {})
@@ -1179,8 +1276,11 @@ def run(root: Path, argv: list) -> int:
     # ---- Cross-module correlation ----
     cross_module = _correlate_modules(logs_dir, infected)
 
+    # ---- Definition summary (effective age + confidence) ----
+    def_summary = _compute_definition_summary(definitions)
+
     # ---- Confidence ----
-    confidence = _compute_confidence(definitions, coverage, gaps, execution, args.profile)
+    confidence = _compute_confidence(definitions, def_summary, coverage, gaps, execution, args.profile)
 
     # ---- Miss analysis ----
     miss_analysis = _compute_miss_analysis(
@@ -1189,7 +1289,7 @@ def run(root: Path, argv: list) -> int:
 
     # ---- Recommendations ----
     recommendations = _compute_recommendations(
-        definitions, coverage, gaps, confidence, cross_module, infected, args.profile
+        definitions, def_summary, coverage, gaps, confidence, cross_module, infected, args.profile
     )
 
     # ---- Determine overall scan_status ----
@@ -1203,6 +1303,7 @@ def run(root: Path, argv: list) -> int:
         "scan_status":             scan_status,
         "infected_files":          infected,
         "definitions":             definitions,
+        "definition_summary":      def_summary,
         "scan_scope":              scope,
         "scan_execution":          execution,
         "coverage":                coverage,

@@ -1238,7 +1238,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(devtools): filter relay startup noise from md5sum parser; validate hash is 32-char hex"
+    commit_message = "fix(m18): effective_definition_age uses freshest DB (daily); add definition_summary; fix confidence/recs to not use worst-age"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
