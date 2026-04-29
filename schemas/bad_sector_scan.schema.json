@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "bad_sector_scan.schema.json",
   "title": "BAD_SECTOR_SCAN",
-  "description": "Read-only bad-sector and slow-read test written by m33_bad_sector_scan. Log glob: logs/bad_sector_scan_*.json",
+  "description": "Read-only bad-sector and slow-read test written by m48_bad_sector_scan. Log glob: logs/bad_sector_scan_*.json",
   "type": "object",
   "additionalProperties": true,
   "required": ["generated", "target", "device", "scan_status", "verdict"],
@@ -60,7 +60,7 @@
     },
     "scan_mode": {
       "type": "string",
-      "enum": ["sequential", "random", "targeted"],
+      "enum": ["sequential", "random", "targeted", "sampled"],
       "description": "How sectors were chosen for reading"
     },
     "block_size_bytes": {

@@ -587,27 +587,70 @@ def run_module_serial(name: str, args: list = None) -> None:
 # ---------------------------------------------------------------------------
 
 def fetch_logs(local_dir: str = "logs") -> int:
-    """SCP all logs from USB to local_dir.  Returns count of newly fetched files."""
-    import pathlib as _pl
+    """SCP logs from USB using MD5 checksum comparison.
+
+    One SSH call retrieves all remote filenames + their MD5 hashes.
+    Local files whose MD5 already matches are skipped (CACHED).
+    Files that are new or whose content has changed are fetched (FETCH / UPDATE).
+    Returns count of newly fetched / updated files.
+    """
+    import pathlib as _pl, hashlib as _hl, io as _io, contextlib as _cl
+
     dest = _pl.Path(local_dir)
     dest.mkdir(exist_ok=True)
 
-    import io as _io, contextlib as _cl
+    # ── One SSH call: get md5sum for every log file on the device ────────────
     buf = _io.StringIO()
     with _cl.redirect_stdout(buf):
-        _ssh_run(f"ls {USB_PATH}/logs/*.json {USB_PATH}/logs/*.jsonl 2>/dev/null || true")
-    remote_names = [_pl.Path(f.strip()).name for f in buf.getvalue().splitlines() if f.strip()]
+        _ssh_run(
+            f"cd {USB_PATH}/logs 2>/dev/null && "
+            f"md5sum *.json *.jsonl 2>/dev/null || true"
+        )
 
-    fetched = 0
-    for fname in sorted(remote_names):
-        local = dest / fname
+    # Parse "md5hash  filename" (two spaces — md5sum format)
+    remote: dict = {}   # basename → md5hex
+    for line in buf.getvalue().splitlines():
+        line = line.strip()
+        if not line or line.startswith("md5sum:"):
+            continue
+        parts = line.split(None, 1)
+        if len(parts) == 2:
+            hash_, name = parts
+            remote[_pl.Path(name).name] = hash_
+
+    if not remote:
+        print("No log files found on device.")
+        return 0
+
+    def _local_md5(path: _pl.Path) -> str:
+        h = _hl.md5()
+        with open(path, "rb") as fh:
+            while True:
+                chunk = fh.read(65536)
+                if not chunk:
+                    break
+                h.update(chunk)
+        return h.hexdigest()
+
+    fetched = cached = 0
+    for fname in sorted(remote):
+        local      = dest / fname
+        remote_md5 = remote[fname]
+
         if local.exists():
-            print(f"  CACHED  {fname}")
+            if _local_md5(local) == remote_md5:
+                print(f"  CACHED  {fname}")
+                cached += 1
+                continue
+            # File exists but content differs (re-run overwrote it on device)
+            print(f"  UPDATE  {fname}  (checksum changed) ...")
         else:
             print(f"  FETCH   {fname} ...")
-            _scp_get(f"{USB_PATH}/logs/{fname}", str(local))
-            fetched += 1
-    print(f"\nFetched {fetched} new file(s), {len(remote_names) - fetched} already cached")
+
+        _scp_get(f"{USB_PATH}/logs/{fname}", str(local))
+        fetched += 1
+
+    print(f"\nFetched {fetched} new/updated file(s), {cached} already cached (MD5 match)")
     return fetched
 
 
@@ -780,6 +823,7 @@ FULL_MODULE_SEQUENCE = [
     # ── Core hardware & storage ─────────────────────────────────────────────
     ("m04_hardware_profile",            True,  []),
     ("m05_disk_health",                 True,  []),
+    ("m48_bad_sector_scan",             True,  []),
     ("m06_software_inventory",          True,  []),
     ("m07_service_analysis",            True,  []),
     ("m09_thermal_health",              True,  []),
@@ -1113,7 +1157,7 @@ def main() -> None:
     action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(m26): read computer_name from Tcpip/Parameters/Hostname; ComputerName key has parser edge case on Vista hives"
+    commit_message = "feat(m48): add bad sector scan module; fix fetch_logs to use MD5 checksum comparison; rename m33->m48 in schema index"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
@@ -1123,7 +1167,7 @@ def main() -> None:
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m17_system_summary"
+    module_name = "m48_bad_sector_scan"
     module_args = ["--target", "/mnt/windows"]
 
     # --- run_all config ---

@@ -79,7 +79,7 @@
       "log_glob": "logs/disk_integrity_*.json",
       "format": "JSON"
     },
-    "m33_bad_sector_scan": {
+    "m48_bad_sector_scan": {
       "schema": "bad_sector_scan.schema.json",
       "log_glob": "logs/bad_sector_scan_*.json",
       "format": "JSON",
