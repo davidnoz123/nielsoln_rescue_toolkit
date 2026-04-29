@@ -1,0 +1,36 @@
+{
+  "_comment": "Fixture: no thermal sensors found — both passive and active tests return UNKNOWN",
+  "report_type": "THERMAL_ANALYSIS",
+  "source_module": "m09_thermal_health",
+  "timestamp": "2025-01-01T00:00:00+00:00",
+  "verdict": "UNKNOWN",
+  "passive_verdict": "UNKNOWN",
+  "response_verdict": "SKIPPED",
+  "overall_thermal_verdict": "UNKNOWN",
+  "response_confidence": "unknown",
+  "response_limitations": [
+    "no_sensors_found",
+    "test_skipped_no_sensors",
+    "live_linux_may_differ_from_windows_thermal_policy"
+  ],
+  "idle_snapshot": {
+    "timestamp": "2025-01-01T00:00:00+00:00",
+    "sensors": [],
+    "hottest_c": null,
+    "verdict": "UNKNOWN"
+  },
+  "thermal_response_test": {
+    "performed": false,
+    "skipped_reason": "no_sensors_found",
+    "idle_temp_c": null,
+    "peak_temp_c": null,
+    "temp_rise_c": null,
+    "throttling_detected": null,
+    "emergency_stop": null,
+    "confidence": "unknown",
+    "limitations": ["no_sensors_found", "test_skipped_no_sensors"],
+    "recommendations": ["Check if lm_sensors or ACPI thermal zones are available on this hardware."]
+  },
+  "warnings": ["No thermal sensors found — cannot assess thermal health."],
+  "errors": []
+}

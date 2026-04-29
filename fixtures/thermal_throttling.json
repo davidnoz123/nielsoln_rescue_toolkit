@@ -1,0 +1,57 @@
+{
+  "_comment": "Fixture: CPU throttling detected during stress test — overheating / thermal paste degradation",
+  "report_type": "THERMAL_ANALYSIS",
+  "source_module": "m09_thermal_health",
+  "timestamp": "2025-01-01T00:00:00+00:00",
+  "verdict": "HOT",
+  "passive_verdict": "WARM",
+  "response_verdict": "POOR",
+  "overall_thermal_verdict": "POOR",
+  "response_confidence": "medium",
+  "response_limitations": [
+    "single_core_load_only",
+    "live_linux_may_differ_from_windows_thermal_policy",
+    "uefi_thermal_management_not_observable_from_os"
+  ],
+  "idle_snapshot": {
+    "timestamp": "2025-01-01T00:00:00+00:00",
+    "sensors": [
+      {"name": "coretemp-isa-0000/Core 0", "temp_c": 58.0},
+      {"name": "coretemp-isa-0000/Core 1", "temp_c": 61.0}
+    ],
+    "hottest_c": 61.0,
+    "verdict": "WARM"
+  },
+  "thermal_response_test": {
+    "performed": true,
+    "skipped_reason": null,
+    "load_duration_seconds": 30,
+    "idle_temp_c": 61.0,
+    "peak_temp_c": 94.0,
+    "temp_rise_c": 33.0,
+    "time_to_peak_seconds": 9.0,
+    "recovery_temp_c": 68.0,
+    "recovery_time_seconds": 120.0,
+    "cpu_freq_before_mhz": 1800,
+    "cpu_freq_during_mhz": 800,
+    "cpu_freq_after_mhz": 1600,
+    "throttling_detected": true,
+    "emergency_stop": false,
+    "emergency_stop_temp_c": null,
+    "confidence": "medium",
+    "limitations": [
+      "single_core_load_only",
+      "live_linux_may_differ_from_windows_thermal_policy"
+    ],
+    "recommendations": [
+      "Clean heatsink and fan — dust accumulation likely.",
+      "Replace thermal paste between CPU and heatsink.",
+      "Investigate if fan is spinning at full RPM."
+    ]
+  },
+  "warnings": [
+    "CPU frequency dropped from 1800 MHz to 800 MHz under load — thermal throttling detected.",
+    "Idle temperature (61°C) is elevated — clean heatsink and fan."
+  ],
+  "errors": []
+}

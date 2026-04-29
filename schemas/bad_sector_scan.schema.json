@@ -2,15 +2,27 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "bad_sector_scan.schema.json",
   "title": "BAD_SECTOR_SCAN",
-  "description": "Read-only bad-sector and slow-read test written by m48_bad_sector_scan. Log glob: logs/bad_sector_scan_*.json",
+  "description": "Read-only bad-sector and slow-read test written by m48_bad_sector_scan. Log glob: logs/bad_sector_scan_*.json. IMPORTANT: a sampled scan does not imply a clean bill of health — see coverage_percent, conclusion_strength, and coverage_limitation.",
   "type": "object",
   "additionalProperties": true,
-  "required": ["generated", "target", "device", "scan_status", "verdict"],
+  "required": ["generated", "target", "device", "scan_status", "verdict", "source_module", "safety"],
   "properties": {
     "report_type": {
       "type": "string",
       "enum": ["BAD_SECTOR_SCAN"],
       "description": "Report type discriminator."
+    },
+    "source_module": {
+      "type": "string",
+      "description": "Module that wrote this log (e.g. m48_bad_sector_scan)"
+    },
+    "module_version": {
+      "type": ["string", "null"],
+      "description": "Version of the module (semver string)"
+    },
+    "schema_version": {
+      "type": ["string", "null"],
+      "description": "Schema version this log conforms to (e.g. '2.0')"
     },
     "generated": {
       "type": "string",
@@ -30,7 +42,7 @@
     },
     "partition_offset_lba": {
       "type": ["integer", "null"],
-      "description": "LBA offset of partition start on the physical device (from /proc/partitions or parted)"
+      "description": "LBA offset of partition start on the physical device (from /sys or parted)"
     },
     "windows_volume": {
       "type": ["string", "null"],
@@ -63,25 +75,91 @@
       "enum": ["sequential", "random", "targeted", "sampled"],
       "description": "How sectors were chosen for reading"
     },
+    "sampling_strategy": {
+      "type": ["string", "null"],
+      "enum": ["full", "sequential_sample", "random_sample", "targeted", "unknown", null],
+      "description": "Describes how the sample was constructed. 'full' means every sector was read. 'sequential_sample' means evenly-spaced zones. 'targeted' means specific suspicious regions. Used for customer-facing explanation."
+    },
+    "coverage_percent": {
+      "type": ["number", "null"],
+      "description": "Percentage of the partition that was actually read (0–100). For sampled scans this is << 100."
+    },
+    "conclusion_strength": {
+      "type": ["string", "null"],
+      "enum": ["full", "sampled", "weak", "unknown", null],
+      "description": "'full' = every sector read, conclusion is authoritative. 'sampled' = representative sample, conclusion is probabilistic. 'weak' = very few samples or interrupted. 'unknown' = unable to determine."
+    },
+    "tested_ranges": {
+      "type": "array",
+      "description": "LBA ranges that were actually read during this scan",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "lba_start": { "type": "integer" },
+          "lba_end":   { "type": "integer" }
+        }
+      }
+    },
+    "untested_ranges_summary": {
+      "type": ["string", "null"],
+      "description": "Human-readable summary of what was NOT tested. E.g. 'Approximately 97% of disk sectors were not directly read.'"
+    },
+    "coverage_limitation": {
+      "type": ["string", "null"],
+      "description": "Standard customer-facing limitation text for sampled scans. E.g. 'A sampled scan checks selected parts of the disk only. No bad sectors were found in the tested areas, but untested areas may still contain bad sectors.'"
+    },
     "block_size_bytes": {
       "type": "integer",
       "description": "Read block size used during the scan"
     },
+    "blocks_attempted": {
+      "type": ["integer", "null"],
+      "description": "Total number of read blocks attempted (each block = block_size_bytes)"
+    },
+    "blocks_read_ok": {
+      "type": ["integer", "null"],
+      "description": "Blocks that returned without read error"
+    },
+    "blocks_failed": {
+      "type": ["integer", "null"],
+      "description": "Blocks that produced a read error (I/O error, EIO)"
+    },
+    "blocks_slow": {
+      "type": ["integer", "null"],
+      "description": "Blocks that read successfully but exceeded the slow-read threshold"
+    },
+    "sector_size_bytes": {
+      "type": ["integer", "null"],
+      "description": "Sector size in bytes (usually 512 or 4096). Duplicate of scan_scope.sector_size_bytes for top-level access."
+    },
+    "sectors_covered": {
+      "type": ["integer", "null"],
+      "description": "Total sectors covered by the attempted read blocks (blocks_attempted * block_size_bytes / sector_size_bytes)"
+    },
+    "bytes_attempted": {
+      "type": ["integer", "null"],
+      "description": "Total bytes of disk read attempted"
+    },
+    "bytes_read_ok": {
+      "type": ["integer", "null"],
+      "description": "Total bytes successfully read without error"
+    },
     "sectors_attempted": {
       "type": "integer",
-      "description": "Total number of sectors (or blocks) that were attempted"
+      "description": "LEGACY alias for sectors_covered. Kept for backward compatibility."
     },
     "sectors_read_ok": {
       "type": "integer",
-      "description": "Sectors that returned without read error"
+      "description": "LEGACY alias for blocks_read_ok * sectors_per_block. Kept for backward compatibility."
     },
     "sectors_failed": {
       "type": "integer",
-      "description": "Sectors that produced a read error (I/O error, EIO)"
+      "description": "LEGACY alias for blocks_failed * sectors_per_block. Kept for backward compatibility."
     },
     "sectors_slow": {
       "type": "integer",
-      "description": "Sectors that read successfully but exceeded the slow-read threshold"
+      "description": "LEGACY alias for blocks_slow * sectors_per_block. Kept for backward compatibility."
     },
     "slow_read_threshold_ms": {
       "type": "number",
@@ -89,7 +167,7 @@
     },
     "bad_ranges": {
       "type": "array",
-      "description": "Contiguous ranges of sectors that could not be read",
+      "description": "Contiguous ranges of blocks/sectors that could not be read",
       "items": {
         "type": "object",
         "additionalProperties": true,
@@ -99,13 +177,14 @@
           "sector_count":  { "type": "integer" },
           "first_seen":    { "type": "string", "description": "ISO-8601 timestamp of first error in this range" },
           "error_code":    { "type": ["string", "null"] },
+          "error_msg":     { "type": ["string", "null"] },
           "context":       { "type": ["string", "null"], "description": "File or filesystem metadata near this range if resolvable" }
         }
       }
     },
     "slow_read_ranges": {
       "type": "array",
-      "description": "Contiguous ranges of sectors with slow (but successful) reads",
+      "description": "Contiguous ranges of blocks/sectors with slow (but successful) reads",
       "items": {
         "type": "object",
         "additionalProperties": true,
@@ -133,14 +212,18 @@
     "safety": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Safety confirmation block — asserts what the scanner did and did not do",
+      "description": "Safety confirmation block — asserts what the scanner did and did not do. REQUIRED. Every field must be verifiable.",
+      "required": ["read_only", "destructive", "write_test_performed"],
       "properties": {
-        "read_only":             { "type": "boolean", "description": "True — only read operations were performed; no writes to block device" },
-        "destructive":           { "type": "boolean", "description": "False — no destructive operations performed (always false in v1)" },
-        "write_test_performed":  { "type": "boolean", "description": "False — write verification tests were not used (always false in v1)" },
-        "stop_reasons":          {
+        "read_only":                  { "type": "boolean", "description": "True — only read operations were performed; no writes to block device. Always true in v1." },
+        "destructive":                { "type": "boolean", "description": "False — no destructive operations performed. Always false in v1." },
+        "write_test_performed":       { "type": "boolean", "description": "False — write verification tests were not used. Always false in v1." },
+        "stopped_due_to_temperature": { "type": ["boolean", "null"], "description": "True if scan was halted because a thermal threshold was exceeded" },
+        "stopped_due_to_smart_failure": { "type": ["boolean", "null"], "description": "True if scan was halted because SMART indicated imminent failure" },
+        "stopped_due_to_user_limit":  { "type": ["boolean", "null"], "description": "True if scan stopped because the user-configured time or sector limit was reached" },
+        "stop_reasons": {
           "type": "array",
-          "description": "Reasons the scan stopped early, if any (e.g. 'too_many_errors', 'time_limit_reached', 'user_interrupt')",
+          "description": "All reasons the scan stopped early, if any (e.g. 'time_limit_reached', 'user_interrupt', 'too_many_errors')",
           "items": { "type": "string" }
         }
       }
@@ -150,44 +233,64 @@
       "enum": [
         "HEALTHY", "MARGINAL", "FAILING", "CRITICAL",
         "OK", "SLOW_READS", "BAD_SECTORS_FOUND", "SCAN_INCOMPLETE", "UNSAFE_TO_SCAN",
+        "SAMPLE_OK", "SAMPLE_SLOW_READS", "SAMPLE_BAD_SECTORS_FOUND", "SAMPLE_INCOMPLETE",
         "UNKNOWN"
       ],
-      "description": "Overall health verdict. v1 used HEALTHY/MARGINAL/FAILING/CRITICAL/UNKNOWN. v2 normalised to OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN."
+      "description": "Overall health verdict. For sampled scans use SAMPLE_* prefix to avoid implying a full clean bill of health. OK / HEALTHY-style verdict is only appropriate when full_scan=true and scan_status=completed."
     },
     "risk_status": {
       "type": ["string", "null"],
       "enum": ["OK", "SLOW_READS", "BAD_SECTORS_FOUND", "SCAN_INCOMPLETE", "UNSAFE_TO_SCAN", "UNKNOWN", null],
-      "description": "Normalised risk status using v2 enum — mirrors verdict but always uses the v2 vocabulary. Populated even when verdict uses a legacy v1 value."
+      "description": "Normalised risk status using v2 enum. For sampled scans, set to UNKNOWN or the closest match — do NOT set to OK if coverage is < 100%."
     },
     "confidence": {
       "type": ["string", "null"],
       "enum": ["high", "medium", "low", "none", null],
-      "description": "Confidence in the verdict based on scan coverage, device responsiveness, and SMART data availability"
+      "description": "Confidence in the verdict. 'high' only when full_scan=true and scan_status=completed. 'medium' for representative sampled scan. 'low' if interrupted or few samples."
     },
     "limitations": {
       "type": "array",
-      "description": "Known limitations that reduce confidence (e.g. 'sampled_only', 'no_smart_data', 'partition_only', 'filesystem_mounted_rw')",
+      "description": "Known limitations that reduce confidence (e.g. 'sampled_only', 'no_smart_data', 'partition_only', 'filesystem_mounted_read_write')",
+      "items": { "type": "string" }
+    },
+    "errors": {
+      "type": "array",
+      "description": "Runtime errors that occurred during the scan (non-fatal)",
       "items": { "type": "string" }
     },
     "smart_correlation": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Cross-reference with SMART data from disk_health log if available",
+      "description": "Cross-reference with SMART data from disk_health log if available. If SMART shows warnings and the sector scan is sampled-clean, do NOT conclude the disk is healthy.",
       "properties": {
         "disk_health_log":         { "type": ["string", "null"] },
         "reallocated_sectors":     { "type": ["integer", "null"] },
         "pending_sectors":         { "type": ["integer", "null"] },
         "uncorrectable_sectors":   { "type": ["integer", "null"] },
-        "smart_verdict":           { "type": ["string", "null"] }
+        "smart_verdict":           { "type": ["string", "null"] },
+        "cross_module_note":       { "type": ["string", "null"], "description": "Human-readable note about agreement or disagreement between sector scan and SMART data" }
       }
     },
     "clone_recommended": {
       "type": "boolean",
-      "description": "True if bad-sector count or severity suggests cloning before further use"
+      "description": "True if bad-sector count, severity, or SMART cross-correlation suggests cloning before further use"
     },
     "ddrescue_command": {
       "type": ["string", "null"],
       "description": "Suggested ddrescue command line for safe cloning if clone_recommended is true"
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Report-facing interpretation block. Gives the explanation generator a stable starting point.",
+      "properties": {
+        "customer_summary":    { "type": ["string", "null"], "description": "Plain-English sentence suitable for a customer report" },
+        "technician_summary":  { "type": ["string", "null"], "description": "More detailed diagnostic note for the technician" },
+        "what_this_means":     { "type": ["string", "null"], "description": "Explanation of what this result means practically" },
+        "confidence":          { "type": ["string", "null"], "enum": ["high", "medium", "low", "unknown", null] },
+        "limitations":         { "type": "array", "items": { "type": "string" } },
+        "recommended_action":  { "type": ["string", "null"] }
+      }
     },
     "recommendations": {
       "type": "array",

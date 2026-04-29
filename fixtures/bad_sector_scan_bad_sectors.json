@@ -1,0 +1,56 @@
+{
+  "report_type": "BAD_SECTOR_SCAN",
+  "source_module": "m48_bad_sector_scan",
+  "module_version": "1.0.0",
+  "schema_version": "2.0",
+  "generated": "2025-01-01T00:00:00+00:00",
+  "target": "/mnt/windows",
+  "physical_device": "/dev/sda",
+  "partition_device": "/dev/sda1",
+  "scan_mode": "sampled",
+  "sampling_strategy": "sequential_sample",
+  "coverage_percent": 3.1,
+  "conclusion_strength": "sampled",
+  "coverage_limitation": "Sampled scan only (~3.1% of the partition was tested).",
+  "safety": {"read_only": true, "destructive": false, "write_test_performed": false, "stopped_due_to_temperature": false, "stopped_due_to_smart_failure": false, "stopped_due_to_user_limit": false, "stop_reasons": []},
+  "verdict": "SAMPLE_BAD_SECTORS_FOUND",
+  "risk_status": "BAD_SECTORS_FOUND",
+  "scan_status": "completed",
+  "blocks_attempted": 61035,
+  "blocks_read_ok": 60988,
+  "blocks_failed": 14,
+  "blocks_slow": 33,
+  "sector_size_bytes": 512,
+  "sectors_covered": 61035,
+  "sectors_attempted": 61035,
+  "sectors_read_ok": 60988,
+  "sectors_failed": 14,
+  "sectors_slow": 33,
+  "bad_ranges": [
+    {"start_lba": 39100416, "end_lba": 39100480, "count": 2, "error": "EIO"},
+    {"start_lba": 117306368, "end_lba": 117306496, "count": 4, "error": "EIO"},
+    {"start_lba": 117307904, "end_lba": 117308160, "count": 8, "error": "EIO"}
+  ],
+  "slow_read_ranges": [
+    {"start_lba": 39099392, "end_lba": 39099648, "count": 33, "max_ms": 3400}
+  ],
+  "duration_seconds": 75.0,
+  "confidence": "medium",
+  "limitations": ["sampled_scan_3pct", "additional_bad_sectors_likely_outside_sampled_ranges"],
+  "clone_recommended": true,
+  "ddrescue_command": "ddrescue -d -r3 /dev/sda /path/to/image.img /path/to/map.log",
+  "interpretation": {
+    "customer_summary": "Bad sectors were found. The drive has physical damage and should be replaced.",
+    "technician_summary": "Profile=fast coverage=3.1% blocks_attempted=61035 blocks_failed=14 blocks_slow=33 verdict=SAMPLE_BAD_SECTORS_FOUND conclusion_strength=sampled",
+    "what_this_means": "14 blocks returned I/O errors. In a 3.1% sample, this suggests the drive has significant physical damage. Additional bad sectors are likely in untested areas.",
+    "confidence": "medium",
+    "limitations": ["sampled_scan_3pct", "additional_bad_sectors_likely_outside_sampled_ranges"],
+    "recommended_action": "Clone the drive immediately using ddrescue, then replace the drive."
+  },
+  "recommendations": [
+    "Bad sectors detected — clone the drive with ddrescue before further use.",
+    "Do not write to or repair this drive until it has been imaged."
+  ],
+  "warnings": [],
+  "errors": []
+}

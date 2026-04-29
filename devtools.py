@@ -1176,7 +1176,7 @@ def main() -> None:
     action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(fetch_logs): search device subfolders for cached files; fixes re-fetch after organize_device_logs"
+    commit_message = "feat(schema): cleanup pass — m48 run() report/console, thermal schema v2 fields, system_summary bad-sector/thermal v2, _index notes, fixtures"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"

@@ -1,0 +1,81 @@
+{
+  "report_type": "BAD_SECTOR_SCAN",
+  "source_module": "m48_bad_sector_scan",
+  "module_version": "1.0.0",
+  "schema_version": "2.0",
+  "generated": "2025-01-01T00:00:00+00:00",
+  "target": "/mnt/windows",
+  "physical_device": "/dev/sda",
+  "partition_device": "/dev/sda1",
+  "partition_offset_lba": 2048,
+  "windows_volume": "C:",
+  "filesystem": "ntfs",
+  "scan_mode": "sampled",
+  "sampling_strategy": "sequential_sample",
+  "coverage_percent": 3.1,
+  "conclusion_strength": "sampled",
+  "coverage_limitation": "Sampled scan only (~3.1% of the partition was tested). A clean result does not rule out bad sectors in the remaining ~97% of the disk.",
+  "untested_ranges_summary": "~96.9% of partition untested",
+  "tested_ranges": [
+    {"start_lba": 2048, "end_lba": 2098047, "blocks_read": 12207},
+    {"start_lba": 39077888, "end_lba": 39177887, "blocks_read": 24414},
+    {"start_lba": 117227264, "end_lba": 117327263, "blocks_read": 24414}
+  ],
+  "block_size_bytes": 4096,
+  "slow_read_threshold_ms": 500,
+  "scan_scope": {
+    "device_size_bytes": 80026361856,
+    "sector_size_bytes": 512,
+    "start_lba": 0,
+    "end_lba": 156301487,
+    "total_lba_count": 156301488,
+    "sampled_fraction": 0.031,
+    "full_scan": false
+  },
+  "safety": {
+    "read_only": true,
+    "destructive": false,
+    "write_test_performed": false,
+    "stopped_due_to_temperature": false,
+    "stopped_due_to_smart_failure": false,
+    "stopped_due_to_user_limit": false,
+    "stop_reasons": []
+  },
+  "verdict": "SAMPLE_OK",
+  "risk_status": "OK",
+  "scan_status": "completed",
+  "blocks_attempted": 61035,
+  "blocks_read_ok": 61035,
+  "blocks_failed": 0,
+  "blocks_slow": 0,
+  "sector_size_bytes": 512,
+  "sectors_covered": 61035,
+  "bytes_attempted": 250019840,
+  "bytes_read_ok": 250019840,
+  "sectors_attempted": 61035,
+  "sectors_read_ok": 61035,
+  "sectors_failed": 0,
+  "sectors_slow": 0,
+  "bad_ranges": [],
+  "slow_read_ranges": [],
+  "duration_seconds": 62.0,
+  "confidence": "medium",
+  "limitations": ["sampled_scan_3pct"],
+  "clone_recommended": false,
+  "ddrescue_command": null,
+  "interpretation": {
+    "customer_summary": "No bad sectors were found in the 3.1% of the disk that was tested. This is a sampled result only — the remaining areas were not checked.",
+    "technician_summary": "Profile=fast coverage=3.1% blocks_attempted=61035 blocks_failed=0 blocks_slow=0 verdict=SAMPLE_OK conclusion_strength=sampled",
+    "what_this_means": "Sampled scan only (~3.1% of the partition was tested). A clean result does not rule out bad sectors in the remaining ~97% of the disk.",
+    "confidence": "medium",
+    "limitations": ["sampled_scan_3pct"],
+    "recommended_action": "Monitor SMART data. Consider a full surface scan if disk behaviour seems abnormal."
+  },
+  "recommendations": [
+    "Monitor SMART data. Consider a full surface scan if disk behaviour seems abnormal."
+  ],
+  "warnings": [
+    "Sampled scan only — a clean result does not rule out bad sectors in untested areas."
+  ],
+  "errors": []
+}

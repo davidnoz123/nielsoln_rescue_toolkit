@@ -1,0 +1,58 @@
+{
+  "_comment": "Fixture: emergency stop triggered — temperature exceeded threshold during stress test",
+  "report_type": "THERMAL_ANALYSIS",
+  "source_module": "m09_thermal_health",
+  "timestamp": "2025-01-01T00:00:00+00:00",
+  "verdict": "CRITICAL",
+  "passive_verdict": "HOT",
+  "response_verdict": "CRITICAL",
+  "overall_thermal_verdict": "CRITICAL",
+  "response_confidence": "high",
+  "response_limitations": [
+    "test_aborted_emergency_stop",
+    "live_linux_may_differ_from_windows_thermal_policy"
+  ],
+  "idle_snapshot": {
+    "timestamp": "2025-01-01T00:00:00+00:00",
+    "sensors": [
+      {"name": "coretemp-isa-0000/Core 0", "temp_c": 72.0},
+      {"name": "coretemp-isa-0000/Core 1", "temp_c": 75.0}
+    ],
+    "hottest_c": 75.0,
+    "verdict": "HOT"
+  },
+  "thermal_response_test": {
+    "performed": true,
+    "skipped_reason": null,
+    "load_duration_seconds": 8,
+    "idle_temp_c": 75.0,
+    "peak_temp_c": 98.0,
+    "temp_rise_c": 23.0,
+    "time_to_peak_seconds": 8.0,
+    "recovery_temp_c": null,
+    "recovery_time_seconds": null,
+    "cpu_freq_before_mhz": 1600,
+    "cpu_freq_during_mhz": 600,
+    "cpu_freq_after_mhz": null,
+    "throttling_detected": true,
+    "emergency_stop": true,
+    "emergency_stop_temp_c": 98.0,
+    "confidence": "high",
+    "limitations": [
+      "test_aborted_emergency_stop",
+      "live_linux_may_differ_from_windows_thermal_policy"
+    ],
+    "recommendations": [
+      "Do NOT power on this machine for extended use without cooling repair.",
+      "Clean heatsink and fan immediately.",
+      "Replace thermal paste.",
+      "Inspect fan — may be seized or not spinning."
+    ]
+  },
+  "warnings": [
+    "EMERGENCY STOP: temperature reached 98°C — test aborted immediately.",
+    "Idle temperature (75°C) is dangerously high.",
+    "Severe throttling detected: CPU frequency dropped from 1600 MHz to 600 MHz."
+  ],
+  "errors": []
+}

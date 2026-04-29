@@ -298,14 +298,19 @@
               "type": "object",
               "additionalProperties": true,
               "properties": {
-                "log":               { "type": "string" },
-                "verdict":           { "type": "string" },
-                "risk_status":       { "type": ["string", "null"], "description": "Normalised v2 risk status: OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN" },
-                "sectors_failed":    { "type": "integer" },
-                "sectors_slow":      { "type": "integer" },
-                "clone_recommended": { "type": "boolean" },
-                "confidence":        { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null] },
-                "limitations":       { "type": "array", "items": { "type": "string" } }
+                "log":                { "type": "string" },
+                "verdict":            { "type": "string", "description": "Scan verdict — SAMPLE_OK for sampled clean scan; OK only for full scan" },
+                "risk_status":        { "type": ["string", "null"], "description": "Normalised v2 risk status: OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN" },
+                "conclusion_strength":{ "type": ["string", "null"], "enum": ["full","sampled","weak","unknown",null], "description": "full=every sector read; sampled=probabilistic; weak=few samples" },
+                "coverage_percent":   { "type": ["number", "null"], "description": "Percentage of partition actually read (0–100)" },
+                "blocks_failed":      { "type": ["integer", "null"], "description": "Number of read blocks that returned I/O errors" },
+                "blocks_slow":        { "type": ["integer", "null"] },
+                "sectors_failed":     { "type": "integer", "description": "Legacy alias for blocks_failed * sectors_per_block" },
+                "sectors_slow":       { "type": "integer" },
+                "clone_recommended":  { "type": "boolean" },
+                "confidence":         { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null] },
+                "limitations":        { "type": "array", "items": { "type": "string" } },
+                "coverage_limitation":{ "type": ["string", "null"], "description": "Standard sampled-scan limitation text for customer reports" }
               }
             }
           ]
@@ -320,17 +325,21 @@
               "description": "Summary from THERMAL_ANALYSIS including active response test results",
               "properties": {
                 "log":                     { "type": "string" },
-                "verdict":                 { "type": "string" },
+                "verdict":                 { "type": "string", "description": "Top-level verdict from the thermal log (legacy passthrough)" },
+                "passive_verdict":         { "type": ["string", "null"], "enum": ["HEALTHY","WARM","HOT","CRITICAL","UNKNOWN",null], "description": "Verdict based on idle sensor readings only" },
+                "response_verdict":        { "type": ["string", "null"], "enum": ["GOOD","FAIR","POOR","CRITICAL","SKIPPED","UNKNOWN",null], "description": "Verdict from active response test; SKIPPED if not performed" },
+                "overall_thermal_verdict": { "type": ["string", "null"], "enum": ["GOOD","FAIR","POOR","CRITICAL","UNKNOWN",null], "description": "Combined verdict — prefer this for report generation" },
                 "warnings":                { "type": "array", "items": { "type": "string" } },
                 "hottest_c":               { "type": ["number", "null"] },
                 "idle_temp_c":             { "type": ["number", "null"] },
                 "peak_temp_c":             { "type": ["number", "null"] },
-                "temp_rise_c":             { "type": ["number", "null"] },
+                "temperature_rise_c":      { "type": ["number", "null"], "description": "peak_temp_c - idle_temp_c" },
+                "temp_rise_c":             { "type": ["number", "null"], "description": "Alias for temperature_rise_c" },
                 "throttling_detected":     { "type": ["boolean", "null"] },
                 "emergency_stop":          { "type": ["boolean", "null"] },
                 "response_test_performed": { "type": ["boolean", "null"] },
-                "confidence":  { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null] },
-                "limitations": { "type": "array", "items": { "type": "string" }, "description": "e.g. ['no_sensors_found', 'stress_test_skipped']" }
+                "confidence":              { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null] },
+                "limitations":             { "type": "array", "items": { "type": "string" }, "description": "e.g. ['no_sensors_found', 'stress_test_skipped', 'live_linux_may_differ_from_windows_thermal_policy']" }
               }
             }
           ]

@@ -130,6 +130,52 @@
           "description": "Thermal-response-specific follow-up actions (e.g. clean heatsink, reapply thermal paste)"
         }
       }
+    },
+    "passive_verdict": {
+      "type": ["string", "null"],
+      "enum": ["HEALTHY", "WARM", "HOT", "CRITICAL", "UNKNOWN", null],
+      "description": "Verdict based on idle/passive sensor readings only (no load test). Maps to the top-level 'verdict' field when no active test was run."
+    },
+    "response_verdict": {
+      "type": ["string", "null"],
+      "enum": ["GOOD", "FAIR", "POOR", "CRITICAL", "SKIPPED", "UNKNOWN", null],
+      "description": "Verdict based on the active thermal response test. SKIPPED when the test was not performed (sensors unavailable, already too hot, emergency stop triggered before test started)."
+    },
+    "overall_thermal_verdict": {
+      "type": ["string", "null"],
+      "enum": ["GOOD", "FAIR", "POOR", "CRITICAL", "UNKNOWN", null],
+      "description": "Combined verdict considering both passive state and active response. Prefer this field for report generation. UNKNOWN when neither passive nor active data was available."
+    },
+    "response_confidence": {
+      "type": ["string", "null"],
+      "enum": ["high", "medium", "low", "unknown", null],
+      "description": "Confidence in the response_verdict. 'low' or 'unknown' when sensors are missing, the test was skipped, or when RescueZilla/Linux thermal behaviour may differ from OEM firmware behaviour under Windows."
+    },
+    "response_limitations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Limitations of the active response test — e.g. 'test_skipped_no_sensors', 'single_core_load_only', 'live_linux_may_differ_from_windows_thermal_policy', 'uefi_thermal_management_not_observable_from_os'"
+    },
+    "generated": {
+      "type": ["string", "null"],
+      "description": "ISO-8601 timestamp (preferred over timestamp for new logs)"
+    },
+    "source_module": {
+      "type": ["string", "null"],
+      "description": "Module that wrote this log (e.g. m09_thermal_health)"
+    },
+    "interpretation": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Report-facing interpretation block for explanation generation",
+      "properties": {
+        "customer_summary":   { "type": ["string", "null"] },
+        "technician_summary": { "type": ["string", "null"] },
+        "what_this_means":    { "type": ["string", "null"] },
+        "confidence":         { "type": ["string", "null"], "enum": ["high", "medium", "low", "unknown", null] },
+        "limitations":        { "type": "array", "items": { "type": "string" } },
+        "recommended_action": { "type": ["string", "null"] }
+      }
     }
   }
 }

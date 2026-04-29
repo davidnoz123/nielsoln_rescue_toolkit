@@ -170,16 +170,18 @@ def _scan(
         return {
             "scan_status": "error",
             "interrupted_reason": "device_size_unknown",
-            "sectors_attempted": 0,
-            "sectors_read_ok": 0,
-            "sectors_failed": 0,
-            "sectors_slow": 0,
+            "blocks_attempted": 0, "blocks_read_ok": 0,
+            "blocks_failed": 0, "blocks_slow": 0,
+            "sectors_attempted": 0, "sectors_read_ok": 0,
+            "sectors_failed": 0, "sectors_slow": 0,
+            "sectors_covered": 0, "bytes_attempted": 0, "bytes_read_ok": 0,
             "bad_ranges": [],
             "slow_read_ranges": [],
             "duration_seconds": 0.0,
             "stop_reasons": [],
             "_sampled_fraction": 0.0,
             "_full_scan": False,
+            "_tested_ranges": [],
         }
 
     blocks_total = size_bytes // block_size
@@ -206,6 +208,7 @@ def _scan(
     bad_ranges: list  = []
     slow_ranges: list = []
     stop_reasons: list = []
+    tested_ranges: list = []   # (byte_start, byte_end) pairs
     scan_complete = True
     interrupted_reason = None
 
@@ -249,26 +252,34 @@ def _scan(
                         ok_count += 1
                         _log.debug("OK    lba=%d  %.0f ms", lba, elapsed_ms)
 
+                    # Record as a tested range
+                    tested_ranges.append({"lba_start": lba, "lba_end": lba + sectors_per_block - 1})
+
                 except OSError as exc:
                     fail_count += 1
                     attempted += 1
+                    lba_for_bad = byte_off // sector_size
                     _add_range(
-                        bad_ranges, lba, sectors_per_block,
+                        bad_ranges, lba_for_bad, sectors_per_block,
                         first_seen=now_iso(),
                         error_code=str(exc.errno),
                         error_msg=str(exc),
                     )
-                    _log.warning("BAD   lba=%d  errno=%s  %s", lba, exc.errno, exc)
+                    _log.warning("BAD   lba=%d  errno=%s  %s", lba_for_bad, exc.errno, exc)
 
     except PermissionError as exc:
         return {
             "scan_status": "error",
             "interrupted_reason": f"permission_denied: {exc}",
+            "blocks_attempted": 0, "blocks_read_ok": 0,
+            "blocks_failed": 0, "blocks_slow": 0,
             "sectors_attempted": 0, "sectors_read_ok": 0,
             "sectors_failed": 0, "sectors_slow": 0,
+            "sectors_covered": 0, "bytes_attempted": 0, "bytes_read_ok": 0,
             "bad_ranges": [], "slow_read_ranges": [],
             "duration_seconds": 0.0, "stop_reasons": ["permission_denied"],
             "_sampled_fraction": 0.0, "_full_scan": False,
+            "_tested_ranges": [],
         }
     except Exception as exc:
         scan_complete = False
@@ -277,48 +288,133 @@ def _scan(
 
     duration = time.monotonic() - t_start
     sampled_fraction = round(attempted / max(1, len(offsets)), 4)
+    full_scan_flag   = sampled_fraction >= 0.999
 
-    # ── Determine verdict ────────────────────────────────────────────────────
+    # ── Determine verdict (use SAMPLE_* prefix when scan is not full) ────────
     if fail_count > 0:
-        verdict = "BAD_SECTORS_FOUND"
+        base_verdict = "BAD_SECTORS_FOUND"
     elif slow_count > max(1, attempted) * 0.05:
-        verdict = "SLOW_READS"
+        base_verdict = "SLOW_READS"
     elif not scan_complete and attempted < len(offsets) * 0.5:
-        verdict = "SCAN_INCOMPLETE"
+        base_verdict = "SCAN_INCOMPLETE"
     else:
-        verdict = "OK"
+        base_verdict = "OK"
+
+    if full_scan_flag and scan_complete:
+        verdict = base_verdict           # full scan — use plain verdict
+        risk_status = base_verdict
+        sampling_strategy = "full"
+        conclusion_strength = "full"
+    else:
+        # Sampled — prefix SAMPLE_ to prevent overclaiming
+        if base_verdict in ("OK",):
+            verdict = "SAMPLE_OK"
+        elif base_verdict == "SLOW_READS":
+            verdict = "SAMPLE_SLOW_READS"
+        elif base_verdict == "BAD_SECTORS_FOUND":
+            verdict = "SAMPLE_BAD_SECTORS_FOUND"
+        elif base_verdict == "SCAN_INCOMPLETE":
+            verdict = "SAMPLE_INCOMPLETE"
+        else:
+            verdict = "UNKNOWN"
+        # risk_status uses v2 normalised form (no SAMPLE_ prefix)
+        risk_status = base_verdict if base_verdict != "OK" else "UNKNOWN"
+        sampling_strategy = "sequential_sample"
+        conclusion_strength = "sampled" if attempted >= len(offsets) * 0.5 else "weak"
 
     # Confidence depends on coverage and completeness
-    if scan_complete and attempted >= len(offsets) * 0.9:
+    if full_scan_flag and scan_complete:
         confidence = "high"
+    elif scan_complete and attempted >= len(offsets) * 0.9:
+        confidence = "medium"
     elif attempted >= len(offsets) * 0.5:
         confidence = "medium"
     else:
         confidence = "low"
 
+    coverage_pct = round(sampled_fraction * 100, 2)
+
     limitations = []
     if not scan_complete:
         limitations.append("scan_incomplete_time_limit")
-    limitations.append("sampled_scan_not_exhaustive")
+    if not full_scan_flag:
+        limitations.append("sampled_scan_not_exhaustive")
     limitations.append("mounted_partition_os_buffering_may_mask_errors")
 
+    coverage_limitation: str | None = None
+    if not full_scan_flag:
+        coverage_limitation = (
+            "A sampled scan checks selected parts of the disk only. "
+            "No bad sectors were found in the tested areas, but untested areas "
+            "may still contain bad sectors."
+        ) if base_verdict == "OK" else (
+            "A sampled scan checks selected parts of the disk only. "
+            "Issues were found in the tested areas; additional problems may exist "
+            "in untested areas."
+        )
+
+    untested_summary: str | None = None
+    if not full_scan_flag:
+        untested_pct = round(100.0 - coverage_pct, 2)
+        untested_summary = (
+            f"Approximately {untested_pct:.0f}% of disk sectors were not directly read."
+        )
+
+    # Compact tested_ranges to avoid huge lists for full scans
+    if len(tested_ranges) > 200:
+        # Keep first, last, and a sample of mid-points
+        compact = tested_ranges[:10] + tested_ranges[len(tested_ranges)//2 - 5 : len(tested_ranges)//2 + 5] + tested_ranges[-10:]
+        tested_ranges_out = compact
+    else:
+        tested_ranges_out = tested_ranges
+
+    # Block / byte counts
+    blocks_ok       = ok_count
+    blocks_fail     = fail_count
+    blocks_slow_cnt = slow_count
+    blocks_total_att= attempted
+    bytes_att = blocks_total_att * block_size
+    bytes_ok  = blocks_ok * block_size
+    sectors_cov = blocks_total_att * sectors_per_block
+
     return {
-        "scan_status": "completed" if scan_complete else "interrupted",
-        "interrupted_reason": interrupted_reason,
-        "sectors_attempted": attempted * sectors_per_block,
-        "sectors_read_ok":   ok_count  * sectors_per_block,
-        "sectors_failed":    fail_count * sectors_per_block,
-        "sectors_slow":      slow_count * sectors_per_block,
-        "bad_ranges":        bad_ranges,
-        "slow_read_ranges":  slow_ranges,
-        "duration_seconds":  round(duration, 1),
-        "verdict":           verdict,
-        "risk_status":       verdict,
-        "confidence":        confidence,
-        "limitations":       limitations,
-        "stop_reasons":      stop_reasons,
-        "_sampled_fraction": sampled_fraction,
-        "_full_scan":        sampled_fraction >= 0.999,
+        "scan_status":          "completed" if scan_complete else "interrupted",
+        "interrupted_reason":   interrupted_reason,
+        # block-level counts (canonical)
+        "blocks_attempted":     blocks_total_att,
+        "blocks_read_ok":       blocks_ok,
+        "blocks_failed":        blocks_fail,
+        "blocks_slow":          blocks_slow_cnt,
+        # sector/byte aggregates
+        "sector_size_bytes":    sector_size,
+        "sectors_covered":      sectors_cov,
+        "bytes_attempted":      bytes_att,
+        "bytes_read_ok":        bytes_ok,
+        # legacy aliases (sector_count = sectors_per_block × block_count)
+        "sectors_attempted":    sectors_cov,
+        "sectors_read_ok":      blocks_ok  * sectors_per_block,
+        "sectors_failed":       blocks_fail * sectors_per_block,
+        "sectors_slow":         blocks_slow_cnt * sectors_per_block,
+        # range data
+        "bad_ranges":           bad_ranges,
+        "slow_read_ranges":     slow_ranges,
+        # coverage analysis
+        "coverage_percent":     coverage_pct,
+        "sampling_strategy":    sampling_strategy,
+        "conclusion_strength":  conclusion_strength,
+        "tested_ranges":        tested_ranges_out,
+        "untested_ranges_summary": untested_summary,
+        "coverage_limitation":  coverage_limitation,
+        # verdict
+        "verdict":              verdict,
+        "risk_status":          risk_status,
+        "confidence":           confidence,
+        "limitations":          limitations,
+        # timing
+        "duration_seconds":     round(duration, 1),
+        "stop_reasons":         stop_reasons,
+        "_sampled_fraction":    sampled_fraction,
+        "_full_scan":           full_scan_flag,
     }
 
 
@@ -390,13 +486,21 @@ def run(root: Path, argv: list) -> int:
         result = {
             "scan_status": "error",
             "interrupted_reason": "device_not_found",
+            "blocks_attempted": 0, "blocks_read_ok": 0,
+            "blocks_failed": 0, "blocks_slow": 0,
             "sectors_attempted": 0, "sectors_read_ok": 0,
             "sectors_failed": 0, "sectors_slow": 0,
+            "sectors_covered": 0, "bytes_attempted": 0, "bytes_read_ok": 0,
             "bad_ranges": [], "slow_read_ranges": [],
             "duration_seconds": 0.0, "stop_reasons": ["device_not_found"],
             "_sampled_fraction": 0.0, "_full_scan": False,
+            "_tested_ranges": [],
             "verdict": "UNKNOWN", "risk_status": "UNKNOWN",
             "confidence": "none", "limitations": ["device_not_found"],
+            "coverage_percent": 0.0, "sampling_strategy": "unknown",
+            "conclusion_strength": "unknown",
+            "tested_ranges": [], "untested_ranges_summary": None,
+            "coverage_limitation": None,
         }
 
     # ── Assemble report ───────────────────────────────────────────────────────
@@ -404,9 +508,11 @@ def run(root: Path, argv: list) -> int:
     sampled_frac = result.pop("_sampled_fraction", 0.0)
     full_scan    = result.pop("_full_scan", False)
     stop_reasons = result.pop("stop_reasons", [])
+    tested_ranges_out = result.pop("_tested_ranges", result.pop("tested_ranges", []))
 
-    verdict = result.get("verdict", "UNKNOWN")
-    clone_recommended = verdict in ("BAD_SECTORS_FOUND", "FAILING", "CRITICAL")
+    verdict      = result.get("verdict", "UNKNOWN")
+    blocks_fail  = result.get("blocks_failed", result.get("sectors_failed", 0))
+    clone_recommended = verdict in ("BAD_SECTORS_FOUND", "SAMPLE_BAD_SECTORS_FOUND", "FAILING", "CRITICAL")
 
     ddrescue_cmd = None
     if clone_recommended and physical_dev:
@@ -417,24 +523,82 @@ def run(root: Path, argv: list) -> int:
     recommendations: list = []
     warnings:        list = []
 
-    if verdict == "BAD_SECTORS_FOUND":
+    if verdict in ("BAD_SECTORS_FOUND", "SAMPLE_BAD_SECTORS_FOUND"):
         recommendations.append(
             "Bad sectors detected — clone the drive with ddrescue before further use."
         )
         recommendations.append(
             "Do not write to or repair this drive until it has been imaged."
         )
-    elif verdict == "SLOW_READS":
+    elif verdict in ("SLOW_READS", "SAMPLE_SLOW_READS"):
         recommendations.append(
             "Slow sectors detected — drive may have early-stage wear.  Consider cloning."
         )
-    elif verdict == "SCAN_INCOMPLETE":
+    elif verdict in ("SCAN_INCOMPLETE", "SAMPLE_INCOMPLETE"):
         warnings.append("Scan did not complete — results may not be representative.")
     elif verdict == "UNKNOWN":
         warnings.append("Block device could not be found — no scan performed.")
 
+    if verdict == "SAMPLE_OK" and not full_scan:
+        warnings.append(
+            "Sampled scan only — a clean result does not rule out bad sectors in untested areas."
+        )
+        recommendations.append(
+            "If SMART data shows warnings, consider a full sequential scan or drive clone."
+        )
+
+    coverage_pct       = result.get("coverage_percent", sampled_frac * 100)
+    conclusion_strength= result.get("conclusion_strength", "unknown")
+    coverage_limitation= result.get("coverage_limitation")
+
+    # Build interpretation block
+    if verdict in ("OK", "SAMPLE_OK") and conclusion_strength == "full":
+        customer_summary = (
+            "No bad sectors or slow reads were detected across the full disk surface."
+        )
+        recommended_action = "No immediate action required for disk health."
+    elif verdict == "SAMPLE_OK":
+        customer_summary = (
+            f"No bad sectors were found in the {coverage_pct:.1f}% of the disk that was tested. "
+            "This is a sampled result only — the remaining areas were not checked."
+        )
+        recommended_action = (
+            "Monitor SMART data. Consider a full surface scan if disk behaviour seems abnormal."
+        )
+    elif verdict in ("BAD_SECTORS_FOUND", "SAMPLE_BAD_SECTORS_FOUND"):
+        customer_summary = "Bad sectors were found. The drive has physical damage and should be replaced."
+        recommended_action = "Clone the drive immediately using ddrescue, then replace the drive."
+    elif verdict in ("SLOW_READS", "SAMPLE_SLOW_READS"):
+        customer_summary = "Some disk areas are reading unusually slowly. The drive may be showing early wear."
+        recommended_action = "Back up data promptly. Consider cloning to a new drive."
+    else:
+        customer_summary = f"Disk scan result: {verdict}."
+        recommended_action = "Review scan details."
+
+    interpretation = {
+        "customer_summary":   customer_summary,
+        "technician_summary": (
+            f"Profile={args.profile}  coverage={coverage_pct:.1f}%  "
+            f"blocks_attempted={result.get('blocks_attempted',0)}  "
+            f"blocks_failed={result.get('blocks_failed',0)}  "
+            f"blocks_slow={result.get('blocks_slow',0)}  "
+            f"verdict={verdict}  conclusion_strength={conclusion_strength}"
+        ),
+        "what_this_means": coverage_limitation or (
+            "The full disk surface was tested and no problems were found."
+            if verdict in ("OK",) else
+            f"Scan result: {verdict}."
+        ),
+        "confidence":         result.get("confidence", "unknown"),
+        "limitations":        result.get("limitations", []),
+        "recommended_action": recommended_action,
+    }
+
     report = {
         "report_type":              "BAD_SECTOR_SCAN",
+        "source_module":            "m48_bad_sector_scan",
+        "module_version":           "1.0.0",
+        "schema_version":           "2.0",
         "generated":                now.isoformat(),
         "target":                   str(target),
         "physical_device":          physical_dev,
@@ -443,7 +607,13 @@ def run(root: Path, argv: list) -> int:
         "partition_offset_lba":     part_offset_lba,
         "windows_volume":           "C:",
         "filesystem":               "ntfs",
-        "scan_mode":                "sampled",
+        "scan_mode":                "sampled" if not full_scan else "sequential",
+        "sampling_strategy":        result.pop("sampling_strategy", "sequential_sample"),
+        "coverage_percent":         coverage_pct,
+        "conclusion_strength":      conclusion_strength,
+        "coverage_limitation":      coverage_limitation,
+        "untested_ranges_summary":  result.pop("untested_ranges_summary", None),
+        "tested_ranges":            tested_ranges_out,
         "block_size_bytes":         block_sz,
         "slow_read_threshold_ms":   args.slow_ms,
         "scan_scope": {
@@ -456,15 +626,20 @@ def run(root: Path, argv: list) -> int:
             "full_scan":            full_scan,
         },
         "safety": {
-            "read_only":            True,
-            "destructive":          False,
-            "write_test_performed": False,
-            "stop_reasons":         stop_reasons,
+            "read_only":                    True,
+            "destructive":                  False,
+            "write_test_performed":         False,
+            "stopped_due_to_temperature":   False,
+            "stopped_due_to_smart_failure": False,
+            "stopped_due_to_user_limit":    "time_limit_reached" in stop_reasons,
+            "stop_reasons":                 stop_reasons,
         },
         "clone_recommended":        clone_recommended,
         "ddrescue_command":         ddrescue_cmd,
+        "interpretation":           interpretation,
         "recommendations":          recommendations,
         "warnings":                 warnings,
+        "errors":                   [],
     }
     report.update(result)
 
@@ -478,24 +653,27 @@ def run(root: Path, argv: list) -> int:
 
     # ── Console summary ───────────────────────────────────────────────────────
     print()
-    print("=" * 56)
+    print("=" * 60)
     print("  BAD SECTOR SCAN RESULTS")
-    print("=" * 56)
-    print(f"  Device:         {partition_dev or 'NOT FOUND'}")
-    print(f"  Physical disk:  {physical_dev  or 'NOT FOUND'}")
-    print(f"  Scan status:    {report.get('scan_status', '?').upper()}")
-    print(f"  Verdict:        {verdict}")
-    print(f"  Sectors failed: {report.get('sectors_failed', 0)}")
-    print(f"  Sectors slow:   {report.get('sectors_slow',  0)}")
-    print(f"  Bad ranges:     {len(report.get('bad_ranges', []))}")
-    print(f"  Duration:       {report.get('duration_seconds', 0):.1f}s")
-    print(f"  Coverage:       {sampled_frac * 100:.2f}% of partition")
-    print(f"  Confidence:     {report.get('confidence', '?')}")
+    print("=" * 60)
+    print(f"  Device:             {partition_dev or 'NOT FOUND'}")
+    print(f"  Physical disk:      {physical_dev  or 'NOT FOUND'}")
+    print(f"  Scan status:        {report.get('scan_status', '?').upper()}")
+    print(f"  Verdict:            {verdict}")
+    print(f"  Conclusion:         {conclusion_strength}")
+    print(f"  Coverage:           {coverage_pct:.1f}%")
+    print(f"  Blocks failed:      {result.get('blocks_failed', 0)}")
+    print(f"  Blocks slow:        {result.get('blocks_slow',  0)}")
+    print(f"  Bad ranges:         {len(report.get('bad_ranges', []))}")
+    print(f"  Duration:           {report.get('duration_seconds', 0):.1f}s")
+    print(f"  Confidence:         {report.get('confidence', '?')}")
+    if coverage_limitation:
+        print(f"  ⚠ {coverage_limitation}")
     for rec in recommendations:
         print(f"  → {rec}")
     for warn in warnings:
         print(f"  ⚠ {warn}")
-    print("=" * 56)
+    print("=" * 60)
     print(f"\nLog written to: {out_path}")
 
     return 0

@@ -1,0 +1,38 @@
+{
+  "_comment": "Fixture: passive (idle) sensors only — response test skipped. Normal idle temperature.",
+  "report_type": "THERMAL_ANALYSIS",
+  "source_module": "m09_thermal_health",
+  "timestamp": "2025-01-01T00:00:00+00:00",
+  "verdict": "HEALTHY",
+  "passive_verdict": "HEALTHY",
+  "response_verdict": "SKIPPED",
+  "overall_thermal_verdict": "FAIR",
+  "response_confidence": "unknown",
+  "response_limitations": [
+    "response_test_not_performed",
+    "live_linux_may_differ_from_windows_thermal_policy"
+  ],
+  "idle_snapshot": {
+    "timestamp": "2025-01-01T00:00:00+00:00",
+    "sensors": [
+      {"name": "coretemp-isa-0000/Core 0", "temp_c": 42.0},
+      {"name": "coretemp-isa-0000/Core 1", "temp_c": 44.0}
+    ],
+    "hottest_c": 44.0,
+    "verdict": "HEALTHY"
+  },
+  "thermal_response_test": {
+    "performed": false,
+    "skipped_reason": "test_not_requested",
+    "idle_temp_c": 44.0,
+    "peak_temp_c": null,
+    "temp_rise_c": null,
+    "throttling_detected": null,
+    "emergency_stop": null,
+    "confidence": "unknown",
+    "limitations": ["response_test_not_performed"],
+    "recommendations": []
+  },
+  "warnings": ["Active response test was not performed — only idle temperatures were measured."],
+  "errors": []
+}

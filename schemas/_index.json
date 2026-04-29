@@ -32,7 +32,7 @@
       "schema": "thermal_health.schema.json",
       "log_glob": "logs/thermal_health_*.json",
       "format": "JSON",
-      "notes": "Schema title: THERMAL_ANALYSIS. Adds idle_snapshot and thermal_response_test blocks (idle/peak/recovery temps, time-to-peak, freq before/during/after, throttling, emergency_stop, confidence)."
+      "notes": "Schema title: THERMAL_ANALYSIS. Top-level 'verdict' and 'timestamp' are passive/legacy fields. Preferred v2 fields: passive_verdict (idle sensors only), response_verdict (active load test — SKIPPED if not performed), overall_thermal_verdict (combined, use for reports), response_confidence, response_limitations. Limitation: Linux thermal policy under RescueZilla may differ from OEM firmware under Windows — active test results reflect live Linux behaviour, not Windows behaviour."
     },
     "m15_upgrade_advisor": {
       "schema": "upgrade_advisor.schema.json",
@@ -43,7 +43,7 @@
       "schema": "system_summary.schema.json",
       "log_glob": "logs/system_summary_*.json",
       "format": "JSON",
-      "notes": "sections object includes: hardware, disk, thermal (legacy/passive v1), thermal_analysis (preferred v2 with active response test), clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager (adds missing_drivers/disabled_devices/problem_code_devices/missing_driver_files/old_drivers/unsigned_drivers), cmos_health, storage_usage, disk_integrity, bad_sector_scan (adds risk_status/confidence/limitations)."
+      "notes": "sections: hardware, disk, thermal (v1 legacy/passive — idle sensor summary only, no load test), thermal_analysis (v2 preferred — includes passive_verdict/response_verdict/overall_thermal_verdict/temperature_rise_c/throttling_detected; use overall_thermal_verdict for reports), clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager (missing_drivers/disabled_devices/problem_code_devices/missing_driver_files/old_drivers/unsigned_drivers/devices_by_class), cmos_health, storage_usage, disk_integrity, bad_sector_scan (conclusion_strength/coverage_percent/blocks_failed/coverage_limitation — SAMPLE_OK means clean sample only, not full clean bill of health)."
     },
     "m23_logon_audit": {
       "schema": "logon_audit.schema.json",
@@ -83,7 +83,7 @@
       "schema": "bad_sector_scan.schema.json",
       "log_glob": "logs/bad_sector_scan_*.json",
       "format": "JSON",
-      "notes": "Schema title: BAD_SECTOR_SCAN. Read-only bad-sector/slow-read test. Fields: scan_scope (device_size_bytes, sector_size_bytes, start_lba, end_lba, total_lba_count, sampled_fraction, full_scan), physical_device, partition_device, partition_offset_lba, windows_volume, filesystem, scan_mode, block_size_bytes, sectors_attempted/read_ok/failed/slow, bad_ranges, slow_read_ranges, safety (read_only, destructive, write_test_performed, stop_reasons), scan_status (completed/interrupted/error/skipped), verdict (v1: HEALTHY/MARGINAL/FAILING/CRITICAL/UNKNOWN; v2: OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN), risk_status (v2 normalised), confidence, limitations, clone_recommended, ddrescue_command."
+      "notes": "Schema title: BAD_SECTOR_SCAN. Read-only sampled bad-sector/slow-read test. IMPORTANT: default profile is a sampled scan (~3% coverage). DO NOT interpret SAMPLE_OK as a full clean bill of health. Key fields: conclusion_strength (full/sampled/weak/unknown), coverage_percent, coverage_limitation (standard customer-facing limitation text), sampling_strategy, tested_ranges, blocks_attempted/failed/slow (canonical), sectors_* (legacy aliases). Safety block required: read_only=true, destructive=false, write_test_performed=false. Verdict enum includes SAMPLE_* prefix for sampled scans to prevent overclaiming. interpretation.customer_summary provides pre-written report text."
     },
     "m31_system_integrity_audit": {
       "schema": "system_integrity.schema.json",
