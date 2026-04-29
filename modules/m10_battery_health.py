@@ -246,11 +246,13 @@ def _battery_verdict(
 ) -> str:
     if not present:
         return "NOT_PRESENT"
+    # Only claim DEAD when full capacity is explicitly reported as zero — not
+    # when telemetry is simply absent.  Absence of capacity data → UNKNOWN.
     if "full_capacity_zero" in flags or full_raw == 0:
         return "DEAD"
-    if capacity_pct == 0 and "not_charging_or_unknown_status" in flags:
-        return "DEAD"
     if health_percent is None:
+        # No energy/charge telemetry — cannot compute health.  Do NOT claim
+        # DEAD based on capacity_pct alone; that could be a driver artefact.
         return "UNKNOWN"
     if health_percent < 20.0:
         return "FAILING"
@@ -297,6 +299,14 @@ def _find_power_supplies() -> tuple[list[dict], list[dict]]:
         if not entry.is_dir():
             continue
         ptype = _sysfs_str(entry / "type").upper()
+        # Some drivers (older ACPI/embedded controllers) do not set a 'type'
+        # file.  Fall back to name-prefix heuristics in that case.
+        if not ptype:
+            n = entry.name.upper()
+            if n.startswith(("BAT",)):
+                ptype = "BATTERY"
+            elif n.startswith(("AC", "ADP", "MAINS", "ADPT")):
+                ptype = "MAINS"
         if ptype == "BATTERY":
             b = _probe_battery(entry)
             if b:
@@ -367,6 +377,7 @@ _RECOMMENDED_ACTIONS: dict[str, list[str]] = {
         "Run assessment again after reconnecting battery.",
     ],
     "UNKNOWN":     [
+        "Physically test battery runtime or replace battery if portable use is required.",
         "Battery telemetry could not be read — manual inspection recommended.",
         "Try booting into a full Linux environment for additional battery tools.",
     ],
@@ -391,6 +402,19 @@ def _build_interpretation(
             worst_health = hp if worst_health is None else min(worst_health, hp)
 
     cust = _CUSTOMER_MSGS.get(overall_verdict, f"Battery verdict: {overall_verdict}.")
+    # If UNKNOWN and any battery reports 'Not charging', add that context so
+    # the customer summary is not generic.
+    if overall_verdict == "UNKNOWN":
+        not_charging = [b for b in batteries if (b.get("status") or "").lower() == "not charging"]
+        if not_charging:
+            names = ", ".join(b["name"] for b in not_charging)
+            cust = (
+                f"Battery {names} is detected but its health could not be measured "
+                f"because capacity telemetry was not available. "
+                f"The battery is reporting 'Not charging'. "
+                f"This may indicate a worn or failed battery, a faulty charger, or a "
+                f"driver limitation. Physical testing is recommended."
+            )
     if ac_online and overall_verdict in ("DEAD", "FAILING", "POOR"):
         cust += " AC power is currently connected."
 
@@ -447,7 +471,9 @@ def _assess_confidence(batteries: list[dict], ac_adapters: list[dict]) -> tuple[
     )
 
     if not telemetry_present:
-        limitations.append("battery_telemetry_unavailable")
+        # Battery detected but no energy_full / charge_full / design capacity
+        # data could be read — health_percent cannot be computed.
+        limitations.append("battery_capacity_telemetry_unavailable")
         conf = "low"
     elif all_have_telemetry:
         conf = "high"

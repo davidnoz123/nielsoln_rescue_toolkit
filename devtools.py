@@ -1238,7 +1238,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat: m10 battery health rewrite — sysfs telemetry, health_percent, runtime estimation, GOOD/WORN/POOR/FAILING/DEAD verdicts, AC adapter, interpretation, safety block; fix m09 _lt forward ref; battery_health schema + _index + m17 section"
+    commit_message = "fix: m10 battery_health — conservative DEAD verdict (remove capacity_pct==0 heuristic), battery_capacity_telemetry_unavailable limitation, UNKNOWN+Not-charging context in interpretation, AC name-prefix fallback for typeless drivers"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
