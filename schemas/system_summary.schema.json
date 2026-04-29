@@ -55,16 +55,19 @@
           ]
         },
         "thermal": {
+          "description": "Legacy/passive thermal summary (v1). Only idle temperatures from WMI/ACPI sensor readback — no active stress test. Superseded by thermal_analysis (v2) when m09_thermal_health runs a response test.",
           "oneOf": [
             { "type": "null" },
             {
               "type": "object",
               "additionalProperties": true,
               "properties": {
-                "log":       { "type": "string" },
-                "verdict":   { "type": "string" },
-                "warnings":  { "type": "array", "items": { "type": "string" } },
-                "hottest_c": { "type": ["number", "null"] }
+                "log":         { "type": "string" },
+                "verdict":     { "type": "string" },
+                "warnings":    { "type": "array", "items": { "type": "string" } },
+                "hottest_c":   { "type": ["number", "null"] },
+                "confidence":  { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null], "description": "Low — passive sensor only, no load test" },
+                "limitations": { "type": "array", "items": { "type": "string" }, "description": "e.g. ['passive_sensors_only', 'no_load_test']" }
               }
             }
           ]
@@ -227,10 +230,16 @@
               "type": "object",
               "additionalProperties": true,
               "properties": {
-                "log":           { "type": "string" },
-                "total":         { "type": "integer" },
-                "flagged_count": { "type": "integer" },
-                "driver_events": { "type": "integer", "description": "Count of System.evtx driver/device events correlated" }
+                "log":                   { "type": "string" },
+                "total":                 { "type": "integer" },
+                "flagged_count":         { "type": "integer" },
+                "missing_drivers":       { "type": ["integer", "null"] },
+                "disabled_devices":      { "type": ["integer", "null"] },
+                "problem_code_devices":  { "type": ["integer", "null"] },
+                "missing_driver_files":  { "type": ["integer", "null"] },
+                "old_drivers":           { "type": ["integer", "null"] },
+                "unsigned_drivers":      { "type": ["integer", "null"] },
+                "driver_events":         { "type": "integer", "description": "Count of System.evtx driver/device events correlated" }
               }
             }
           ]
@@ -291,31 +300,37 @@
               "properties": {
                 "log":               { "type": "string" },
                 "verdict":           { "type": "string" },
+                "risk_status":       { "type": ["string", "null"], "description": "Normalised v2 risk status: OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN" },
                 "sectors_failed":    { "type": "integer" },
                 "sectors_slow":      { "type": "integer" },
-                "clone_recommended": { "type": "boolean" }
+                "clone_recommended": { "type": "boolean" },
+                "confidence":        { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null] },
+                "limitations":       { "type": "array", "items": { "type": "string" } }
               }
             }
           ]
         },
         "thermal_analysis": {
+          "description": "Preferred v2 thermal summary from THERMAL_ANALYSIS (m09). Includes active response test: idle snapshot + CPU stress test + recovery measurement. Use this section in preference to 'thermal' when both are present.",
           "oneOf": [
             { "type": "null" },
             {
               "type": "object",
               "additionalProperties": true,
-              "description": "Summary from THERMAL_ANALYSIS including response test results",
+              "description": "Summary from THERMAL_ANALYSIS including active response test results",
               "properties": {
-                "log":                { "type": "string" },
-                "verdict":            { "type": "string" },
-                "warnings":           { "type": "array", "items": { "type": "string" } },
-                "hottest_c":          { "type": ["number", "null"] },
-                "idle_temp_c":        { "type": ["number", "null"] },
-                "peak_temp_c":        { "type": ["number", "null"] },
-                "temp_rise_c":        { "type": ["number", "null"] },
-                "throttling_detected":{ "type": ["boolean", "null"] },
-                "emergency_stop":     { "type": ["boolean", "null"] },
-                "response_test_performed": { "type": ["boolean", "null"] }
+                "log":                     { "type": "string" },
+                "verdict":                 { "type": "string" },
+                "warnings":                { "type": "array", "items": { "type": "string" } },
+                "hottest_c":               { "type": ["number", "null"] },
+                "idle_temp_c":             { "type": ["number", "null"] },
+                "peak_temp_c":             { "type": ["number", "null"] },
+                "temp_rise_c":             { "type": ["number", "null"] },
+                "throttling_detected":     { "type": ["boolean", "null"] },
+                "emergency_stop":          { "type": ["boolean", "null"] },
+                "response_test_performed": { "type": ["boolean", "null"] },
+                "confidence":  { "type": ["string", "null"], "enum": ["high", "medium", "low", "none", null] },
+                "limitations": { "type": "array", "items": { "type": "string" }, "description": "e.g. ['no_sensors_found', 'stress_test_skipped']" }
               }
             }
           ]

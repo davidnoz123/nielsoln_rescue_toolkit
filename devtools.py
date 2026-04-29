@@ -1113,7 +1113,7 @@ def main() -> None:
     action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix: bundle_chatgpt picks most-recent file per scan type; update AGENTS.md"
+    commit_message = "schema: bad_sector_scan v2 fields; device_manager summary counts; system_summary thermal clarification; _index m33 assignment"
 
     # --- run_remote config ---
     remote_script = "_setup_clamav.py"  # local path to the script to run remotely

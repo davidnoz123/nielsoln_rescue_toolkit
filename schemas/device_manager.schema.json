@@ -16,6 +16,35 @@
     "timestamp":     { "type": "string" },
     "total":         { "type": "integer" },
     "flagged_count": { "type": "integer" },
+    "missing_drivers": {
+      "type": ["integer", "null"],
+      "description": "Count of devices with no driver installed (problem code 28 = CM_PROB_FAILED_INSTALL or no driver key)"
+    },
+    "disabled_devices": {
+      "type": ["integer", "null"],
+      "description": "Count of devices explicitly disabled (problem code 22 = CM_PROB_DISABLED)"
+    },
+    "problem_code_devices": {
+      "type": ["integer", "null"],
+      "description": "Count of devices with any non-zero CM_PROB_* problem code"
+    },
+    "missing_driver_files": {
+      "type": ["integer", "null"],
+      "description": "Count of devices whose driver binary files are absent from the filesystem"
+    },
+    "old_drivers": {
+      "type": ["integer", "null"],
+      "description": "Count of drivers with a driver_date older than a configurable threshold (default: 5 years)"
+    },
+    "unsigned_drivers": {
+      "type": ["integer", "null"],
+      "description": "Count of driver files where signed=false"
+    },
+    "devices_by_class": {
+      "type": ["object", "null"],
+      "additionalProperties": { "type": "integer" },
+      "description": "Map of device class name → count (e.g. {\"Net\": 3, \"USB\": 12, \"DiskDrive\": 2})"
+    },
     "driver_events": {
       "type": "array",
       "description": "Driver/device events correlated from System.evtx (Event IDs 7000–7045, 219, 411 etc.)",

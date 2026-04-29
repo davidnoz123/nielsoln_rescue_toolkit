@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "bad_sector_scan.schema.json",
   "title": "BAD_SECTOR_SCAN",
-  "description": "Read-only bad-sector and slow-read test written by the bad-sector scan module. Log glob: logs/bad_sector_scan_*.json",
+  "description": "Read-only bad-sector and slow-read test written by m33_bad_sector_scan. Log glob: logs/bad_sector_scan_*.json",
   "type": "object",
   "additionalProperties": true,
   "required": ["generated", "target", "device", "scan_status", "verdict"],
@@ -20,9 +20,43 @@
       "type": "string",
       "description": "Mounted Windows path passed as --target"
     },
+    "physical_device": {
+      "type": ["string", "null"],
+      "description": "Physical block device (e.g. /dev/sda)"
+    },
+    "partition_device": {
+      "type": ["string", "null"],
+      "description": "Partition being scanned (e.g. /dev/sda2)"
+    },
+    "partition_offset_lba": {
+      "type": ["integer", "null"],
+      "description": "LBA offset of partition start on the physical device (from /proc/partitions or parted)"
+    },
+    "windows_volume": {
+      "type": ["string", "null"],
+      "description": "Windows volume label or drive letter if determinable (e.g. C:)"
+    },
+    "filesystem": {
+      "type": ["string", "null"],
+      "description": "Filesystem type on the scanned partition (e.g. ntfs, fuseblk)"
+    },
     "device": {
       "type": ["string", "null"],
-      "description": "Block device scanned (e.g. /dev/sda2)"
+      "description": "Block device scanned — legacy alias for partition_device (e.g. /dev/sda2)"
+    },
+    "scan_scope": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Defines the exact portion of the device that was (or will be) scanned",
+      "properties": {
+        "device_size_bytes":  { "type": ["integer", "null"], "description": "Total size of the scanned block device in bytes" },
+        "sector_size_bytes":  { "type": ["integer", "null"], "description": "Physical/logical sector size (typically 512 or 4096)" },
+        "start_lba":          { "type": ["integer", "null"], "description": "First LBA included in the scan range" },
+        "end_lba":            { "type": ["integer", "null"], "description": "Last LBA included in the scan range (inclusive)" },
+        "total_lba_count":    { "type": ["integer", "null"], "description": "Total LBAs in the scan range (end_lba - start_lba + 1)" },
+        "sampled_fraction":   { "type": ["number", "null"],  "description": "Fraction of the range actually sampled (0.0–1.0); 1.0 means full scan" },
+        "full_scan":          { "type": ["boolean", "null"], "description": "True when every LBA in the range was read (sampled_fraction == 1.0)" }
+      }
     },
     "scan_mode": {
       "type": "string",
@@ -96,10 +130,44 @@
     "duration_seconds": {
       "type": ["number", "null"]
     },
+    "safety": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Safety confirmation block — asserts what the scanner did and did not do",
+      "properties": {
+        "read_only":             { "type": "boolean", "description": "True — only read operations were performed; no writes to block device" },
+        "destructive":           { "type": "boolean", "description": "False — no destructive operations performed (always false in v1)" },
+        "write_test_performed":  { "type": "boolean", "description": "False — write verification tests were not used (always false in v1)" },
+        "stop_reasons":          {
+          "type": "array",
+          "description": "Reasons the scan stopped early, if any (e.g. 'too_many_errors', 'time_limit_reached', 'user_interrupt')",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "verdict": {
       "type": "string",
-      "enum": ["HEALTHY", "MARGINAL", "FAILING", "CRITICAL", "UNKNOWN"],
-      "description": "Overall health verdict based on error counts and slow-read frequency"
+      "enum": [
+        "HEALTHY", "MARGINAL", "FAILING", "CRITICAL",
+        "OK", "SLOW_READS", "BAD_SECTORS_FOUND", "SCAN_INCOMPLETE", "UNSAFE_TO_SCAN",
+        "UNKNOWN"
+      ],
+      "description": "Overall health verdict. v1 used HEALTHY/MARGINAL/FAILING/CRITICAL/UNKNOWN. v2 normalised to OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN."
+    },
+    "risk_status": {
+      "type": ["string", "null"],
+      "enum": ["OK", "SLOW_READS", "BAD_SECTORS_FOUND", "SCAN_INCOMPLETE", "UNSAFE_TO_SCAN", "UNKNOWN", null],
+      "description": "Normalised risk status using v2 enum — mirrors verdict but always uses the v2 vocabulary. Populated even when verdict uses a legacy v1 value."
+    },
+    "confidence": {
+      "type": ["string", "null"],
+      "enum": ["high", "medium", "low", "none", null],
+      "description": "Confidence in the verdict based on scan coverage, device responsiveness, and SMART data availability"
+    },
+    "limitations": {
+      "type": "array",
+      "description": "Known limitations that reduce confidence (e.g. 'sampled_only', 'no_smart_data', 'partition_only', 'filesystem_mounted_rw')",
+      "items": { "type": "string" }
     },
     "smart_correlation": {
       "type": "object",

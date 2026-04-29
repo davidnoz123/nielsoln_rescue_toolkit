@@ -43,7 +43,7 @@
       "schema": "system_summary.schema.json",
       "log_glob": "logs/system_summary_*.json",
       "format": "JSON",
-      "notes": "sections object now includes: hardware, disk, thermal_analysis, clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager, cmos_health, storage_usage, disk_integrity, bad_sector_scan."
+      "notes": "sections object includes: hardware, disk, thermal (legacy/passive v1), thermal_analysis (preferred v2 with active response test), clamav, clamav_confidence, logon, persistence, services, software, upgrade, system_integrity, execution_surface, device_manager (adds missing_drivers/disabled_devices/problem_code_devices/missing_driver_files/old_drivers/unsigned_drivers), cmos_health, storage_usage, disk_integrity, bad_sector_scan (adds risk_status/confidence/limitations)."
     },
     "m23_logon_audit": {
       "schema": "logon_audit.schema.json",
@@ -79,11 +79,11 @@
       "log_glob": "logs/disk_integrity_*.json",
       "format": "JSON"
     },
-    "bad_sector_scan": {
+    "m33_bad_sector_scan": {
       "schema": "bad_sector_scan.schema.json",
       "log_glob": "logs/bad_sector_scan_*.json",
       "format": "JSON",
-      "notes": "Schema title: BAD_SECTOR_SCAN. Read-only bad-sector/slow-read test. Module TBD (no mNN assigned yet). Fields: scan_mode, block_size_bytes, sectors_attempted/read_ok/failed/slow, bad_ranges, slow_read_ranges, scan_status (completed/interrupted/error/skipped), clone_recommended, ddrescue_command."
+      "notes": "Schema title: BAD_SECTOR_SCAN. Read-only bad-sector/slow-read test. Fields: scan_scope (device_size_bytes, sector_size_bytes, start_lba, end_lba, total_lba_count, sampled_fraction, full_scan), physical_device, partition_device, partition_offset_lba, windows_volume, filesystem, scan_mode, block_size_bytes, sectors_attempted/read_ok/failed/slow, bad_ranges, slow_read_ranges, safety (read_only, destructive, write_test_performed, stop_reasons), scan_status (completed/interrupted/error/skipped), verdict (v1: HEALTHY/MARGINAL/FAILING/CRITICAL/UNKNOWN; v2: OK/SLOW_READS/BAD_SECTORS_FOUND/SCAN_INCOMPLETE/UNSAFE_TO_SCAN/UNKNOWN), risk_status (v2 normalised), confidence, limitations, clone_recommended, ddrescue_command."
     },
     "m31_system_integrity_audit": {
       "schema": "system_integrity.schema.json",
