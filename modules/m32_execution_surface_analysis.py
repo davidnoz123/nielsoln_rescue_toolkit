@@ -568,6 +568,77 @@ def _analyse_service(
     result["command_parsed_executable"] = _cmd_exe or None
     result["command_parsed_arguments"]  = _cmd_args or None
 
+    # ── Evidence refs ─────────────────────────────────────────────────────────
+    evidence_refs: list[dict] = []
+    if scan_result not in ("clean", "not_scanned"):
+        evidence_refs.append({
+            "type":        "clamav_scan",
+            "ref":         primary_linux or primary_win,
+            "description": f"ClamAV result: {scan_result}",
+        })
+    if scan_result == "clean":
+        evidence_refs.append({
+            "type":        "clamav_scan",
+            "ref":         primary_linux or primary_win,
+            "description": "ClamAV: no threats detected",
+        })
+    if integrity.get("anomalies"):
+        evidence_refs.append({
+            "type":        "integrity_scan",
+            "ref":         win_rel or primary_win,
+            "description": f"Integrity anomalies: {', '.join(integrity['anomalies'])}",
+        })
+    if location_susp:
+        evidence_refs.append({
+            "type":        "location_analysis",
+            "ref":         primary_win,
+            "description": "Executable located outside standard system directories",
+        })
+    if integrity.get("in_protected_list"):
+        evidence_refs.append({
+            "type":        "integrity_scan",
+            "ref":         win_rel or primary_win,
+            "description": "File is in Windows protected file list (WFP/SFC scope)",
+        })
+    if integrity.get("missing"):
+        evidence_refs.append({
+            "type":        "integrity_scan",
+            "ref":         win_rel or primary_win,
+            "description": "Protected file is MISSING from disk",
+        })
+
+    # ── Reasoning ────────────────────────────────────────────────────────────
+    reasoning_parts: list[str] = []
+    if scan_result == "infected":
+        reasoning_parts.append("ClamAV flagged executable as infected")
+    elif scan_result == "not_scanned":
+        reasoning_parts.append("Executable was not scanned by ClamAV — threat status unknown")
+    elif scan_result == "clean":
+        reasoning_parts.append("ClamAV reported executable as clean")
+    if location_susp:
+        reasoning_parts.append("Executable path is unusual for a system service")
+    if integrity.get("anomalies"):
+        reasoning_parts.append(f"Integrity anomalies: {', '.join(integrity['anomalies'])}")
+    if integrity.get("missing"):
+        reasoning_parts.append("Protected executable file is missing from disk")
+    reasoning = "; ".join(reasoning_parts) if reasoning_parts else "No specific concerns identified"
+
+    # ── Confidence ───────────────────────────────────────────────────────────
+    if scan_result == "infected":
+        svc_confidence = "high"
+    elif scan_result == "clean" and integrity.get("in_protected_list"):
+        svc_confidence = "high"
+    elif scan_result == "not_scanned" and not integrity.get("in_protected_list"):
+        svc_confidence = "low"
+    elif scan_result == "clean" or integrity.get("in_protected_list"):
+        svc_confidence = "medium"
+    else:
+        svc_confidence = "medium"
+
+    result["evidence_refs"] = evidence_refs
+    result["reasoning"]     = reasoning
+    result["confidence"]    = svc_confidence
+
     # Add service_dll block if relevant
     if is_svchost:
         result["service_dll"] = {

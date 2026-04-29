@@ -286,6 +286,39 @@ def _collect_raw_output(log_files: List[Path], max_chars: int = 40_000) -> str:
     return "".join(parts)
 
 
+def _split_raw_output(raw: str) -> tuple[list[str], list[str]]:
+    """Extract ERROR: and WARNING: lines from raw clamscan output."""
+    errors:   list[str] = []
+    warnings: list[str] = []
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("ERROR:"):
+            errors.append(stripped)
+        elif stripped.startswith("WARNING:") or stripped.startswith("LibClamAV Warning:"):
+            warnings.append(stripped)
+    return errors, warnings
+
+
+def _build_effective_definitions(definitions: dict, def_summary: dict) -> dict:
+    """Build a clean effective_definitions block from per-DB metadata and summary."""
+    eff_db   = def_summary.get("effective_db")
+    db_meta  = definitions.get(eff_db, {}) if eff_db else {}
+    # Gather limitations
+    lims: list[str] = []
+    lim = def_summary.get("limitation")
+    if lim:
+        lims.append(lim)
+    if def_summary.get("definition_confidence") in ("low", "unknown"):
+        lims.append("definition_age_uncertain")
+    return {
+        "effective_database":   eff_db,
+        "effective_build_time": db_meta.get("build_time"),
+        "effective_age_days":   db_meta.get("age_days"),
+        "definition_confidence": def_summary.get("definition_confidence", "unknown"),
+        "definition_limitations": lims,
+    }
+
+
 # ---------------------------------------------------------------------------
 # 2. Log parsing
 # ---------------------------------------------------------------------------
@@ -1328,6 +1361,22 @@ def run(root: Path, argv: list) -> int:
     scan_command    = "clamscan " + " ".join(profile_flags_raw)
     raw_scan_output = _collect_raw_output(new_logs)
 
+    # ---- Effective definitions + scan configuration + raw error split ----
+    effective_definitions = _build_effective_definitions(definitions, def_summary)
+
+    scan_configuration = {
+        "scan_command":    scan_command,
+        "scan_profile":    args.profile,
+        "recursion":       True,
+        "archives_scanned": args.profile == "thorough"
+            or "--scan-archive=yes" in profile_flags_raw
+            or "-z" in profile_flags_raw,
+        "target_paths":    [str(d) for d in scan_dirs],
+        "excluded_paths":  [],
+    }
+
+    raw_errors, raw_warnings = _split_raw_output(raw_scan_output)
+
     # ---- Build JSON result ----
     result = {
         "generated":               end_time.isoformat(),
@@ -1337,6 +1386,8 @@ def run(root: Path, argv: list) -> int:
         "infected_files":          infected,
         "definitions":             definitions,
         "definition_summary":      def_summary,
+        "effective_definitions":   effective_definitions,
+        "scan_configuration":      scan_configuration,
         "scan_scope":              scope,
         "scan_execution":          execution,
         "coverage":                coverage,
@@ -1350,6 +1401,8 @@ def run(root: Path, argv: list) -> int:
         # raw evidence
         "scan_command":            scan_command,
         "raw_scan_output":         raw_scan_output,
+        "raw_errors":              raw_errors,
+        "raw_warnings":            raw_warnings,
     }
 
     # ---- Print report ----

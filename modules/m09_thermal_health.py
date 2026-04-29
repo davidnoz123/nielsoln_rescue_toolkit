@@ -816,6 +816,99 @@ def run(root: Path, argv: list) -> int:
 
     verdict, warnings, recs = _derive_verdict(temp_findings, fan_readings, throttle, load_test)
 
+    # ── Separate passive / response / overall verdicts ───────────────────────
+    has_sensors = bool(temp_findings)
+    critical_temps = [f for f in temp_findings if f.get("severity") == "critical"]
+    warn_temps     = [f for f in temp_findings if f.get("severity") == "warn"]
+
+    if not has_sensors:
+        passive_verdict = "UNKNOWN"
+    elif critical_temps:
+        passive_verdict = "CRITICAL"
+    elif len(warn_temps) >= 2 or [f for f in fan_readings if f.get("rpm", 1) == 0]:
+        passive_verdict = "POOR"
+    elif warn_temps or throttle.get("throttled"):
+        passive_verdict = "FAIR"
+    else:
+        passive_verdict = "GOOD"
+
+    lt_enabled = (load_test or {}).get("enabled", False)
+    lt_skipped = (load_test or {}).get("skipped_reason")
+    if not lt_enabled or not load_test:
+        response_verdict    = "SKIPPED"
+        response_confidence = "none"
+    elif lt_skipped:
+        response_verdict    = "UNKNOWN"
+        response_confidence = "none"
+    elif load_test.get("emergency_stop"):
+        response_verdict    = "CRITICAL"
+        response_confidence = "medium"
+    elif (
+        load_test.get("throttling_detected")
+        and (load_test.get("temp_rise_c") or 0) > 15
+    ) or (load_test.get("recovery_time_s") or 0) > 45:
+        response_verdict    = "POOR"
+        response_confidence = "high"
+    elif (
+        load_test.get("throttling_detected")
+        or (load_test.get("temp_rise_c") or 0) > 10
+        or (load_test.get("recovery_time_s") or 0) > 20
+    ):
+        response_verdict    = "FAIR"
+        response_confidence = "high"
+    else:
+        response_verdict    = "GOOD"
+        response_confidence = "high"
+
+    _severity_rank = {"CRITICAL": 4, "POOR": 3, "FAIR": 2, "GOOD": 1,
+                      "SKIPPED": 0, "UNKNOWN": 0}
+    overall_thermal_verdict = (
+        passive_verdict
+        if _severity_rank.get(passive_verdict, 0) >= _severity_rank.get(response_verdict, 0)
+        else response_verdict
+    )
+    # If overall was effectively UNKNOWN/SKIPPED, fall back to the combined verdict
+    if overall_thermal_verdict in ("UNKNOWN", "SKIPPED"):
+        overall_thermal_verdict = verdict
+
+    # ── Limitations for this run ─────────────────────────────────────────────
+    limitations: list[str] = []
+    if not has_sensors:
+        limitations.append("no_thermal_sensors_detected")
+    if not fan_readings:
+        limitations.append("no_fan_monitoring_available")
+    if response_verdict in ("SKIPPED", "UNKNOWN"):
+        limitations.append("load_test_not_performed")
+    limitations.append("rescue_environment_readings_reflect_live_system_state")
+
+    # ── Interpretation block ─────────────────────────────────────────────────
+    _desc = {
+        "GOOD":     "Thermal performance is healthy.",
+        "FAIR":     "Mild thermal stress detected — cleaning may help.",
+        "POOR":     "Significant thermal issues — service recommended.",
+        "CRITICAL": "Critical overheating risk — immediate action required.",
+        "UNKNOWN":  "Thermal status could not be determined (no sensors).",
+        "SKIPPED":  "Passive thermal snapshot only — no load test performed.",
+    }
+    interpretation = {
+        "customer_summary":   _desc.get(overall_thermal_verdict, f"Thermal verdict: {overall_thermal_verdict}."),
+        "technician_summary": (
+            f"passive={passive_verdict}  response={response_verdict}  "
+            f"overall={overall_thermal_verdict}  "
+            f"response_confidence={response_confidence}  "
+            f"sensors={has_sensors}  "
+            f"peak_c={(_lt.get('peak_temp_c') if _lt else None)}  "
+            f"throttled={(_lt.get('throttling_detected') if _lt else None)}"
+        ),
+        "what_this_means": (
+            "Thermal readings were taken from the running rescue environment, "
+            "not from a Windows workload. Results reflect current hardware state."
+        ),
+        "confidence":        response_confidence if has_sensors else "none",
+        "limitations":       limitations,
+        "recommended_action": recs[0] if recs else "No action required.",
+    }
+
     # --- Report ---
     if not args.json_only:
         print(_fmt_report(
@@ -834,10 +927,15 @@ def run(root: Path, argv: list) -> int:
     _ts = _lt.get("samples", []) if _lt.get("enabled") and not _lt.get("skipped_reason") else []
 
     report = {
-        "timestamp":          timestamp,
-        "verdict":            verdict,
-        "warnings":           warnings,
-        "recommendations":    recs,
+        "timestamp":                timestamp,
+        "verdict":                  verdict,
+        "passive_verdict":          passive_verdict,
+        "response_verdict":         response_verdict,
+        "overall_thermal_verdict":  overall_thermal_verdict,
+        "response_confidence":      response_confidence,
+        "limitations":              limitations,
+        "interpretation":           interpretation,
+        "warnings":                 warnings,        "recommendations":    recs,
         "temperatures":       temp_findings,
         "fans":               fan_readings,
         "thermal_zones":      thermal_zones,

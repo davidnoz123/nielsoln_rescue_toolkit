@@ -321,6 +321,86 @@ def _execution_surface(logs_dir: Path) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Cross-module adjustment rules
+# ---------------------------------------------------------------------------
+
+def _compute_cross_module_adjustments(data: dict) -> list:
+    """Evaluate cross-module rules and return structured adjustment list."""
+    adjustments: list[dict] = []
+    clamav  = data.get("clamav")  or {}
+    esurf   = data.get("execution_surface") or {}
+    disk    = data.get("disk")    or {}
+    thermal = data.get("thermal") or {}
+    integ   = data.get("integrity") or {}
+
+    # Rule 1: ClamAV clean + suspicious/high-risk execution surface
+    if clamav.get("verdict") in ("CLEAN", "clean") and esurf.get("verdict") in ("CRITICAL", "HIGH"):
+        adjustments.append({
+            "rule":                  "clamav_clean_but_risky_execution_surface",
+            "effect":                (
+                "Security confidence reduced — ClamAV clean result does not rule out "
+                "malware when execution surface analysis shows high-risk or untrusted services"
+            ),
+            "confidence_adjustment": "downgrade",
+            "modules_involved":      ["m18_clamav_scan", "m32_execution_surface_analysis"],
+        })
+
+    # Rule 2: SMART disk warnings present
+    disk_drives = disk.get("drives") or []
+    if any(
+        any(x in str(drv.get("verdict", "")) for x in ("FAIL", "WARN", "BAD", "POOR"))
+        for drv in disk_drives
+    ):
+        adjustments.append({
+            "rule":                  "disk_smart_warnings_present",
+            "effect":                "Disk health confidence reduced — SMART attribute warnings detected",
+            "confidence_adjustment": "downgrade",
+            "modules_involved":      ["m05_disk_health"],
+        })
+
+    # Rule 3: Thermal UNKNOWN/SKIPPED with disk I/O or performance concerns
+    if thermal.get("verdict") in ("SKIPPED", "UNKNOWN"):
+        adjustments.append({
+            "rule":                  "thermal_status_unknown",
+            "effect":                (
+                "Thermal status could not be determined — cannot confirm or rule out "
+                "thermal throttling as a contributor to performance or stability issues"
+            ),
+            "confidence_adjustment": "note",
+            "modules_involved":      ["m09_thermal_health"],
+        })
+
+    # Rule 4: Integrity corruption indicators
+    if integ.get("verdict") in (
+        "CORRUPTION_SUSPECTED", "DISK_RELATED_CORRUPTION_SUSPECTED", "TAMPERED"
+    ):
+        adjustments.append({
+            "rule":                  "integrity_corruption_suspected",
+            "effect":                (
+                "File integrity anomalies detected — system file corruption may be "
+                "disk-related rather than deliberate tampering; correlate with SMART data"
+            ),
+            "confidence_adjustment": "note",
+            "modules_involved":      ["m31_system_integrity", "m05_disk_health"],
+        })
+
+    # Rule 5: ClamAV definitions stale (>30 days)
+    defs_age = clamav.get("definitions_age")
+    if defs_age is not None and defs_age > 30:
+        adjustments.append({
+            "rule":                  "clamav_definitions_stale",
+            "effect":                (
+                f"ClamAV definitions are {defs_age} days old — recent malware families "
+                "may not be detected; a clean result is less reliable"
+            ),
+            "confidence_adjustment": "downgrade",
+            "modules_involved":      ["m18_clamav_scan"],
+        })
+
+    return adjustments
+
+
+# ---------------------------------------------------------------------------
 # Report printer
 # ---------------------------------------------------------------------------
 
@@ -560,13 +640,19 @@ def run(root: Path, argv: list) -> int:
 
     _print_report(data, args.target)
 
+    adjustments = _compute_cross_module_adjustments(data)
+
     # Write JSON summary
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     out = logs_dir / f"system_summary_{ts}.json"
     out.write_text(json.dumps({
-        "generated": datetime.now(timezone.utc).isoformat(),
-        "target":    args.target,
-        "sections":  data,
+        "generated":               datetime.now(timezone.utc).isoformat(),
+        "target":                  args.target,
+        "sections":                data,
+        "cross_module_adjustments": adjustments,
+        "confidence_adjusted":     bool(
+            any(a["confidence_adjustment"] == "downgrade" for a in adjustments)
+        ),
     }, indent=2, default=str))
     print(f"[m17] Summary written → {out}")
     return 0

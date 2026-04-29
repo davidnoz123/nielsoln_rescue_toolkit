@@ -465,12 +465,70 @@ def run(root: Path, argv: list) -> int:
     else:
         out_devices = devices
 
+    # ── Summary counts ────────────────────────────────────────────────────────
+    _missing_drv   = [d for d in devices if d["problem_code"] in (1, 10, 28, 50)]
+    _disabled      = [d for d in devices if d["problem_code"] == 22]
+    _prob_codes    = [d for d in devices if d["problem_code"] > 0]
+    _unsigned      = [d for d in devices if d["problem_code"] == 52]
+    _old_drivers   = [
+        d for d in devices
+        if d.get("driver_date")
+        and len(d["driver_date"]) >= 4
+        and d["driver_date"][:4].isdigit()
+        and int(d["driver_date"][:4]) < 2007
+    ]
+
+    summary = {
+        "total_devices":        len(devices),
+        "flagged_devices":      len(flagged),
+        "missing_drivers":      len(_missing_drv),
+        "disabled_devices":     len(_disabled),
+        "problem_code_devices": len(_prob_codes),
+        "unsigned_drivers":     len(_unsigned),
+        "old_drivers":          len(_old_drivers),
+    }
+
+    hive_readable   = bool(devices)
+    confidence      = "high" if hive_readable and len(devices) > 0 else "low"
+
+    limitations: list[str] = []
+    if not hive_readable:
+        limitations.append("SYSTEM_hive_not_readable—device_list_may_be_incomplete")
+    limitations.append("offline_hive_read—device_status_reflects_last_boot_state")
+
+    interpretation = {
+        "customer_summary": (
+            f"Windows Device Manager records show {len(devices)} devices. "
+            f"{len(flagged)} have known problems (missing drivers, disabled, or failed)."
+        ) if devices else "Device Manager data could not be read.",
+        "technician_summary": (
+            f"total={len(devices)} flagged={len(flagged)} "
+            f"missing_drv={len(_missing_drv)} disabled={len(_disabled)} "
+            f"unsigned={len(_unsigned)} old={len(_old_drivers)}"
+        ),
+        "what_this_means": (
+            "Flagged devices indicate hardware that Windows failed to initialise — "
+            "likely missing, incompatible, or corrupt drivers."
+        ) if flagged else "All enumerated devices had no reported problems at last boot.",
+        "confidence":        confidence,
+        "limitations":       limitations,
+        "recommended_action": (
+            "Investigate flagged devices, particularly in Display, Net, HDC classes. "
+            "Download matching drivers before attempting repair."
+        ) if flagged else "No driver issues found.",
+    }
+
     report = {
-        "target":    str(target),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "total":     len(devices),
-        "flagged_count": len(flagged),
-        "devices":   out_devices,
+        "generated":      datetime.now(timezone.utc).isoformat(),
+        "target":         str(target),
+        "timestamp":      datetime.now(timezone.utc).isoformat(),
+        "total":          len(devices),
+        "flagged_count":  len(flagged),
+        "summary":        summary,
+        "confidence":     confidence,
+        "limitations":    limitations,
+        "interpretation": interpretation,
+        "devices":        out_devices,
     }
 
     print()
