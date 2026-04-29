@@ -705,13 +705,29 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
     Returns a dict with keys: manufacturer, model, serial, os_name,
     registered_owner, computer_name.
     Any key may be absent if the source log was not found.
+
+    Falls back to existing device subfolders when logs_dir root has no
+    hardware_profile or os_profile files (happens after organize_device_logs
+    has already moved files into a named subfolder).
     """
     import pathlib as _pl, json as _json
     base = _pl.Path(logs_dir)
     info: dict = {}
 
+    def _find_logs(pattern: str) -> list:
+        """Search root first, then most-recent subfolder as fallback."""
+        hits = sorted(base.glob(pattern), reverse=True)
+        if hits:
+            return hits
+        # Fallback: look inside existing device subfolders
+        subfolders = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
+        if subfolders:
+            newest = max(subfolders, key=lambda d: d.stat().st_mtime)
+            hits = sorted(newest.glob(pattern), reverse=True)
+        return hits
+
     # hardware_profile → manufacturer / model / serial
-    hw_files = sorted(base.glob("hardware_profile_*.json"), reverse=True)
+    hw_files = _find_logs("hardware_profile_*.json")
     if hw_files:
         try:
             d = _json.loads(hw_files[0].read_text(encoding="utf-8", errors="replace"))
@@ -726,7 +742,7 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
             pass
 
     # os_profile → OS name / version / owner / computer name
-    os_files = sorted(base.glob("os_profile_*.json"), reverse=True)
+    os_files = _find_logs("os_profile_*.json")
     if os_files:
         try:
             d = _json.loads(os_files[0].read_text(encoding="utf-8", errors="replace"))
@@ -1167,16 +1183,43 @@ def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
     return rc
 
 
+def fetch_validate_bundle(logs_dir: str = "logs") -> None:
+    """Fetch all logs, validate schemas, organise into device folder, and create
+    a ChatGPT bundle zip named after the device folder."""
+    print("=" * 60)
+    print("STEP 1 — Fetch logs from device")
+    print("=" * 60)
+    fetch_logs(logs_dir)
+
+    print()
+    print("=" * 60)
+    print("STEP 2 — Schema validation")
+    print("=" * 60)
+    _validate_logs(logs_dir)
+
+    print()
+    print("=" * 60)
+    print("STEP 3 — Organise into device folder")
+    print("=" * 60)
+    device_path = organize_device_logs(logs_dir)
+
+    print()
+    print("=" * 60)
+    print("STEP 4 — Bundle for ChatGPT")
+    print("=" * 60)
+    bundle_chatgpt(device_folder=device_path)
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"            # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
+    action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(schema): thermal_health verdict enum += FAIR/GOOD/POOR/UNKNOWN; fix FULL_MODULE_SEQUENCE needs_target for m09/m15"
+    commit_message = "fix(devtools): _read_device_info subfolder fallback; add fetch_validate_bundle action"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
@@ -1227,6 +1270,8 @@ def main() -> None:
     elif action == "fetch_and_validate":
         import sys as _sys
         _sys.exit(fetch_and_validate())
+    elif action == "fetch_validate_bundle":
+        fetch_validate_bundle()
     elif action == "bundle_chatgpt":
         bundle_chatgpt()
     elif action == "setup_ssh_agent":
@@ -1252,9 +1297,9 @@ def main() -> None:
     elif action not in ("release", "run_remote", "push_file", "push_module",
                         "run_module", "run_module_serial", "run_all",
                         "fetch_logs", "organize_logs", "fetch_and_validate",
-                        "bundle_chatgpt", "setup_ssh_agent",
+                        "fetch_validate_bundle", "bundle_chatgpt", "setup_ssh_agent",
                         "relay", "relay_status", "ssh_test"):
-        print(f"Unknown action {action!r}. Valid actions: release, run_remote, push_file, push_module, run_module, run_module_serial, run_all, fetch_logs, organize_logs, fetch_and_validate, bundle_chatgpt, setup_ssh_agent, relay, relay_status, ssh_test")
+        print(f"Unknown action {action!r}. Valid actions: release, run_remote, push_file, push_module, run_module, run_module_serial, run_all, fetch_logs, organize_logs, fetch_and_validate, fetch_validate_bundle, bundle_chatgpt, setup_ssh_agent, relay, relay_status, ssh_test")
         sys.exit(1)
 
 
