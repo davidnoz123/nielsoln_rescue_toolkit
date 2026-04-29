@@ -1110,21 +1110,21 @@ def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"         # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
+    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "schema: bad_sector_scan v2 fields; device_manager summary counts; system_summary thermal clarification; _index m33 assignment"
+    commit_message = "fix(m26): read computer_name from Tcpip/Parameters/Hostname; ComputerName key has parser edge case on Vista hives"
 
     # --- run_remote config ---
-    remote_script = "_setup_clamav.py"  # local path to the script to run remotely
+    remote_script = "_debug_computername.py"
 
     # --- push_file config ---
     push_local  = "toolkit.py"
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m18_clamav_scan"
-    module_args = ["--target", "/mnt/windows", "--profile", "quick"]
+    module_name = "m17_system_summary"
+    module_args = ["--target", "/mnt/windows"]
 
     # --- run_all config ---
     run_all_target        = "/mnt/windows"

@@ -301,13 +301,24 @@ def collect_os_info(target: Path) -> dict:
     syswow64 = (target / "Windows" / "SysWOW64").exists()
     os_bitness = "64-bit" if syswow64 else "32-bit"
 
-    # Computer name from SYSTEM hive
+    # Computer name — try multiple paths in order of reliability.
+    # The ComputerName registry key (Control\ComputerName\ComputerName\ComputerName)
+    # can fail to parse on some Vista hives; Tcpip\Parameters\Hostname is more robust.
     computer_name = ""
     sys_hive = _open_hive(target, "Windows/System32/config/SYSTEM")
     if sys_hive is not None:
-        for ccs in ("CurrentControlSet", "ControlSet001", "ControlSet002"):
-            cn = _q(sys_hive, f"{ccs}\\Control\\ComputerName\\ComputerName",
-                    "ComputerName", "")
+        for ccs in ("ControlSet001", "ControlSet002", "CurrentControlSet"):
+            # Primary: Tcpip Parameters (most reliable in offline hive)
+            cn = _q(sys_hive, f"{ccs}\\Services\\Tcpip\\Parameters",
+                    "Hostname", "")
+            if not cn:
+                cn = _q(sys_hive, f"{ccs}\\Services\\Tcpip\\Parameters",
+                        "NV Hostname", "")
+            # Fallback: ComputerName key
+            if not cn:
+                cn = _q(sys_hive,
+                        f"{ccs}\\Control\\ComputerName\\ComputerName",
+                        "ComputerName", "")
             if cn and str(cn) not in ("", "unknown"):
                 computer_name = str(cn)
                 break
