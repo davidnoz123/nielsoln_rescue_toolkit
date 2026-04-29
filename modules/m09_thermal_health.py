@@ -36,7 +36,7 @@ import re
 import subprocess
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -342,6 +342,7 @@ def run_load_test(
 
     # --- idle baseline ---
     _log.info("Load test: measuring idle baseline …")
+    wall_start = datetime.now(timezone.utc)  # for sample timestamps
     time.sleep(3)
     idle_readings = _collect_hwmon() + [
         {"kind": "temperature", "chip": tz["type"], "label": tz["zone"],
@@ -395,9 +396,14 @@ def run_load_test(
             cur_freq = _read_cur_cpu_mhz()
 
             if cur_temp is not None:
+                elapsed_s = round(time.monotonic() - start_ts, 1)
                 samples.append({
-                    "elapsed_s": round(time.monotonic() - start_ts, 1),
-                    "temp_c": cur_temp,
+                    "elapsed_s": elapsed_s,
+                    "timestamp": (wall_start + timedelta(seconds=elapsed_s)).isoformat(),
+                    "cpu_temp":  cur_temp,
+                    "cpu_freq":  cur_freq,
+                    # legacy names kept for backward compat
+                    "temp_c":   cur_temp,
                     "freq_mhz": cur_freq,
                 })
                 if cur_temp > peak_temp:
@@ -823,6 +829,10 @@ def run(root: Path, argv: list) -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"thermal_health_{timestamp}.json"
 
+    # Promote time-series data to the top level for easy consumption
+    _lt = load_test or {}
+    _ts = _lt.get("samples", []) if _lt.get("enabled") and not _lt.get("skipped_reason") else []
+
     report = {
         "timestamp":          timestamp,
         "verdict":            verdict,
@@ -833,6 +843,8 @@ def run(root: Path, argv: list) -> int:
         "thermal_zones":      thermal_zones,
         "cpu_throttle":       throttle,
         "sensors_available":  bool(sensors_lines),
+        "sensors_raw":        sensors_lines,
+        "time_series":        _ts,
         "thermal_response_test": load_test,
     }
     log_path.write_text(json.dumps(report, indent=2))

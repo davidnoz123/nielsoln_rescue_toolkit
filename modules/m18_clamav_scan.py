@@ -152,7 +152,10 @@ def _parse_cvd_header(path: Path) -> dict:
         parts = header.split(":")
         if len(parts) < 4 or not parts[0].startswith("ClamAV-VDB"):
             result["parse_error"] = "Not a valid CVD/CLD header"
+            result["raw_header"] = header_bytes.decode("ascii", errors="replace")[:256]
             return result
+
+        result["raw_header"] = header_bytes.decode("ascii", errors="replace").split("\x00")[0][:256]
 
         build_time_str = parts[1].strip()
         version_str    = parts[2].strip()
@@ -255,6 +258,32 @@ def _get_db_metadata(db_dir: Optional[Path]) -> dict:
             }
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# 2b. Raw scan output collector
+# ---------------------------------------------------------------------------
+
+def _collect_raw_output(log_files: List[Path], max_chars: int = 40_000) -> str:
+    """Concatenate raw clamscan log text from segment files (capped to max_chars)."""
+    parts: List[str] = []
+    total = 0
+    for lf in log_files:
+        try:
+            text = lf.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        remaining = max_chars - total
+        if remaining <= 0:
+            break
+        if len(text) > remaining:
+            parts.append(text[:remaining])
+            parts.append(f"\n... [TRUNCATED: {len(text) - remaining} additional chars in {lf.name}] ...")
+            total = max_chars
+            break
+        parts.append(text)
+        total += len(text)
+    return "".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -1295,6 +1324,10 @@ def run(root: Path, argv: list) -> int:
     # ---- Determine overall scan_status ----
     scan_status = execution["scan_status"]
 
+    # ---- Raw evidence ----
+    scan_command    = "clamscan " + " ".join(profile_flags_raw)
+    raw_scan_output = _collect_raw_output(new_logs)
+
     # ---- Build JSON result ----
     result = {
         "generated":               end_time.isoformat(),
@@ -1314,6 +1347,9 @@ def run(root: Path, argv: list) -> int:
         "scan_confidence":         confidence,
         "miss_analysis":           miss_analysis,
         "recommendations":         recommendations,
+        # raw evidence
+        "scan_command":            scan_command,
+        "raw_scan_output":         raw_scan_output,
     }
 
     # ---- Print report ----

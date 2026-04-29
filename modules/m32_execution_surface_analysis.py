@@ -548,6 +548,26 @@ def _analyse_service(
         "flags":                flags,
     }
 
+    # Parse ImagePath into executable + arguments
+    _raw_ip = image_path or ""
+    if _raw_ip.startswith('"'):
+        _eq      = _raw_ip.find('"', 1)
+        _cmd_exe  = _raw_ip[1:_eq]  if _eq != -1 else _raw_ip.strip('"')
+        _cmd_args = _raw_ip[_eq + 1:].strip() if _eq != -1 else ""
+    else:
+        _m_ip = re.match(
+            r"(.*?\.(?:exe|sys|dll|bat|cmd|com|scr|pif))\s*(.*)",
+            _raw_ip, re.IGNORECASE,
+        )
+        if _m_ip:
+            _cmd_exe, _cmd_args = _m_ip.group(1), _m_ip.group(2).strip()
+        else:
+            _parts    = _raw_ip.split(None, 1)
+            _cmd_exe  = _parts[0] if _parts else _raw_ip
+            _cmd_args = _parts[1].strip() if len(_parts) > 1 else ""
+    result["command_parsed_executable"] = _cmd_exe or None
+    result["command_parsed_arguments"]  = _cmd_args or None
+
     # Add service_dll block if relevant
     if is_svchost:
         result["service_dll"] = {

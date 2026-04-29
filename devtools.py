@@ -1238,7 +1238,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat(m31): file-disk correlation, volume context, CBS file extraction, event classification, classification block, anomaly breakdown, tampering indicators, cross-module reasoning"
+    commit_message = "feat: raw evidence — m09 time_series, m29 largest_files/type_summary, m18 scan_command/raw_output, m31 files_checked_detail/cbs_log_excerpt, m32 cmd_args, m39 inf_path/driver_files"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"

@@ -403,12 +403,23 @@ def _scan_protected_files(win_root: Path) -> dict:
     anomalous: List[dict] = []
     clean                 = 0
     driver_binaries: Set[str] = set()
+    files_checked_detail: List[dict] = []
 
     for fdef in _PROTECTED_FILES:
         relpath = fdef["path"]
         cat     = fdef["cat"]
         local   = win_root / relpath.replace("/", __import__("os").sep)
         ev      = _collect_file_evidence(local)
+
+        file_entry: dict = {
+            "path":              relpath,
+            "category":          cat,
+            "exists":            ev.get("exists", False),
+            "size_bytes":        ev.get("size_bytes"),
+            "modified":          ev.get("modified"),
+            "sha256":            ev.get("sha256"),
+            "anomalies":         [],
+        }
 
         if not ev["exists"]:
             if not fdef["optional"]:
@@ -417,6 +428,7 @@ def _scan_protected_files(win_root: Path) -> dict:
             if cat == "driver" and ev["exists"]:
                 driver_binaries.add(local.as_posix())
             anomalies = _check_file_anomalies(ev, relpath, cat)
+            file_entry["anomalies"] = anomalies
             if anomalies:
                 anomalous.append({
                     "path":      relpath,
@@ -430,13 +442,16 @@ def _scan_protected_files(win_root: Path) -> dict:
             else:
                 clean += 1
 
+        files_checked_detail.append(file_entry)
+
     return {
-        "checked":         len(_PROTECTED_FILES),
-        "missing":         missing,
-        "anomalous":       anomalous,
-        "clean":           clean,
-        "driver_binaries": driver_binaries,
-        "flags":           _pf_flags(missing, anomalous),
+        "checked":              len(_PROTECTED_FILES),
+        "missing":              missing,
+        "anomalous":            anomalous,
+        "clean":                clean,
+        "driver_binaries":      driver_binaries,
+        "flags":                _pf_flags(missing, anomalous),
+        "files_checked_detail": files_checked_detail,
     }
 
 
@@ -704,6 +719,24 @@ def _extract_cbs_affected_files(corruption_indicators: List[str]) -> List[str]:
                 seen.add(key)
                 files.append(path)
     return files[:20]
+
+
+_CBS_KW = re.compile(r"(corrupt|fail|error|cannot|invalid|damaged|missing)", re.IGNORECASE)
+
+
+def _read_cbs_log_excerpt(win_root: Path, max_lines: int = 200) -> str:
+    """Return up to max_lines corruption-relevant lines from CBS.log."""
+    cbs_log = win_root / "Logs" / "CBS" / "CBS.log"
+    if not cbs_log.exists():
+        return ""
+    for enc in ("utf-16", "utf-8-sig", "utf-8", "latin-1"):
+        try:
+            text  = cbs_log.read_text(encoding=enc, errors="replace")
+            lines = [ln.rstrip() for ln in text.splitlines() if _CBS_KW.search(ln)]
+            return "\n".join(lines[:max_lines])
+        except Exception:
+            continue
+    return "[CBS.log unreadable]"
 
 
 def _check_servicing(win_root: Path) -> dict:
@@ -2246,6 +2279,9 @@ def run(root: Path, argv: list) -> int:
               f"{svc_result['repair_attempts']} repairs, "
               f"{svc_result['failed_repairs']} failed")
 
+    print("[m31] Reading CBS.log excerpt ...")
+    cbs_log_excerpt = _read_cbs_log_excerpt(win_root)
+
     print("[m31] Checking pending operations ...")
     pend_result = _check_pending(win_root, hive_fns)
 
@@ -2326,6 +2362,9 @@ def run(root: Path, argv: list) -> int:
         "file_disk_correlation":       file_disk_corr,
         "tampering_indicators":        tampering_indicators,
         "cross_module_reasoning":      xmod_reasoning,
+        # Raw evidence
+        "files_checked_detail":        pf_result.get("files_checked_detail", []),
+        "cbs_log_excerpt":             cbs_log_excerpt,
         # Existing detail sections
         "protected_files_scan":        pf_result,
         "winsxs_findings":             winsxs_result,

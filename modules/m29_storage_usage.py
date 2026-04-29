@@ -17,9 +17,11 @@ Output:
 from __future__ import annotations
 
 import argparse
+import heapq
 import json
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -200,6 +202,131 @@ def _derive_verdict(stats: dict, temp_mb: float) -> str:
 
 
 # ---------------------------------------------------------------------------
+# New: largest files, file-type summary, growth indicators
+# ---------------------------------------------------------------------------
+
+_SKIP_DIRS = {"$recycle.bin", "system volume information", "$mft", "$extend"}
+_FILE_TOP_N = 25   # top N largest files to report
+_TYPE_DIRS  = ["Windows/System32", "Program Files", "Program Files (x86)", "Users"]
+
+
+def _collect_largest_files(
+    target: Path,
+    top_n: int = _FILE_TOP_N,
+    max_secs: float = 20.0,
+) -> list[dict]:
+    """Walk the partition and return the top_n largest files by size."""
+    deadline = time.monotonic() + max_secs
+    heap: list[tuple[int, str]] = []
+    truncated = False
+
+    try:
+        for root_str, dirs, files in os.walk(str(target), followlinks=False):
+            if time.monotonic() > deadline:
+                truncated = True
+                break
+            dirs[:] = [d for d in dirs if d.lower() not in _SKIP_DIRS]
+            for fn in files:
+                fp = Path(root_str) / fn
+                try:
+                    sz = fp.stat(follow_symlinks=False).st_size
+                except OSError:
+                    continue
+                if len(heap) < top_n:
+                    heapq.heappush(heap, (sz, str(fp.relative_to(target))))
+                elif sz > heap[0][0]:
+                    heapq.heapreplace(heap, (sz, str(fp.relative_to(target))))
+    except (PermissionError, OSError):
+        truncated = True
+
+    result = [
+        {"path": p, "size_mb": _mb(sz)}
+        for sz, p in sorted(heap, key=lambda t: -t[0])
+    ]
+    if truncated:
+        result.append({"note": "Walk truncated — some large files may not be listed"})
+    return result
+
+
+def _collect_file_type_summary(
+    target: Path,
+    sample_dirs: list[str],
+    max_secs: float = 20.0,
+) -> dict:
+    """Count files and total bytes by extension in key directories."""
+    deadline  = time.monotonic() + max_secs
+    ext_count: dict[str, int] = {}
+    ext_bytes: dict[str, int] = {}
+    truncated = False
+
+    for rel in sample_dirs:
+        walk_root = target / rel
+        if not walk_root.is_dir():
+            continue
+        try:
+            for root_str, dirs, files in os.walk(str(walk_root), followlinks=False):
+                if time.monotonic() > deadline:
+                    truncated = True
+                    break
+                dirs[:] = [d for d in dirs if d.lower() not in _SKIP_DIRS]
+                for fn in files:
+                    ext = Path(fn).suffix.lower() or "(none)"
+                    fp  = Path(root_str) / fn
+                    try:
+                        sz = fp.stat(follow_symlinks=False).st_size
+                    except OSError:
+                        sz = 0
+                    ext_count[ext] = ext_count.get(ext, 0) + 1
+                    ext_bytes[ext] = ext_bytes.get(ext, 0) + sz
+            if truncated:
+                break
+        except (PermissionError, OSError):
+            pass
+
+    top_types = sorted(
+        [
+            {"ext": ext, "count": ext_count[ext], "size_mb": _mb(ext_bytes.get(ext, 0))}
+            for ext in ext_count
+        ],
+        key=lambda x: -x["count"],
+    )[:30]
+
+    return {
+        "sampled_dirs":        sample_dirs,
+        "distinct_extensions": len(ext_count),
+        "top_types":           top_types,
+        "truncated":           truncated,
+    }
+
+
+def _collect_growth_indicators(
+    target: Path,
+    temp_dirs: list[dict],
+) -> list[dict]:
+    """Identify notable accumulation in temp/cache directories."""
+    indicators = []
+    for d in temp_dirs:
+        mb = d.get("size_mb", 0)
+        if mb < 10:
+            continue
+        if mb >= 2000:
+            severity, note = "high",   "Very large — significant disk waste"
+        elif mb >= 500:
+            severity, note = "medium", "Large — consider cleanup to free space"
+        elif mb >= 100:
+            severity, note = "low",    "Elevated — routine cleanup recommended"
+        else:
+            severity, note = "info",   "Minor accumulation"
+        indicators.append({
+            "path":     d["path"],
+            "size_mb":  mb,
+            "severity": severity,
+            "note":     note,
+        })
+    return sorted(indicators, key=lambda x: -x["size_mb"])
+
+
+# ---------------------------------------------------------------------------
 # Report formatting
 # ---------------------------------------------------------------------------
 
@@ -284,14 +411,25 @@ def run(root: Path, argv: list) -> int:
 
     verdict = _derive_verdict(stats, total_temp_mb)
 
+    print("[m29] Finding largest files (capped at 20s) ...", flush=True)
+    largest_files = _collect_largest_files(target)
+
+    print("[m29] Summarising file types in key directories ...", flush=True)
+    file_type_summary = _collect_file_type_summary(target, _TYPE_DIRS)
+
+    growth_indicators = _collect_growth_indicators(target, temp_dirs)
+
     report = {
-        "target":    str(target),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "partition": stats,
-        "verdict":   verdict,
-        "top_dirs":  top_dirs,
-        "temp_dirs": temp_dirs,
-        "total_temp_mb": total_temp_mb,
+        "target":             str(target),
+        "timestamp":          datetime.now(timezone.utc).isoformat(),
+        "partition":          stats,
+        "verdict":            verdict,
+        "top_dirs":           top_dirs,
+        "temp_dirs":          temp_dirs,
+        "total_temp_mb":      total_temp_mb,
+        "largest_files":      largest_files,
+        "file_type_summary":  file_type_summary,
+        "growth_indicators":  growth_indicators,
     }
 
     print()

@@ -130,6 +130,28 @@ def _age_flag(date_iso: Optional[str]) -> Optional[str]:
     return None
 
 
+def _parse_inf_source_files(text: str, max_entries: int = 50) -> List[str]:
+    """Return filenames listed under [SourceDisksFiles] (or variant) sections."""
+    results: List[str] = []
+    in_section = False
+    _sdf_re = re.compile(r"\[SourceDisksFiles", re.IGNORECASE)
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        stripped = re.sub(r"\s*;.*$", "", line)
+        if stripped.startswith("["):
+            in_section = bool(_sdf_re.match(stripped))
+            continue
+        if not in_section:
+            continue
+        if "=" in stripped:
+            fname = stripped.partition("=")[0].strip()
+            if fname:
+                results.append(fname)
+                if len(results) >= max_entries:
+                    break
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Main analysis
 # ---------------------------------------------------------------------------
@@ -170,14 +192,17 @@ def analyse(target: Path) -> dict:
 
         if inf_file is None:
             entry: dict = {
-                "folder":         folder_name,
-                "base_inf":       base_inf,
-                "inf_file":       None,
-                "provider":       None,
-                "class":          None,
-                "driver_date":    None,
-                "driver_version": None,
-                "flags":          ["no_inf_file"],
+                "folder":             folder_name,
+                "base_inf":           base_inf,
+                "inf_path":           None,
+                "inf_file":           None,
+                "provider":           None,
+                "class":              None,
+                "driver_date":        None,
+                "driver_version":     None,
+                "raw_version_section": {},
+                "driver_files":       [],
+                "flags":              ["no_inf_file"],
             }
             packages.append(entry)
             by_base[base_inf].append(entry)
@@ -189,6 +214,7 @@ def analyse(target: Path) -> dict:
             strings  = _parse_inf_strings(inf_text)
         except Exception as exc:
             limitations.append(f"INF parse error {folder_name}: {exc}")
+            inf_text = ""
             ver     = {}
             strings = {}
 
@@ -203,14 +229,17 @@ def analyse(target: Path) -> dict:
             flags.append(age)
 
         entry = {
-            "folder":         folder_name,
-            "base_inf":       base_inf,
-            "inf_file":       inf_file.name,
-            "provider":       provider,
-            "class":          drv_class,
-            "driver_date":    driver_date,
-            "driver_version": driver_version,
-            "flags":          flags,
+            "folder":             folder_name,
+            "base_inf":           base_inf,
+            "inf_path":           str(inf_file.relative_to(target)) if inf_file else None,
+            "inf_file":           inf_file.name,
+            "provider":           provider,
+            "class":              drv_class,
+            "driver_date":        driver_date,
+            "driver_version":     driver_version,
+            "raw_version_section": ver,
+            "driver_files":       _parse_inf_source_files(inf_text) if inf_text else [],
+            "flags":              flags,
         }
         packages.append(entry)
         by_base[base_inf].append(entry)
@@ -233,19 +262,22 @@ def analyse(target: Path) -> dict:
     oem_infs: List[dict] = []
     system_inf_dir = target / "Windows" / "inf"
     if system_inf_dir.is_dir():
-        for inf_path in sorted(system_inf_dir.glob("oem*.inf")):
+        for oem_inf_path in sorted(system_inf_dir.glob("oem*.inf")):
             try:
-                inf_text = _read_inf_text(inf_path)
+                inf_text = _read_inf_text(oem_inf_path)
                 ver      = _parse_inf_version(inf_text)
                 strings  = _parse_inf_strings(inf_text)
                 ddate, dver = _parse_driver_ver(ver.get("driverver", ""))
                 raw_prov = ver.get("provider", "")
                 oem_infs.append({
-                    "file":           inf_path.name,
-                    "provider":       _resolve_provider(raw_prov, strings) if raw_prov else None,
-                    "class":          ver.get("class") or None,
-                    "driver_date":    ddate,
-                    "driver_version": dver,
+                    "file":               oem_inf_path.name,
+                    "inf_path":           str(oem_inf_path.relative_to(target)),
+                    "provider":           _resolve_provider(raw_prov, strings) if raw_prov else None,
+                    "class":              ver.get("class") or None,
+                    "driver_date":        ddate,
+                    "driver_version":     dver,
+                    "raw_version_section": ver,
+                    "driver_files":       _parse_inf_source_files(inf_text),
                 })
             except Exception:
                 pass
