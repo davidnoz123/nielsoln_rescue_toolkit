@@ -646,7 +646,9 @@ def fetch_logs(local_dir: str = "logs") -> int:
         parts = line.split(None, 1)
         if len(parts) == 2:
             hash_, name = parts
-            remote[_pl.Path(name).name] = hash_
+            # Validate: md5sum hashes are exactly 32 lowercase hex chars
+            if len(hash_) == 32 and all(c in "0123456789abcdef" for c in hash_):
+                remote[_pl.Path(name).name] = hash_
 
     if not remote:
         print("No log files found on device.")
@@ -1236,7 +1238,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(devtools): fetch_logs writes directly to device subfolder; _validate_logs searches subfolders"
+    commit_message = "fix(devtools): filter relay startup noise from md5sum parser; validate hash is 32-char hex"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
