@@ -8,7 +8,7 @@
   "additionalProperties": true,
   "properties": {
     "timestamp":       { "type": "string", "description": "strftime %Y%m%d_%H%M%S (not ISO)" },
-    "verdict":         { "type": "string", "enum": ["HEALTHY", "WARM", "HOT", "CRITICAL"] },
+    "verdict":         { "type": "string", "enum": ["HEALTHY", "WARM", "HOT", "CRITICAL", "GOOD", "FAIR", "POOR", "UNKNOWN"] },
     "warnings":        { "type": "array", "items": { "type": "string" } },
     "recommendations": { "type": "array", "items": { "type": "string" } },
     "sensors_available": { "type": "boolean" },

@@ -845,8 +845,8 @@ FULL_MODULE_SEQUENCE = [
     ("m48_bad_sector_scan",             True,  []),
     ("m06_software_inventory",          True,  []),
     ("m07_service_analysis",            True,  []),
-    ("m09_thermal_health",              True,  []),
-    ("m15_upgrade_advisor",             True,  []),
+    ("m09_thermal_health",              False, []),
+    ("m15_upgrade_advisor",             False, []),
     # ── Users & event logs ──────────────────────────────────────────────────
     ("m23_logon_audit",                 True,  []),
     ("m01_persistence_scan",            True,  []),
@@ -1173,10 +1173,10 @@ def fetch_and_validate(logs_dir: str = "logs", organize: bool = True) -> int:
 
 def main() -> None:
     # ---- Toggle the action you want to run ----
-    action = "release"             # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
+    action = "release"            # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "feat(schema): cleanup pass — m48 run() report/console, thermal schema v2 fields, system_summary bad-sector/thermal v2, _index notes, fixtures"
+    commit_message = "fix(schema): thermal_health verdict enum += FAIR/GOOD/POOR/UNKNOWN; fix FULL_MODULE_SEQUENCE needs_target for m09/m15"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
@@ -1192,6 +1192,17 @@ def main() -> None:
     # --- run_all config ---
     run_all_target        = "/mnt/windows"
     run_all_skip_existing = False   # True = skip modules that already have a log on device
+    # Set to a list of (name, needs_target, extra_args) tuples to run only those modules;
+    # set to None to run FULL_MODULE_SEQUENCE.
+    run_all_custom_modules = [
+        # These modules find their own target internally — do NOT pass --target
+        ("m09_thermal_health",   False, []),
+        ("m15_upgrade_advisor",  False, []),
+        # Updated this session: new schema fields (source_module, interpretation, etc.)
+        ("m48_bad_sector_scan",  True,  []),
+        # Aggregate last — reads all other logs including the fresh ones above
+        ("m17_system_summary",   True,  []),
+    ]
 
     # ---------------------------------------------------
     if action == "release":
@@ -1207,7 +1218,8 @@ def main() -> None:
     elif action == "run_module_serial":
         run_module_serial(module_name, module_args)
     elif action == "run_all":
-        run_all(target=run_all_target, skip_existing=run_all_skip_existing)
+        run_all(target=run_all_target, skip_existing=run_all_skip_existing,
+                modules=run_all_custom_modules)
     elif action == "fetch_logs":
         fetch_logs()
     elif action == "organize_logs":
