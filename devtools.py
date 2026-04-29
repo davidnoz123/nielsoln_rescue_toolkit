@@ -591,23 +591,33 @@ def fetch_logs(local_dir: str = "logs") -> int:
 
     One SSH call retrieves all remote filenames + their MD5 hashes.
     Local files whose MD5 already matches are skipped (CACHED) — whether they
-    live at the flat logs/ root or inside any device subfolder.
+    live at the device subfolder or the flat logs/ root.
     Files that are new or whose content has changed are fetched (FETCH / UPDATE)
-    to the flat local_dir root (organize_device_logs moves them afterwards).
+    directly into the device-named subfolder (e.g. logs/ASUS_F5GL__Garnet__/).
+    If no subfolder exists yet (first run), files land in logs/ root and
+    organize_device_logs() will move them afterwards.
     Returns count of newly fetched / updated files.
     """
     import pathlib as _pl, hashlib as _hl, io as _io, contextlib as _cl
 
-    dest = _pl.Path(local_dir)
-    dest.mkdir(exist_ok=True)
+    base = _pl.Path(local_dir)
+    base.mkdir(exist_ok=True)
 
-    # Collect all local log files: flat root + every device subfolder
+    # Determine the fetch destination: use the existing named subfolder if
+    # present (subsequent runs), otherwise fall back to flat logs/ root
+    # (first run — organize_device_logs will sort them out after).
+    existing_subfolders = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
+    if existing_subfolders:
+        dest = max(existing_subfolders, key=lambda d: d.stat().st_mtime)
+    else:
+        dest = base
+
+    # Collect all local log files: device subfolder + flat root fallback
     def _local_candidates(fname: str):
         """Yield all local paths where this file might already live."""
         yield dest / fname
-        for sub in dest.iterdir():
-            if sub.is_dir():
-                yield sub / fname
+        if dest != base:
+            yield base / fname   # also check root for files from old runs
 
     def _local_md5(path: _pl.Path) -> str:
         h = _hl.md5()
@@ -1014,6 +1024,13 @@ def _validate_logs(logs_dir: str = "logs") -> int:
 
         local_files = sorted(logs_dir.glob(pat))
         if not local_files:
+            # Also search device subfolders (logs get moved there after organize)
+            for sub in sorted(logs_dir.iterdir()) if logs_dir.exists() else []:
+                if sub.is_dir():
+                    local_files = sorted(sub.glob(pat))
+                    if local_files:
+                        break
+        if not local_files:
             results[mod] = {"status": "MISSING", "file": None, "errors": []}
             continue
 
@@ -1219,7 +1236,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix(devtools): _read_device_info subfolder fallback; add fetch_validate_bundle action"
+    commit_message = "fix(devtools): fetch_logs writes directly to device subfolder; _validate_logs searches subfolders"
 
     # --- run_remote config ---
     remote_script = "_debug_computername.py"
