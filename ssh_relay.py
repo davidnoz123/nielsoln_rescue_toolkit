@@ -53,7 +53,7 @@ import time
 # Configuration (must match devtools.py)
 # ---------------------------------------------------------------------------
 
-HOST        = "192.168.20.4"
+HOST        = "192.168.20.5"
 PORT        = 22
 KEY         = r"C:\Users\david\.ssh\id_ed25519"
 RELAY_PORT  = 19022

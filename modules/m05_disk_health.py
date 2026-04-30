@@ -185,6 +185,85 @@ def _find_smartctl() -> str:
     return ""
 
 
+def _parse_raw_int(raw: str, attr_id: str = "") -> int:
+    """Extract the primary integer from a SMART raw value string.
+
+    Some drives encode extra data after the main count, e.g.:
+      Fujitsu Reported_Uncorrect (187): raw = '4711579189248'
+        — upper bytes are vendor counters; lower 4 bytes are the actual count.
+        0x000044B8_00000000 → lower 32 bits = 0 (no actual uncorrectable errors)
+      Reallocated_Sector_Ct (5): raw = '0 (2000 0)'
+        — only the leading integer matters.
+      Airflow_Temperature_Cel (190): raw = '31 (0 85 31 23 0)'
+        — leading integer is current °C.
+
+    For attribute 187 on Fujitsu drives the raw value is a packed 48-bit field;
+    extracting the low 32 bits gives the meaningful uncorrectable count.
+    For all other attributes, the leading integer in the raw string is used.
+    """
+    # Strip everything after first whitespace or parenthesis
+    primary = re.split(r"[\s(]", raw.strip())[0]
+    try:
+        val = int(primary)
+    except (ValueError, TypeError):
+        return 0
+
+    # Fujitsu packs ID 187 (Reported_Uncorrect) as a 48-bit vendor field.
+    # The actual media error count lives in the low 32 bits.
+    if attr_id == "187" and val > 0xFFFFFFFF:
+        return val & 0xFFFFFFFF
+
+    return val
+
+
+def _format_info_raw(raw: str, attr_id: str = "") -> str:
+    """Return a clean display string for an info attribute raw value.
+
+    Temperature attributes (190, 194) raw = '31 (0 85 31 23 0)' —
+    return 'XX °C' using just the leading integer.
+    All others: return as-is.
+    """
+    if attr_id in ("190", "194"):
+        primary = re.split(r"[\s(]", raw.strip())[0]
+        try:
+            return f"{int(primary)} °C"
+        except (ValueError, TypeError):
+            pass
+    return raw
+
+
+# The 6 attributes the operator specifically asked to capture
+_KEY_STAT_IDS = {
+    "5":   "Reallocated_Sector_Ct",
+    "197": "Current_Pending_Sector",
+    "198": "Offline_Uncorrectable",
+    "199": "UDMA_CRC_Error_Count",
+    "9":   "Power_On_Hours",
+    "194": "Temperature_Celsius",
+    "190": "Airflow_Temperature_Cel",   # fallback if 194 absent
+}
+
+
+def _extract_key_stats(attrs: dict[str, dict]) -> dict:
+    """Return the 6 key stats as {name: value} using parsed integers.
+
+    Temperature is reported under 'Temperature_Celsius' regardless of
+    whether the drive uses attribute 194 or 190.
+    """
+    out: dict = {}
+    for attr_id, label in _KEY_STAT_IDS.items():
+        if attr_id not in attrs:
+            continue
+        a = attrs[attr_id]
+        if attr_id in ("190", "194"):
+            # Both map to the same output key
+            if "Temperature_Celsius" not in out:
+                out["Temperature_Celsius"] = _parse_raw_int(a["raw"], attr_id)
+        else:
+            out[label] = _parse_raw_int(a["raw"], attr_id)
+    return out
+
+
 def _assess_device(name: str) -> dict:
     basics = _device_basics(name)
     dev_path = f"/dev/{name}"
@@ -195,6 +274,7 @@ def _assess_device(name: str) -> dict:
         "overall_verdict": "unknown",
         "critical_findings": [],
         "info": {},
+        "smartctl_key_stats": {},
         "raw_smart": {},
         "recommendation": "",
         "clone_urgency": "none",
@@ -207,6 +287,15 @@ def _assess_device(name: str) -> dict:
     if not smartctl or rc_h == -1:
         result["overall_verdict"] = "smartctl not available"
         result["recommendation"] = "Install smartmontools to assess disk health."
+        return result
+
+    # USB bridges: smartctl can't read SMART without a specific -d type flag.
+    # Detect this and mark gracefully rather than leaving verdict as 'unknown'.
+    _usb_bridge_msg = "Unknown USB bridge" in out_h or "specify device type" in out_h.lower()
+    if _usb_bridge_msg:
+        result["overall_verdict"] = "USB device — SMART not available"
+        result["recommendation"] = "USB bridge device — SMART passthrough not supported without -d flag."
+        result["note"] = "USB storage: SMART data not accessible via this bridge chip."
         return result
 
     result["smart_available"] = True
@@ -259,10 +348,7 @@ def _assess_device(name: str) -> dict:
         for attr_id, attr_name in _CRITICAL_ATTRS.items():
             if attr_id in attrs:
                 a = attrs[attr_id]
-                try:
-                    raw_val = int(re.sub(r"[^\d]", "", a["raw"]))
-                except (ValueError, TypeError):
-                    raw_val = 0
+                raw_val = _parse_raw_int(a["raw"], attr_id)
                 if raw_val > 0:
                     result["critical_findings"].append(
                         f"{a['name']} = {raw_val} (ID {attr_id})"
@@ -272,7 +358,10 @@ def _assess_device(name: str) -> dict:
         for attr_id, attr_name in _INFO_ATTRS.items():
             if attr_id in attrs:
                 a = attrs[attr_id]
-                result["info"][a["name"]] = a["raw"]
+                result["info"][a["name"]] = _format_info_raw(a["raw"], attr_id)
+
+        # Collect the 6 key stats the operator always wants to see
+        result["smartctl_key_stats"] = _extract_key_stats(attrs)
 
     # --- Derive verdict ---
     findings = result["critical_findings"]
@@ -329,7 +418,8 @@ def _fmt_report(devices: list[dict]) -> str:
         )
         if not d["smart_available"]:
             lines.append(f"       SMART : {d['overall_verdict']}")
-            lines.append(f"       Note  : {d['recommendation']}")
+            if d.get("note"):
+                lines.append(f"       Note  : {d['note']}")
             continue
 
         lines.append(f"       SMART overall : {d['overall_health']}")
@@ -337,6 +427,26 @@ def _fmt_report(devices: list[dict]) -> str:
 
         if d.get("note"):
             lines.append(f"       Note          : {d['note']}")
+
+        # Key SMART stats block (the 6 target attributes)
+        ks = d.get("smartctl_key_stats", {})
+        if ks:
+            lines.append("       Key SMART stats:")
+            _ks_order = [
+                "Reallocated_Sector_Ct",
+                "Current_Pending_Sector",
+                "Offline_Uncorrectable",
+                "UDMA_CRC_Error_Count",
+                "Power_On_Hours",
+                "Temperature_Celsius",
+            ]
+            for k in _ks_order:
+                if k in ks:
+                    lines.append(f"         {k:<30s}: {ks[k]}")
+            # Any extras not in the canonical order
+            for k, v in ks.items():
+                if k not in _ks_order:
+                    lines.append(f"         {k:<30s}: {v}")
 
         if d["info"]:
             for k, v in d["info"].items():

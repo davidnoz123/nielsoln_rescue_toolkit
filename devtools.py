@@ -48,7 +48,7 @@ import tempfile
 # Configuration — edit these before running
 # ---------------------------------------------------------------------------
 
-HOST        = "192.168.20.4"
+HOST        = "192.168.20.5"
 PORT        = 22
 KEY         = r"C:\Users\david\.ssh\id_ed25519"
 USB_PATH    = "/media/ubuntu/GRTMPVOL_EN/NIELSOLN_RESCUE_USB"
@@ -1238,25 +1238,26 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix: m10 battery_health — conservative DEAD verdict (remove capacity_pct==0 heuristic), battery_capacity_telemetry_unavailable limitation, UNKNOWN+Not-charging context in interpretation, AC name-prefix fallback for typeless drivers"
+    commit_message = "fix: ssh_relay HOST 192.168.20.5; m05 disk_health smartctl improvements (USB bridge detection, Fujitsu ID187 vendor encoding, temperature raw parsing, smartctl_key_stats JSON block)"
 
     # --- run_remote config ---
-    remote_script = "_debug_computername.py"
+    remote_script = "_smartctl_discover.py"
 
     # --- push_file config ---
     push_local  = "toolkit.py"
     push_subpath = ""               # "" = USB root
 
     # --- run_module / push_module config ---
-    module_name = "m48_bad_sector_scan"
-    module_args = ["--target", "/mnt/windows"]
+    module_name = "m05_disk_health"
+    module_args = []
 
     # --- run_all config ---
     run_all_target        = "/mnt/windows"
-    run_all_skip_existing = False   # True = skip modules that already have a log on device
+    run_all_skip_existing = True    # True = skip modules that already have a log on device
     # Set to a list of (name, needs_target, extra_args) tuples to run only those modules;
     # set to None to run FULL_MODULE_SEQUENCE.
-    run_all_custom_modules = [
+    run_all_custom_modules = None  # None = run FULL_MODULE_SEQUENCE
+    _run_all_custom_modules_example = [
         # These modules find their own target internally — do NOT pass --target
         ("m09_thermal_health",   False, []),
         ("m15_upgrade_advisor",  False, []),
