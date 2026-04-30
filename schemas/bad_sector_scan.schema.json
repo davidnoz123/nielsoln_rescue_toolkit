@@ -287,7 +287,7 @@
         "customer_summary":    { "type": ["string", "null"], "description": "Plain-English sentence suitable for a customer report" },
         "technician_summary":  { "type": ["string", "null"], "description": "More detailed diagnostic note for the technician" },
         "what_this_means":     { "type": ["string", "null"], "description": "Explanation of what this result means practically" },
-        "confidence":          { "type": ["string", "null"], "enum": ["high", "medium", "low", "unknown", null] },
+        "confidence":          { "type": ["string", "null"], "enum": ["high", "medium", "low", "unknown", "none", null] },
         "limitations":         { "type": "array", "items": { "type": "string" } },
         "recommended_action":  { "type": ["string", "null"] }
       }

@@ -603,21 +603,19 @@ def fetch_logs(local_dir: str = "logs") -> int:
     base = _pl.Path(local_dir)
     base.mkdir(exist_ok=True)
 
-    # Determine the fetch destination: use the existing named subfolder if
-    # present (subsequent runs), otherwise fall back to flat logs/ root
-    # (first run — organize_device_logs will sort them out after).
-    existing_subfolders = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
-    if existing_subfolders:
-        dest = max(existing_subfolders, key=lambda d: d.stat().st_mtime)
-    else:
-        dest = base
+    # Always fetch new files into the flat logs/ root.  organize_device_logs()
+    # will then route each file to the correct device subfolder based on the
+    # embedded _device.device_id block.  This prevents new-device logs from
+    # being silently dropped into the wrong existing subfolder.
+    dest = base
 
-    # Collect all local log files: device subfolder + flat root fallback
+    # Collect all local log files: flat root + every device subfolder
     def _local_candidates(fname: str):
         """Yield all local paths where this file might already live."""
-        yield dest / fname
-        if dest != base:
-            yield base / fname   # also check root for files from old runs
+        yield base / fname   # flat root
+        for _sub in (base.iterdir() if base.exists() else []):
+            if _sub.is_dir():
+                yield _sub / fname
 
     def _local_md5(path: _pl.Path) -> str:
         h = _hl.md5()
@@ -690,7 +688,7 @@ def fetch_logs(local_dir: str = "logs") -> int:
 # ---------------------------------------------------------------------------
 
 # Maps NT major.minor version → friendly OS name
-_NT_VERSION_MAP = {
+_NT_VERSION_MAP = {  # noqa: E501
     "5.0": "Win2000", "5.1": "WinXP", "5.2": "WinXP64",
     "6.0": "Vista",   "6.1": "Win7",  "6.2": "Win8",
     "6.3": "Win8.1",  "10.0": "Win10",
@@ -718,9 +716,13 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
     registered_owner, computer_name.
     Any key may be absent if the source log was not found.
 
-    Falls back to existing device subfolders when logs_dir root has no
-    hardware_profile or os_profile files (happens after organize_device_logs
-    has already moved files into a named subfolder).
+    Priority order:
+    1. ``_device`` block embedded in any log file in logs_dir root
+       (injected by bootstrap.py at scan time — most reliable).
+    2. hardware_profile_*.json in logs_dir root.
+    3. os_profile_*.json in logs_dir root.
+    4. Falls back to the most-recently modified device subfolder when
+       logs_dir root has no relevant files (logs already organised).
     """
     import pathlib as _pl, json as _json
     base = _pl.Path(logs_dir)
@@ -731,29 +733,46 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
         hits = sorted(base.glob(pattern), reverse=True)
         if hits:
             return hits
-        # Fallback: look inside existing device subfolders
         subfolders = [d for d in base.iterdir() if d.is_dir()] if base.exists() else []
         if subfolders:
             newest = max(subfolders, key=lambda d: d.stat().st_mtime)
             hits = sorted(newest.glob(pattern), reverse=True)
         return hits
 
-    # hardware_profile → manufacturer / model / serial
+    # 1. Prefer _device block embedded in log files (injected by bootstrap.py).
+    for _f in sorted(base.glob("*.json"), reverse=True):
+        try:
+            _d = _json.loads(_f.read_text(encoding="utf-8", errors="replace"))
+            _blk = _d.get("_device")
+            if _blk and _blk.get("device_id"):
+                if _blk.get("manufacturer"):
+                    info.setdefault("manufacturer", _blk["manufacturer"])
+                if _blk.get("model"):
+                    info.setdefault("model", _blk["model"])
+                if _blk.get("serial"):
+                    info.setdefault("serial", _blk["serial"])
+                if _blk.get("computer_name"):
+                    info.setdefault("computer_name", _blk["computer_name"])
+                break
+        except Exception:
+            pass
+
+    # 2. hardware_profile → manufacturer / model / serial
     hw_files = _find_logs("hardware_profile_*.json")
     if hw_files:
         try:
             d = _json.loads(hw_files[0].read_text(encoding="utf-8", errors="replace"))
             sys_block = d.get("system", {})
             if sys_block.get("manufacturer"):
-                info["manufacturer"] = sys_block["manufacturer"]
+                info.setdefault("manufacturer", sys_block["manufacturer"])
             if sys_block.get("product_name"):
-                info["model"] = sys_block["product_name"]
+                info.setdefault("model", sys_block["product_name"])
             if sys_block.get("serial_number"):
-                info["serial"] = sys_block["serial_number"]
+                info.setdefault("serial", sys_block["serial_number"])
         except Exception:
             pass
 
-    # os_profile → OS name / version / owner / computer name
+    # 3. os_profile → OS name / version / owner / computer name
     os_files = _find_logs("os_profile_*.json")
     if os_files:
         try:
@@ -762,42 +781,36 @@ def _read_device_info(logs_dir: str = "logs") -> dict:
             product = os_block.get("product_name", "")
             version  = os_block.get("version", "")
             if product and product not in ("unknown", ""):
-                # Strip edition noise: "Windows Vista Home Premium" → "Vista"
                 for token in ("Home Premium", "Home Basic", "Ultimate",
                               "Professional", "Enterprise", "Starter",
                               "Service Pack", "SP1", "SP2", "SP3",
                               "32-bit", "64-bit", "Windows"):
                     product = product.replace(token, "").strip()
-                # Strip trademark/registered symbols
                 product = product.replace("™", "").replace("®", "")
                 product = product.replace("(TM)", "").replace("(R)", "").strip()
-                info["os_name"] = product.strip()
+                info.setdefault("os_name", product.strip())
             elif version and version not in ("unknown", ""):
                 major_minor = ".".join(version.split(".")[:2])
-                info["os_name"] = _NT_VERSION_MAP.get(major_minor, f"NT{major_minor}")
+                info.setdefault("os_name", _NT_VERSION_MAP.get(major_minor, f"NT{major_minor}"))
             owner = os_block.get("registered_owner", "")
             if owner and owner not in ("unknown", ""):
-                info["registered_owner"] = owner
+                info.setdefault("registered_owner", owner)
             cn = os_block.get("computer_name", "")
             if cn and cn not in ("unknown", ""):
-                info["computer_name"] = cn
+                info.setdefault("computer_name", cn)
         except Exception:
             pass
 
     return info
 
 
-def device_label(logs_dir: str = "logs") -> str:
-    """Generate a filesystem-safe label for a device based on its local logs.
+def _label_from_info(info: dict) -> str:
+    """Convert a device info dict to a filesystem-safe folder label.
 
     Format: {Mfr}_{Model}__{Owner}__{PCName}__{OS}__{serial_suffix}
-    Example: ASUS_F5GL__GarnetTregonning__GARNET-PC__Vista__960013
-
-    Owner and PCName are omitted if not available.
-    Falls back gracefully to whatever fields are available.
+    Example: ASUS_F5GL__GarnetTregonning__Garnet_PC__Vista__960013
     """
     import re as _re
-    info = _read_device_info(logs_dir)
 
     def slug(s: str) -> str:
         return _re.sub(r"[^A-Za-z0-9]+", "_", s.strip()).strip("_")
@@ -814,10 +827,8 @@ def device_label(logs_dir: str = "logs") -> str:
     serial = info.get("serial", "")
     serial_suffix = serial[-6:] if len(serial) >= 6 else serial
 
-    # Owner: "Garnet Tregonning" → "GarnetTregonning" (no separators between words)
     owner_raw = info.get("registered_owner", "")
-    owner_str = _re.sub(r"[^A-Za-z0-9]", "", owner_raw)  # strip all non-alphanumeric
-
+    owner_str = _re.sub(r"[^A-Za-z0-9]", "", owner_raw)
     pc_name = slug(info.get("computer_name", ""))
 
     hw_part     = f"{mfr}_{model}"
@@ -829,32 +840,118 @@ def device_label(logs_dir: str = "logs") -> str:
     return f"{hw_part}{owner_part}{pc_part}{os_part}{serial_part}"
 
 
+def device_label(logs_dir: str = "logs") -> str:
+    """Generate a filesystem-safe label for a device based on its local logs."""
+    return _label_from_info(_read_device_info(logs_dir))
+
+
 def organize_device_logs(logs_dir: str = "logs") -> str:
-    """Move all log files in logs_dir into a named device subfolder.
+    """Move flat log files in logs_dir into device-named subfolders.
 
-    Reads hardware_profile and os_profile logs to build the folder name, then
-    moves every .json/.jsonl file found at the top level of logs_dir into
-    logs_dir/{device_label}/.
+    Each log file is inspected for a ``_device.device_id`` field injected by
+    bootstrap.py at scan time.  Files with the same device_id are routed to
+    the same subfolder, ensuring logs from different devices are NEVER mixed.
 
-    Returns the path to the device subfolder.
+    Files that pre-date the identity injection (no ``_device`` key) are
+    grouped together and labeled using the old hardware_profile / os_profile
+    inference for backward compatibility.
+
+    Returns the path to the most-recently touched device subfolder.
     """
-    import pathlib as _pl, shutil as _shutil
-    base  = _pl.Path(logs_dir)
-    label = device_label(logs_dir)
-    dest  = base / label
-    dest.mkdir(parents=True, exist_ok=True)
+    import pathlib as _pl, shutil as _shutil, json as _json, collections as _coll
+    base = _pl.Path(logs_dir)
 
-    moved = 0
-    for f in sorted(base.glob("*.json")) + sorted(base.glob("*.jsonl")):
-        target = dest / f.name
-        if not target.exists():
-            _shutil.move(str(f), str(target))
-            moved += 1
+    def _read_device_block(path: _pl.Path) -> dict:
+        """Return the ``_device`` dict from a log file, or {}."""
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if path.suffix == ".json":
+                return _json.loads(text).get("_device") or {}
+            if path.suffix == ".jsonl":
+                for line in text.splitlines():
+                    stripped = line.strip()
+                    if stripped:
+                        return _json.loads(stripped).get("_device") or {}
+        except Exception:
+            pass
+        return {}
+
+    # --- Group flat log files by device_id (None = legacy, no _device block) --
+    groups: dict = _coll.defaultdict(list)   # device_id_or_None → [Path]
+    dev_blocks: dict = {}                     # device_id → first _device block seen
+
+    flat_files = sorted(base.glob("*.json")) + sorted(base.glob("*.jsonl"))
+    for f in flat_files:
+        blk = _read_device_block(f)
+        did = blk.get("device_id")
+        groups[did].append(f)
+        if did and did not in dev_blocks:
+            dev_blocks[did] = blk
+
+    if not groups:
+        print(f"Organized 0 file(s) (no flat logs to move)")
+        return str(base)
+
+    last_dest = str(base)
+    total_moved = 0
+
+    for did, files in sorted(groups.items(), key=lambda x: (x[0] is None, x[0] or "")):
+
+        # ── Build the info dict for label generation ────────────────────────
+        if did and did in dev_blocks:
+            blk = dev_blocks[did]
+            info: dict = {
+                "manufacturer": blk.get("manufacturer", ""),
+                "model":        blk.get("model", ""),
+                "serial":       blk.get("serial", ""),
+                "computer_name": blk.get("computer_name", ""),
+            }
+            # Augment with os_name / registered_owner from os_profile in this group
+            op = sorted([f for f in files if f.name.startswith("os_profile_")], reverse=True)
+            if op:
+                try:
+                    d = _json.loads(op[0].read_text(encoding="utf-8", errors="replace"))
+                    ob = d.get("os", {})
+                    prod = ob.get("product_name", "")
+                    if prod and prod not in ("unknown", ""):
+                        for _tok in ("Home Premium", "Home Basic", "Ultimate",
+                                     "Professional", "Enterprise", "Starter",
+                                     "Service Pack", "SP1", "SP2", "SP3",
+                                     "32-bit", "64-bit", "Windows"):
+                            prod = prod.replace(_tok, "").strip()
+                        prod = prod.replace("™", "").replace("®", "").replace("(TM)", "").replace("(R)", "").strip()
+                        if prod:
+                            info["os_name"] = prod
+                    if not info.get("os_name"):
+                        ver = ob.get("version", "")
+                        if ver:
+                            mm = ".".join(ver.split(".")[:2])
+                            info["os_name"] = _NT_VERSION_MAP.get(mm, f"NT{mm}")
+                    own = ob.get("registered_owner", "")
+                    if own and own not in ("unknown", ""):
+                        info["registered_owner"] = own
+                except Exception:
+                    pass
+            label = _label_from_info(info)
         else:
-            f.unlink()   # duplicate — already in dest
+            # Legacy files without _device: infer from hardware_profile / os_profile
+            label = device_label(logs_dir)
 
-    print(f"Organized {moved} file(s) → {dest}")
-    return str(dest)
+        dest = base / label
+        dest.mkdir(parents=True, exist_ok=True)
+        moved = 0
+        for f in files:
+            tgt = dest / f.name
+            if not tgt.exists():
+                _shutil.move(str(f), str(tgt))
+                moved += 1
+            else:
+                f.unlink()   # duplicate already in dest
+        total_moved += moved
+        last_dest = str(dest)
+
+    print(f"Organized {total_moved} file(s) → {_pl.Path(last_dest).name}")
+    return last_dest
 
 
 # ---------------------------------------------------------------------------
@@ -1238,7 +1335,7 @@ def main() -> None:
     action = "release"  # "release" | "run_remote" | "push_file" | "push_module" | "run_module" | "run_module_serial" | "run_all" | "fetch_logs" | "organize_logs" | "fetch_and_validate" | "fetch_validate_bundle" | "bundle_chatgpt" | "setup_ssh_agent" | "relay" | "relay_status" | "ssh_test"
 
     # --- release config ---
-    commit_message = "fix: ssh_relay HOST 192.168.20.5; m05 disk_health smartctl improvements (USB bridge detection, Fujitsu ID187 vendor encoding, temperature raw parsing, smartctl_key_stats JSON block)"
+    commit_message = "feat: embed _device identity block in every log file (bootstrap inject + toolkit get_device_identity/inject_device_id); organize_device_logs groups by device_id to prevent cross-device mixing"
 
     # --- run_remote config ---
     remote_script = "_smartctl_discover.py"
@@ -1253,7 +1350,7 @@ def main() -> None:
 
     # --- run_all config ---
     run_all_target        = "/mnt/windows"
-    run_all_skip_existing = True    # True = skip modules that already have a log on device
+    run_all_skip_existing = True   # False = re-run all modules to embed _device identity
     # Set to a list of (name, needs_target, extra_args) tuples to run only those modules;
     # set to None to run FULL_MODULE_SEQUENCE.
     run_all_custom_modules = None  # None = run FULL_MODULE_SEQUENCE

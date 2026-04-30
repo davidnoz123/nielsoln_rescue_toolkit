@@ -204,6 +204,28 @@ def main() -> int:
         # Strip a leading '--' separator if the user wrote: bootstrap run <name> -- --flag
         if module_argv and module_argv[0] == "--":
             module_argv = module_argv[1:]
+
+        # --- Device identity: resolve Windows target from module argv --------
+        # Parse --target / -t from the module's own argv.  Modules that scan
+        # live hardware (e.g. m05_disk_health) don't pass --target; for those
+        # we auto-detect via find_windows_target() so the computer name can
+        # still be included in the identity when the target drive is mounted.
+        _target_for_id = None
+        for _i, _a in enumerate(module_argv):
+            if _a in ("--target", "-t") and _i + 1 < len(module_argv):
+                _target_for_id = Path(module_argv[_i + 1])
+                break
+        if _target_for_id is None:
+            from toolkit import find_windows_target as _fwt
+            _target_for_id = _fwt()
+
+        from toolkit import get_device_identity, inject_device_id
+        _device_identity = get_device_identity(_target_for_id)
+        _logs_dir = root / "logs"
+        _logs_dir.mkdir(parents=True, exist_ok=True)
+        _pre_snap = set(_logs_dir.glob("*.json")) | set(_logs_dir.glob("*.jsonl"))
+        # -------------------------------------------------------------------
+
         try:
             acquire_run_lock(root, f"run {args.name}")
         except RuntimeError as exc:
@@ -215,7 +237,11 @@ def main() -> int:
             except (FileNotFoundError, ImportError) as exc:
                 print(f"ERROR: {exc}", file=sys.stderr)
                 return 1
-            return mod.run(root, module_argv)
+            _rc = mod.run(root, module_argv)
+            # Inject _device identity block into every new log file written
+            # by the module so logs are always self-identifying.
+            inject_device_id(_logs_dir, _pre_snap, _device_identity)
+            return _rc
         finally:
             release_run_lock(root)
 

@@ -445,6 +445,139 @@ def find_windows_target():
     return None
 
 
+# ---------------------------------------------------------------------------
+# Device identity — embed in every log file so logs are always traceable
+# ---------------------------------------------------------------------------
+
+def get_device_identity(target=None) -> dict:
+    """Return a stable device identity dict for embedding in every log file.
+
+    Reads hardware serial / manufacturer / model from DMI sysfs (the physical
+    machine being rescued) and, when *target* is a mounted Windows path, also
+    reads the computer name from the Windows SYSTEM registry hive.
+
+    Returns a dict suitable for embedding as ``_device`` in log JSON:
+        device_id     -- 8-hex-char SHA-256 digest of serial|computer_name
+        serial        -- DMI product_serial
+        manufacturer  -- DMI sys_vendor
+        model         -- DMI product_name
+        computer_name -- Windows computer name (empty string if unavailable)
+
+    All values are plain strings; the dict is safe to serialise as JSON.
+    On non-Linux hosts (dev machine) DMI reads return empty strings and
+    device_id is a hash of empty strings — this is harmless because injection
+    only runs on the device inside ``bootstrap.py run``.
+    """
+
+    def _dmi(field: str) -> str:
+        try:
+            return Path(f"/sys/class/dmi/id/{field}").read_text(errors="replace").strip()
+        except Exception:
+            return ""
+
+    serial       = _dmi("product_serial")
+    manufacturer = _dmi("sys_vendor")
+    model        = _dmi("product_name")
+    computer_name = ""
+
+    if target:
+        _t = Path(target)
+        try:
+            import importlib.util as _ilu
+            _spec = _ilu.spec_from_file_location(
+                "_nrt_m26_tmp",
+                Path(__file__).parent / "modules" / "m26_os_profile.py",
+            )
+            if _spec and _spec.loader:
+                _m26 = _ilu.module_from_spec(_spec)
+                _spec.loader.exec_module(_m26)  # type: ignore[attr-defined]
+                _hive = _m26._open_hive(_t, "Windows/System32/config/SYSTEM")
+                if _hive:
+                    for _ccs in ("ControlSet001", "ControlSet002", "CurrentControlSet"):
+                        _cn = _m26._q(
+                            _hive,
+                            f"{_ccs}\\Services\\Tcpip\\Parameters",
+                            "Hostname", "",
+                        )
+                        if not _cn:
+                            _cn = _m26._q(
+                                _hive,
+                                f"{_ccs}\\Control\\ComputerName\\ComputerName",
+                                "ComputerName", "",
+                            )
+                        if _cn and str(_cn) not in ("", "unknown"):
+                            computer_name = str(_cn)
+                            break
+        except Exception:
+            pass  # Non-fatal — fall back to serial-only identity
+
+    # Stable device_id: SHA-256 of "serial|computer_name".
+    # If the serial is a placeholder, incorporate manufacturer+model so that
+    # different devices with unknown serials still get distinct IDs.
+    _BLANK_SERIALS = {"", "to be filled by o.e.m.", "n/a", "none",
+                      "not specified", "default string", "chassis serial number"}
+    if serial.lower() in _BLANK_SERIALS:
+        id_source = f"{manufacturer}_{model}|{computer_name}"
+    else:
+        id_source = f"{serial}|{computer_name}"
+    device_id = hashlib.sha256(id_source.encode("utf-8")).hexdigest()[:8]
+
+    return {
+        "device_id":    device_id,
+        "serial":       serial,
+        "manufacturer": manufacturer,
+        "model":        model,
+        "computer_name": computer_name,
+    }
+
+
+def inject_device_id(logs_dir: Path, pre_snapshot: set, identity: dict) -> None:
+    """Post-process new log files to embed a ``_device`` identity block.
+
+    Scans *logs_dir* for .json/.jsonl files not present in *pre_snapshot* and
+    injects *identity* as ``_device`` into each:
+    * ``.json``  → top-level ``"_device"`` key added to the root dict.
+    * ``.jsonl`` → ``"_device"`` key added to every individual record line.
+
+    Never raises — failures are silently ignored so a module run is never
+    aborted due to identity injection errors.
+    """
+    try:
+        current = set(logs_dir.glob("*.json")) | set(logs_dir.glob("*.jsonl"))
+    except Exception:
+        return
+
+    new_files = current - pre_snapshot
+    for path in sorted(new_files):
+        try:
+            if path.suffix == ".json":
+                data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+                if "_device" not in data:
+                    data["_device"] = identity
+                    path.write_text(
+                        json.dumps(data, indent=2, ensure_ascii=False),
+                        encoding="utf-8",
+                    )
+            elif path.suffix == ".jsonl":
+                lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+                out_lines = []
+                for line in lines:
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    try:
+                        obj = json.loads(stripped)
+                        if "_device" not in obj:
+                            obj["_device"] = identity
+                        out_lines.append(json.dumps(obj, ensure_ascii=False))
+                    except Exception:
+                        out_lines.append(stripped)
+                if out_lines:
+                    path.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
+        except Exception:
+            pass  # Never fail a module run due to injection errors
+
+
 def run_scan(
     root: Path = None,
     target: Path = None,
